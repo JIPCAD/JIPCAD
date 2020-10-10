@@ -72,24 +72,10 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionNew"/>
-   <addaction name="actionOpen"/>
-   <addaction name="actionReload"/>
-   <addaction name="actionSave"/>
-   <addaction name="actionExit"/>
-   <addaction name="separator"/>
-   <addaction name="actionPoint"/>
-   <addaction name="actionInstance"/>
-   <addaction name="actionMerge"/>
-   <addaction name="actionSubdivide"/>
-   <addaction name="separator"/>
    <addaction name="actionAddFace"/>
    <addaction name="actionAddPolyline"/>
    <addaction name="actionResetTempMesh"/>
    <addaction name="actionCommitTempMesh"/>
-   <addaction name="separator"/>
-   <addaction name="actionAbout"/>
-   <addaction name="actionAboutQt"/>
   </widget>
   <action name="actionNew">
    <property name="text">
