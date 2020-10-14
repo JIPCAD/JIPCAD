@@ -72,6 +72,7 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionPoint"/>
    <addaction name="actionAddFace"/>
    <addaction name="actionAddPolyline"/>
    <addaction name="actionResetTempMesh"/>

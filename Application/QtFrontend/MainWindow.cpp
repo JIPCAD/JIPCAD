@@ -201,7 +201,12 @@ void CMainWindow::on_actionSubdivide_triggered()
     
 }
 
-void CMainWindow::on_actionPoint_triggered() { }
+void CMainWindow::on_actionPoint_triggered() { 
+    Scene::CSceneTreeNode* node;
+    const auto& verts = Nome3DView->GetSelectedVertices();
+    TemporaryMeshManager->AddFace(verts);
+    Nome3DView->ClearSelectedVertices(); 
+}
 
 void CMainWindow::on_actionInstance_triggered() { }
 
