@@ -63,17 +63,18 @@ void CTemporaryMeshManager::AddFace(const std::vector<std::string>& facePoints)
 
 void CTemporaryMeshManager::AddPolyline(const std::vector<std::string>& facePoints)
 {
-    std::vector<std::string> currPoints =  std::vector<std::string>(facePoints.begin() + polyline_prev_num_points, facePoints.end());
+    std::vector<std::string> currPoints =
+        std::vector<std::string>(facePoints.begin() + polyline_prev_num_points, facePoints.end());
     CSceneNode* TempPolylineNode = nullptr;
     if (!TempPolylineNode)
         TempPolylineNode = Scene->GetRootNode()->CreateChildNode("__tempPolylineNode"
-                                                          + std::to_string(num_polylines));
+                                                                 + std::to_string(num_polylines));
     else
         TempPolylineNode->SetEntity(nullptr);
-    
-    TempPolyline = new CPolyline("__tempPolyline." + std::to_string(num_polylines)); 
+
+    TempPolyline = new CPolyline("__tempPolyline." + std::to_string(num_polylines));
     TempPolylineNode->SetEntity(TempPolyline);
-    TempPolyline->SetPointSourceNames(Scene, currPoints); 
+    TempPolyline->SetPointSourceNames(Scene, currPoints);
     TempPolyline->SetClosed(false); // Hardcoding the closed bool to true. Change in the future.
     num_polylines += 1;
     polyline_prev_num_points += currPoints.size();
@@ -109,7 +110,7 @@ void CTemporaryMeshManager::AddPoint(std::vector<std::string> pos)
     // tempName.push_back("Points");
     // TAutoPtr<CPoint> point = new CPoint(entityNamePrefix + pointName);
     // point->SetPointSourceNames(Scene, tempName);
-    //Scene->AddEntity(tc::static_pointer_cast<CEntity>(point));
+    // Scene->AddEntity(tc::static_pointer_cast<CEntity>(point));
 }
 
 }

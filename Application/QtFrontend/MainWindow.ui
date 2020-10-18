@@ -70,8 +70,9 @@
     <enum>TopToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
-    <bool>false</bool>
+    <bool>True</bool>
    </attribute>
+   <addaction name="actionOpen"/>
    <addaction name="actionPoint"/>
    <addaction name="actionAddFace"/>
    <addaction name="actionAddPolyline"/>

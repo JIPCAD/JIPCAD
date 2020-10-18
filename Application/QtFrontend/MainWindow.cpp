@@ -16,10 +16,10 @@
 #include <QPushButton>
 #include <QSettings>
 #include <QSlider>
+#include <QTableWidget>
 #include <QToolBar>
 #include <QVBoxLayout>
 #include <StringPrintf.h>
-#include <QTableWidget>
 namespace Nome
 {
 
@@ -220,34 +220,28 @@ void CMainWindow::on_actionSubdivide_triggered()
 void CMainWindow::on_actionPoint_triggered()
 {
     auto* dialog = new QDialog(GFrtCtx->MainWindow);
+    dialog->setModal(true);
     auto* layout1 = new QHBoxLayout(dialog);
     auto* table = new QTableWidget();
-    QLabel *xLabel = new QLabel(tr("X: "));
-    QLabel *yLabel = new QLabel(tr("Y: "));
-    QLabel *zLabel = new QLabel(tr("Z: "));
-    QLineEdit *xinput = new QLineEdit("");
-    QLineEdit *yinput = new QLineEdit("");
-    QLineEdit *zinput = new QLineEdit("");
-    layout1->addWidget(xLabel);
-    layout1->addWidget(xinput);
-    layout1->addWidget(yLabel);
-    layout1->addWidget(yinput);
-    layout1->addWidget(zLabel);
-    layout1->addWidget(zinput);
+    const char* xyz[3] = { "X: ", "Y: ", "Z: " };
+    std::vector<QLineEdit*> getLines;
+    for (auto* s : xyz)
+    {
+        QLabel* tempLabel = new QLabel(tr(s));
+        QLineEdit* tempInput = new QLineEdit("");
+        layout1->addWidget(tempLabel);
+        layout1->addWidget(tempInput);
+        getLines.push_back(tempInput);
+    }
     auto* layout2 = new QVBoxLayout();
     auto* btnOk = new QPushButton();
     btnOk->setText("OK");
-    connect(btnOk, &QPushButton::clicked, [this, dialog, xinput, yinput, zinput]() {
-        QString x = xinput->text();
-        QString y = yinput->text();
-        QString z = zinput->text();
+    connect(btnOk, &QPushButton::clicked, [this, dialog, getLines]() {
         std::vector<std::string> pos;
-        pos.push_back(x.toStdString().c_str());
-        pos.push_back(y.toStdString().c_str());
-        pos.push_back(z.toStdString().c_str());
-        // qDebug("Entered name: %s", x.toStdString().c_str());
-        // qDebug("Entered name: %s", y.toStdString().c_str());
-        // qDebug("Entered name: %s", z.toStdString().c_str());
+        for (auto* getline : getLines)
+        {
+            pos.push_back(getline->text().toStdString().c_str());
+        }
         TemporaryMeshManager->AddPoint(pos);
         dialog->close();
     });
