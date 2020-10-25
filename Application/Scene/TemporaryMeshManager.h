@@ -36,12 +36,14 @@ private:
 
     CMesh* TempMesh = nullptr;
     CPolyline* TempPolyline = nullptr; 
-    CPoint* TempPoint = nullptr; 
+    CPolyline* TempPolylinePoint = nullptr;
+    CPoint* TempPoint1 = nullptr;
 
     CSceneNode* TempMeshNode = nullptr;
     CSceneNode* TempPolylineNode = nullptr;
-    CPoint* TempPointNode = nullptr;
-    
+    CSceneNode* TempPointNode = nullptr;
+    CSceneNode* TempPolylinePointNode = nullptr;
+
     unsigned int FaceCounter = 0;
     unsigned int num_polylines = 0;
     unsigned int num_points = 0;

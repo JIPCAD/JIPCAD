@@ -219,6 +219,9 @@ void CMainWindow::on_actionSubdivide_triggered()
 
 void CMainWindow::on_actionPoint_triggered()
 {
+    std::vector<std::string> pos;
+    TemporaryMeshManager->AddPoint(pos);
+    
     auto* dialog = new QDialog(GFrtCtx->MainWindow);
     dialog->setModal(true);
     auto* layout1 = new QHBoxLayout(dialog);
