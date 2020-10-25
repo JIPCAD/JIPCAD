@@ -40,6 +40,7 @@ private:
 
     CSceneNode* TempMeshNode = nullptr;
     CSceneNode* TempPolylineNode = nullptr;
+    CSceneNode* TempPointNode = nullptr;
     CSceneNode* TempPolylinePointNode = nullptr;
 
     unsigned int FaceCounter = 0;
