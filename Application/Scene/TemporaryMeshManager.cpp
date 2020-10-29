@@ -22,7 +22,7 @@ void CTemporaryMeshManager::ResetTemporaryMesh()
         TempPolylineNode->SetEntity(nullptr);
 
     if (!TempPointNode)
-        TempPointNode = Scene->GetRootNode()->CreateChildNode("__tempPolylinePointNode");
+        TempPointNode = Scene->GetRootNode()->CreateChildNode("__tempPointNode");
     else
         TempPointNode->SetEntity(nullptr);
 
@@ -40,7 +40,7 @@ void CTemporaryMeshManager::ResetTemporaryMesh()
     TempPolyline = new CPolyline("__tempPolyline");
     Scene->AddEntity(TempPolyline);
     num_polylines = 0;
-
+    
     Scene->RemoveEntity("__tempPolylinePoint", true);
     TempPolylinePoint = new CPolyline("__tempPolylinePoint");
     Scene->AddEntity(TempPolylinePoint);
@@ -111,15 +111,14 @@ void CTemporaryMeshManager::AddPoint(std::vector<std::string> pos)
     std::vector<std::string> points = { pointName };
     CSceneNode* TempPolylineNode = nullptr;
     if (!TempPolylineNode)
-        TempPolylineNode = Scene->GetRootNode()->CreateChildNode("__tempPolylineNode"
-                                                                 + std::to_string(num_points));
+        TempPolylineNode = Scene->GetRootNode()->CreateChildNode("__tempPolylineNode" + std::to_string(num_points));
     else
         TempPolylineNode->SetEntity(nullptr);
 
-    TempPolyline = new CPolyline("__tempPolylinePointNode." + std::to_string(num_points));
-    TempPolylineNode->SetEntity(TempPolyline);
-    TempPolyline->SetPointSourceNames(Scene, points);
-    TempPolyline->SetClosed(false);
+    TempPolylinePoint = new CPolyline("__tempPolylinePointNode." + std::to_string(num_points));
+    TempPolylineNode->SetEntity(TempPolylinePoint);
+    TempPolylinePoint->SetPointSourceNames(Scene, points);
+    TempPolylinePoint->SetClosed(false);
     num_points += 1;
 }
 
