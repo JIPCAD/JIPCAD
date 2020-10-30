@@ -111,7 +111,7 @@ void CTemporaryMeshManager::AddPoint(std::vector<std::string> pos)
     std::vector<std::string> points = { pointName };
     CSceneNode* TempPolylineNode = nullptr;
     if (!TempPolylineNode)
-        TempPolylineNode = Scene->GetRootNode()->CreateChildNode("__tempPolylineNode" + std::to_string(num_points));
+        TempPolylineNode = Scene->GetRootNode()->CreateChildNode("__tempPolylineNodePoint" + std::to_string(num_points));
     else
         TempPolylineNode->SetEntity(nullptr);
 
