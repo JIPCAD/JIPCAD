@@ -294,6 +294,8 @@ void CMainWindow::on_actionCommitTempMesh_triggered()
 {
     TemporaryMeshManager->CommitTemporaryMesh(
         SourceMgr->GetASTContext(), MeshName->text().toStdString(), InstName->text().toStdString());
+    TemporaryMeshManager->CommitTemporaryPoint(
+        SourceMgr->GetASTContext(), MeshName->text().toStdString(), InstName->text().toStdString());
     this->setWindowModified(true);
 }
 

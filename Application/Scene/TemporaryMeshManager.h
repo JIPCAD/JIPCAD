@@ -29,6 +29,8 @@ public:
     void AddPoint(const std::vector<std::string> pos);
     std::string CommitTemporaryMesh(AST::CASTContext& ctx, const std::string& entityName,
                                     const std::string& nodeName);
+    std::string CommitTemporaryPoint(AST::CASTContext& ctx, const std::string& entityName,
+                                    const std::string& nodeName);
 
 private:
     TAutoPtr<CScene> Scene;
@@ -47,6 +49,7 @@ private:
     unsigned int num_polylines = 0;
     unsigned int num_points = 0;
     unsigned int polyline_prev_num_points = 0;
+    AST::ACommand *savedPointCmd;
 };
 
 }
