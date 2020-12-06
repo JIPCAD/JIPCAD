@@ -127,31 +127,23 @@ void CTemporaryMeshManager::AddPoint(std::vector<std::string> pos)
     num_points += 1;
     polyline_prev_num_points += 1;
     savedPointCmd = pointCmd;
-    SourceMgr->AppendCmdEndOfFile(savedPointCmd);
-
-    SourceMgr->AppendCmdEndOfFile(savedPointCmd);
-
-    SourceMgr->AppendCmdEndOfFile(savedPointCmd);
 }
 
-std::string CTemporaryMeshManager::CommitTemporaryPoint(AST::CASTContext& ctx,
-                                                       const std::string& entityName,
-                                                       const std::string& nodeName)
+std::string CTemporaryMeshManager::CommitTemporaryPoint(AST::CASTContext& ctx)
 {
-    if (!TempPolylinePoint || !TempPolylinePointNode)
+    if (!TempPolylinePoint || !TempPolylineNode)
         return "";
-
-    if (!Scene->RenameEntity("__tempPolylineNodePoint", entityName))
-        throw std::runtime_error("Cannot rename the temporary point, new name already exists");
-    if (!TempPolylinePointNode->SetName(nodeName))
-        throw std::runtime_error("Cannot rename the scene node to the desired name");
-
+    // if (!Scene->RenameEntity("__tempPolylineNodePoint", entityName))
+    //     throw std::runtime_error("Cannot rename the temporary point, new name already exists");
+    // if (!TempPolylineNode->SetName(nodeName))
+    //     throw std::runtime_error("Cannot rename the scene node to the desired name");
+// printf("2");
+    SourceMgr->AppendCmdEndOfFile(savedPointCmd);
     auto* meshCmd = TempPolylinePoint->SyncToAST(ctx, true);
     SourceMgr->AppendCmdEndOfFile(meshCmd);
-    // SourceMgr->AppendCmdEndOfFile(savedPointCmd);
-    auto* instanceCmd = TempPolylinePointNode->BuildASTCommand(ctx);
-    SourceMgr->AppendCmdEndOfFile(instanceCmd);
-
+    // auto* instanceCmd = TempPolylineNode->BuildASTCommand(ctx);
+    // SourceMgr->AppendCmdEndOfFile(instanceCmd);
+printf("3");
     TempPolylinePoint = nullptr;
     TempPolylinePointNode = nullptr;
     return "";

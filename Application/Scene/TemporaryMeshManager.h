@@ -29,8 +29,7 @@ public:
     void AddPoint(const std::vector<std::string> pos);
     std::string CommitTemporaryMesh(AST::CASTContext& ctx, const std::string& entityName,
                                     const std::string& nodeName);
-    std::string CommitTemporaryPoint(AST::CASTContext& ctx, const std::string& entityName,
-                                    const std::string& nodeName);
+    std::string CommitTemporaryPoint(AST::CASTContext& ctx);
 
 private:
     TAutoPtr<CScene> Scene;

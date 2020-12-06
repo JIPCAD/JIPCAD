@@ -53,6 +53,7 @@ private slots:
     void on_actionAddPolyline_triggered(); 
     void on_actionResetTempMesh_triggered();
     void on_actionCommitTempMesh_triggered();
+    void on_actionCommitTempPoint_triggered();
 
 private:
     // Load nome files into the current window, only call one of them

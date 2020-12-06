@@ -55,6 +55,7 @@
     <addaction name="actionAddPolyline"/>
     <addaction name="actionResetTempMesh"/>
     <addaction name="actionCommitTempMesh"/>
+    <addaction name="actionCommitTempPoint"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuAdd"/>
@@ -78,6 +79,7 @@
    <addaction name="actionAddPolyline"/>
    <addaction name="actionResetTempMesh"/>
    <addaction name="actionCommitTempMesh"/>
+   <addaction name="actionCommitTempPoint"/>
   </widget>
   <action name="actionNew">
    <property name="text">
@@ -164,6 +166,11 @@
   <action name="actionCommitTempMesh">
    <property name="text">
     <string>Commit Temp Mesh</string>
+   </property>
+  </action>
+  <action name="actionCommitTempPoint">
+   <property name="text">
+    <string>Commit Point</string>
    </property>
   </action>
  </widget>
