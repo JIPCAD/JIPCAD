@@ -5,6 +5,7 @@
 #include <sstream>
 #include <utility>
 #include "ASTSceneAdapter.h"
+#include <map>
 
 namespace Nome::Scene
 {
@@ -126,26 +127,27 @@ void CTemporaryMeshManager::AddPoint(std::vector<std::string> pos)
     TempPolylinePoint->SetClosed(false);
     num_points += 1;
     polyline_prev_num_points += 1;
-    savedPointCmd = pointCmd;
+
+    std::string cmd = "\npoint " + pointName + " ( " + pos.at(0) + " " + pos.at(1) + " " + pos.at(2) 
+        +") endpoint\npolyline __tempPolylineNodePoint" + std::to_string(num_points) 
+        + " ( " + pointName +" ) endpolyline\ninstance __inst__tempPolylineNodePoint" 
+        + std::to_string(num_points) + " __tempPolylineNodePoint" + std::to_string(num_points) + " endinstance\n";
+    pointMap.insert(std::pair<std::string, std::string>(pointName, cmd));
+    // SourceMgr->AppendText(
+    //     "\npoint " + pointName + " ( " + pos.at(0) + " " + pos.at(1) + " " + pos.at(2) 
+    //     +") endpoint\npolyline __tempPolylineNodePoint" + std::to_string(num_points) 
+    //     + " ( " + pointName +" ) endpolyline\ninstance __inst__tempPolylineNodePoint" 
+    //     + std::to_string(num_points) + " __tempPolylineNodePoint" + std::to_string(num_points) + " endinstance\n");
 }
 
 std::string CTemporaryMeshManager::CommitTemporaryPoint(AST::CASTContext& ctx)
 {
-    if (!TempPolylinePoint || !TempPolylineNode)
-        return "";
-    // if (!Scene->RenameEntity("__tempPolylineNodePoint", entityName))
-    //     throw std::runtime_error("Cannot rename the temporary point, new name already exists");
-    // if (!TempPolylineNode->SetName(nodeName))
-    //     throw std::runtime_error("Cannot rename the scene node to the desired name");
-// printf("2");
-    SourceMgr->AppendCmdEndOfFile(savedPointCmd);
-    auto* meshCmd = TempPolylinePoint->SyncToAST(ctx, true);
-    SourceMgr->AppendCmdEndOfFile(meshCmd);
-    // auto* instanceCmd = TempPolylineNode->BuildASTCommand(ctx);
-    // SourceMgr->AppendCmdEndOfFile(instanceCmd);
-printf("3");
+    for (std::map<std::string, std::string>::iterator p = pointMap.begin(); p != pointMap.end(); ++p ) {
+         SourceMgr->AppendText(p->second);
+   }
     TempPolylinePoint = nullptr;
     TempPolylinePointNode = nullptr;
+    pointMap.clear();
     return "";
 }
 

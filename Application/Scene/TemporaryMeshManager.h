@@ -4,6 +4,7 @@
 #include <Parsing/SourceManager.h>
 #include <string>
 #include <vector>
+#include <map>
 
 namespace Nome::Scene
 {
@@ -48,7 +49,7 @@ private:
     unsigned int num_polylines = 0;
     unsigned int num_points = 0;
     unsigned int polyline_prev_num_points = 0;
-    AST::ACommand *savedPointCmd;
+    std::map<std::string, std::string> pointMap;
 };
 
 }
