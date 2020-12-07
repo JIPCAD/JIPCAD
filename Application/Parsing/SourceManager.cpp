@@ -296,4 +296,10 @@ void CSourceManager::SaveFile() const
     ofs << content;
 }
 
+bool CSourceManager::AppendText(const std::string& text) {
+    std::ofstream ofs(GetMainSourcePath());
+    InsertText(CollectText().length()-1, text);
+    SaveFile();
+}
+
 }

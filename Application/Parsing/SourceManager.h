@@ -42,7 +42,7 @@ public:
     bool AppendCmdAfter(AST::ACommand* parent, AST::ACommand* after,
                         AST::ACommand* newCommand);
     bool AppendCmdEndOfFile(AST::ACommand* newCommand);
-
+    bool AppendText(const std::string& text);
     void CommitASTChanges();
     void SaveFile() const;
 

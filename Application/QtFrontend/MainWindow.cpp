@@ -19,6 +19,7 @@
 #include <QToolBar>
 #include <QVBoxLayout>
 #include <StringPrintf.h>
+#include <QTableWidget>
 
 namespace Nome
 {
@@ -143,7 +144,6 @@ void CMainWindow::on_actionSceneAsObj_triggered()
     QString fileName = QFileDialog::getSaveFileName(this, tr("Save Scene as Obj"), "",
                                                     tr("Obj Files (*.obj);;All Files (*)"));
 }
-
 void CMainWindow::on_actionSceneAsStl_triggered()
 {
     QString fileName = QFileDialog::getSaveFileName(this, tr("Save Scene as Stl"), "",
@@ -205,9 +205,7 @@ void CMainWindow::on_actionSubdivide_triggered()
 }
 /* Randy temporarily commenting out. Point and Instance don't work.
 void CMainWindow::on_actionPoint_triggered() { }
-
 void CMainWindow::on_actionInstance_triggered() { }
-
 void CMainWindow::on_actionAbout_triggered()
 {
     QMessageBox::about(this, tr("About Nome"),
@@ -215,6 +213,42 @@ void CMainWindow::on_actionAbout_triggered()
                           "Author:\n"
                           "insert author name for current version"));
 }*/
+void CMainWindow::on_actionPoint_triggered()
+{
+    auto* dialog = new QDialog(GFrtCtx->MainWindow);
+    dialog->setModal(true);
+    auto* layout1 = new QHBoxLayout(dialog);
+    auto* table = new QTableWidget();
+    const char* xyz[3] = { "X: ", "Y: ", "Z: " };
+    std::vector<QLineEdit*> getLines;
+    for (auto* s : xyz)
+    {
+        QLabel* tempLabel = new QLabel(tr(s));
+        QLineEdit* tempInput = new QLineEdit("");
+        layout1->addWidget(tempLabel);
+        layout1->addWidget(tempInput);
+        getLines.push_back(tempInput);
+    }
+    auto* layout2 = new QVBoxLayout();
+    auto* btnOk = new QPushButton();
+    btnOk->setText("OK");
+    connect(btnOk, &QPushButton::clicked, [this, dialog, getLines]() {
+        std::vector<std::string> pos;
+        for (auto* getline : getLines)
+        {
+            pos.push_back(getline->text().toStdString().c_str());
+        }
+        TemporaryMeshManager->AddPoint(pos);
+        dialog->close();
+    });
+    auto* btnCancel = new QPushButton();
+    btnCancel->setText("Cancel");
+    connect(btnCancel, &QPushButton::clicked, dialog, &QWidget::close);
+    layout2->addWidget(btnOk);
+    layout2->addWidget(btnCancel);
+    layout1->addLayout(layout2);
+    dialog->show();
+}
 
 void CMainWindow::on_actionAddFace_triggered()
 {

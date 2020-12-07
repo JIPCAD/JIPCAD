@@ -67,11 +67,12 @@
     <addaction name="actionMerge"/>
     <addaction name="actionSubdivide"/>
     <addaction name="separator"/>
+    <addaction name="actionAddPoint"/>
     <addaction name="actionAddFace"/>
     <addaction name="actionAddPolyline"/>
-    <!--<addaction name="actionRemoveFace"/>-->
-    <!--<addaction name="actionResetTempMesh"/>-->
-     <addaction name="actionCommitChanges"/>
+    <!-- <addaction name="actionResetTempMesh"/> -->
+    <!-- <addaction name="actionCommitTempMesh"/> -->
+    <addaction name="actionCommitChanges"/>
    </widget>
    <addaction name="menuFile"/>
    <!--<addaction name="menuAdd"/>-->
@@ -92,8 +93,10 @@
     <enum>TopToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
-    <bool>false</bool>
+    <bool>True</bool>
    </attribute>
+   <addaction name="actionOpen"/>
+   <addaction name="actionAddPoint"/>
    <addaction name="actionAddFace"/>
    <addaction name="actionAddPolyline"/>
    <!--<addaction name="actionRemoveFace"/>-->
@@ -138,16 +141,16 @@
     <string>About</string>
    </property>
   </action>
-<!--  <action name="actionPoint">
+ <action name="actionAddPoint">
    <property name="text">
-    <string>&amp;Point</string>
+    <string>&amp;Add Point</string>
    </property>
   </action>
-  <action name="actionInstance">
+  <!-- <action name="actionInstance">
    <property name="text">
     <string>&amp;Instance</string>
    </property>
-  </action>-->
+  </action> -->
   <action name="actionReload">
    <property name="text">
     <string>&amp;Reload</string>
@@ -191,6 +194,11 @@
   <action name="actionCommitChanges">
    <property name="text">
     <string>Commit Changes</string>
+   </property>
+  </action>
+  <action name="actionCommitTempPoint">
+   <property name="text">
+    <string>Commit Point</string>
    </property>
   </action>
  </widget>

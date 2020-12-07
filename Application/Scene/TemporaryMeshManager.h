@@ -4,6 +4,7 @@
 #include <Parsing/SourceManager.h>
 #include <string>
 #include <vector>
+#include <map>
 
 namespace Nome::Scene
 {
@@ -29,6 +30,7 @@ public:
 
     void AddFace(const std::vector<std::string>& facePoints);
     void AddPolyline(const std::vector<std::string>& facePoints);
+    void AddPoint(const std::vector<std::string> pos);
     std::string CommitChanges(
         AST::CASTContext& ctx); // const std::string& entityName, const std::string& nodeName);
     std::vector<CSceneNode *> addedSceneNodes;
@@ -40,13 +42,18 @@ private:
 
     CMesh* TempMesh = nullptr;
     CPolyline* TempPolyline = nullptr; 
-
+    CPolyline* TempPolylinePoint = nullptr;
 
     CSceneNode* TempMeshNode = nullptr;
     CSceneNode* TempPolylineNode = nullptr;
-    
+    CSceneNode* TempPointNode = nullptr;
+    CSceneNode* TempPolylinePointNode = nullptr;
+
     unsigned int FaceCounter = 0;
     unsigned int num_polylines = 0;
+    unsigned int num_points = 0;
+    unsigned int polyline_prev_num_points = 0;
+    std::map<std::string, std::string> pointMap;
 };
 
 }
