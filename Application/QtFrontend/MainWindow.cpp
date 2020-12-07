@@ -213,7 +213,7 @@ void CMainWindow::on_actionAbout_triggered()
                           "Author:\n"
                           "insert author name for current version"));
 }*/
-void CMainWindow::on_actionPoint_triggered()
+void CMainWindow::on_actionAddPoint_triggered()
 {
     auto* dialog = new QDialog(GFrtCtx->MainWindow);
     dialog->setModal(true);

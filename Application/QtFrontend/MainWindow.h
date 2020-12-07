@@ -57,8 +57,7 @@ private slots:
     void on_actionInstance_triggered();
     */
     // void on_actionAbout_triggered(); commeting out with new developments
-    void on_actionPoint_triggered();
-
+    void on_actionAddPoint_triggered();
 
     void on_actionAddFace_triggered();
     void on_actionAddPolyline_triggered(); 
