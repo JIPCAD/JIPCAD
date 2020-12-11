@@ -11,6 +11,8 @@ namespace Nome::Scene
 class CMeshMerger : public CMesh
 {
     DEFINE_INPUT(float, Level) { MarkDirty(); }
+    DEFINE_INPUT(float, Height) { MarkDirty(); }
+    DEFINE_INPUT(float, Width) { MarkDirty(); }
 
     void UpdateEntity() override;
     //void MarkDirty() override;
@@ -30,6 +32,7 @@ public:
 
     void MergeClear();
 
+    void GetOffset();
     // sd_flag can be set to sharp and plain cc to have different types of subdivision
     void Catmull();
 
@@ -45,6 +48,7 @@ public:
 
     void SetSharp(bool setSharp) {isSharp = setSharp;}
 
+    void SetOffsetFlag(bool flag) { offsetFlag = flag; }
 
     void setSubLevel(int level) {
         subdivisionLevel = level;
@@ -65,6 +69,10 @@ private:
     CMeshImpl MergedMesh;
     unsigned int subdivisionLevel = 0;
     bool isSharp = true;
+    // true == NOME_OFFSET_DEFAULT, false == NOME_OFFSET_GRID
+    bool offsetFlag = true;
+    unsigned int offsetWidth = 0;
+    unsigned int offsetHeight = 0;
 
 
 };

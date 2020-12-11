@@ -24,6 +24,11 @@ public:
     antlrcpp::Any visitArgTransformTwo(NomParser::ArgTransformTwoContext* context) override;
     antlrcpp::Any visitArgTransformOne(NomParser::ArgTransformOneContext* context) override;
     antlrcpp::Any visitArgColor(NomParser::ArgColorContext* context) override;
+    antlrcpp::Any visitArgSdLevel(NomParser::ArgSdLevelContext* ctx) override;
+    antlrcpp::Any visitArgSdFlag(NomParser::ArgSdFlagContext* ctx) override;
+    antlrcpp::Any visitArgOffsetFlag(NomParser::ArgOffsetFlagContext* ctx) override;
+    antlrcpp::Any visitArgHeight(NomParser::ArgHeightContext* ctx) override;
+    antlrcpp::Any visitArgWidth(NomParser::ArgWidthContext* ctx) override;
 
     antlrcpp::Any visitCmdExprListOne(NomParser::CmdExprListOneContext* context) override;
     antlrcpp::Any visitCmdIdListOne(NomParser::CmdIdListOneContext* context) override;
@@ -33,7 +38,6 @@ public:
     antlrcpp::Any visitCmdArgSurface(NomParser::CmdArgSurfaceContext* context) override;
     antlrcpp::Any visitCmdBank(NomParser::CmdBankContext* context) override;
     antlrcpp::Any visitCmdDelete(NomParser::CmdDeleteContext* context) override;
-    antlrcpp::Any visitCmdOffset(NomParser::CmdOffsetContext* context) override;
     antlrcpp::Any visitSet(NomParser::SetContext* context) override;
     antlrcpp::Any visitDeleteFace(NomParser::DeleteFaceContext* context) override;
 
@@ -51,6 +55,8 @@ public:
     antlrcpp::Any visitAtomExpr(NomParser::AtomExprContext* context) override;
     antlrcpp::Any visitIdList(NomParser::IdListContext *context) override;
     antlrcpp::Any visitCmdSubdivision(NomParser::CmdSubdivisionContext* context) override;
+    antlrcpp::Any visitCmdSharp(NomParser::CmdSharpContext* ctx) override;
+    antlrcpp::Any visitCmdOffset(NomParser::CmdOffsetContext* context) override;
 
 
 private:
@@ -59,9 +65,6 @@ private:
 
     CStringBuffer& SrcStringBuffer;
 
-    antlrcpp::Any visitArgSdLevel(NomParser::ArgSdLevelContext* ctx) override;
-    antlrcpp::Any visitArgSdFlag(NomParser::ArgSdFlagContext* ctx) override;
-    antlrcpp::Any visitCmdSharp(NomParser::CmdSharpContext* ctx) override;
 };
 
 }

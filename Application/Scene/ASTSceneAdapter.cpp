@@ -52,7 +52,7 @@ static const std::unordered_map<std::string, ECommandKind> CommandInfoMap = {
     { "frontfaces", ECommandKind::Dummy },   { "backfaces", ECommandKind::Dummy },
     { "rimfaces", ECommandKind::Dummy },     { "bank", ECommandKind::BankSet },
     { "set", ECommandKind::BankSet },        { "delete", ECommandKind::Instance },
-    { "subdivision", ECommandKind::Instance },  { "offset", ECommandKind::Dummy },
+    { "subdivision", ECommandKind::Instance },  { "offset", ECommandKind::Instance },
     { "mobiusstrip", ECommandKind::Entity }, {"helix", ECommandKind::Entity },
     {"sharp", ECommandKind::Entity }
 };
@@ -133,7 +133,7 @@ void CASTSceneAdapter::VisitCommandBankSet(AST::ACommand* cmd, CScene& scene)
         auto name = bank + "." + cmd->GetName();
         scene.GetBankAndSet().AddSlider(name, cmd, evalArg(1), evalArg(2), evalArg(3), evalArg(4));
     }
-    
+
     for (auto* sub : cmd->GetSubCommands())
         VisitCommandBankSet(sub, scene);
     CmdTraverseStack.pop_back();
@@ -237,7 +237,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
             VisitCommandSyncScene(sub, scene, false);
         InstanciateUnder = GEnv.Scene->GetRootNode();
     }
-    else if (cmd->GetCommand() == "subdivision") {
+    else if (cmd->GetCommand() == "subdivision" || cmd->GetCommand() == "offset") {
         // 1.read all instances to a merged mesh
         InstanciateUnder = GEnv.Scene->CreateMerge(cmd->GetName());
         InstanciateUnder->SyncFromAST(cmd, scene);
@@ -251,16 +251,30 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
         // 2. merge all instances
         tc::TAutoPtr<Scene::CMeshMerger> merger = new Scene::CMeshMerger(cmd->GetName());
         merger->GetMetaObject().DeserializeFromAST(*cmd, *merger);
-        auto flag = cmd->GetNamedArgument("sd_type");
-        if (flag)
-        {
-            auto flagName = flag->GetArgument(
-                0)[0]; // Returns a casted AExpr that was an AIdent before casting
-            auto flagIdentifier = static_cast<AST::AIdent*>(&flagName)->ToString(); // Downcast it back to an AIdent
-            if (flagIdentifier == "NOME_SD_CC_sharp")
-                merger->SetSharp(true);
-            else
-                merger->SetSharp(false);
+        if (cmd->GetCommand() == "subdivision") {
+            auto flag = cmd->GetNamedArgument("sd_type");
+            if (flag)
+            {
+                auto flagName = flag->GetArgument(
+                    0)[0]; // Returns a casted AExpr that was an AIdent before casting
+                auto flagIdentifier = static_cast<AST::AIdent*>(&flagName)->ToString(); // Downcast it back to an AIdent
+                if (flagIdentifier == "NOME_SD_CC_sharp")
+                    merger->SetSharp(true);
+                else
+                    merger->SetSharp(false);
+            }
+        } else {
+            auto flag = cmd->GetNamedArgument("offset_type");
+            if (flag)
+            {
+                auto flagName = flag->GetArgument(
+                    0)[0]; // Returns a casted AExpr that was an AIdent before casting
+                auto flagIdentifier = static_cast<AST::AIdent*>(&flagName)->ToString(); // Downcast it back to an AIdent
+                if (flagIdentifier == "NOME_OFFSET_DEFAULT")
+                    merger->SetOffsetFlag(true);
+                else
+                    merger->SetOffsetFlag(false);
+            }
         }
 
         /*

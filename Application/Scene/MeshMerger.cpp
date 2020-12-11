@@ -8,6 +8,8 @@ namespace Nome::Scene
 DEFINE_META_OBJECT(CMeshMerger)
 {
     BindNamedArgument(&CMeshMerger::Level, "sd_level", 0);
+    BindNamedArgument(&CMeshMerger::Height, "height", 0);
+    BindNamedArgument(&CMeshMerger::Width, "width", 0);
 }
 
 inline static const float Epsilon = 0.01f;
@@ -21,6 +23,8 @@ void CMeshMerger::UpdateEntity()
     if (!IsDirty())
         return;
     subdivisionLevel = Level.GetValue(0);
+    offsetWidth = Width.GetValue(1);
+    offsetHeight = Height.GetValue(1);
 
 
     Super::UpdateEntity();
@@ -29,6 +33,11 @@ void CMeshMerger::UpdateEntity()
 
 
     SetValid(true);
+}
+
+void CMeshMerger::GetOffset()
+{
+    std::cout << offsetWidth << ' ' << offsetHeight << std::endl;
 }
 
 void CMeshMerger::Catmull()

@@ -34,6 +34,9 @@ idList : LPAREN (identList+=ident)* RPAREN ;
 argClosed : 'closed' ;
 argSdFlag : 'sd_type' ident;
 argSdLevel : 'sd_level' expression;
+argOffsetFlag : 'offset_type' ident;
+argHeight : 'height' expression;
+argWidth : 'width' expression;
 argHidden : 'hidden' ;
 argSurface : 'surface' ident ;
 argSlices : 'slices' expression ;
@@ -79,7 +82,7 @@ command
    | open='delete' deleteFace* end='enddelete' # CmdDelete
    | open='subdivision' name=ident argSdFlag* argSdLevel* command* end='endsubdivision' # CmdSubdivision
    | open='sharp' expression idList+ end='endsharp' # CmdSharp
-   | open='offset' name=ident k1='type' v1=ident k2='min' v2=expression k3='max' v3=expression k4='step' v4=expression end='endoffset' # CmdOffset
+   | open='offset' name=ident argOffsetFlag* argHeight* argWidth* command* end='endoffset' # CmdOffset
    ;
 
 set : open='set' ident expression expression expression expression;
