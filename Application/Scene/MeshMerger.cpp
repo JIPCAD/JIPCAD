@@ -1,5 +1,6 @@
 #include "MeshMerger.h"
 #include "Subdivision.h"
+#include "OffsetRefiner.h"
 
 #include <unordered_map>
 
@@ -23,8 +24,6 @@ void CMeshMerger::UpdateEntity()
     if (!IsDirty())
         return;
     subdivisionLevel = Level.GetValue(0);
-    offsetWidth = Width.GetValue(1);
-    offsetHeight = Height.GetValue(1);
 
 
     Super::UpdateEntity();
@@ -35,15 +34,12 @@ void CMeshMerger::UpdateEntity()
     SetValid(true);
 }
 
-void CMeshMerger::GetOffset()
-{
-    std::cout << offsetWidth << ' ' << offsetHeight << std::endl;
-}
-
 void CMeshMerger::Catmull()
 {
 
-    if (subdivisionLevel == 0 || MergedMesh.vertices_empty()) {
+    bool needSubdivision = subdivisionLevel != 0;
+    bool needOffset = (Width.GetValue(0) != 0 || Height.GetValue(0) != 0);
+    if ((!needSubdivision && !needOffset) || MergedMesh.vertices_empty()) {
         return;
     }
     Mesh.clear();
@@ -53,8 +49,15 @@ void CMeshMerger::Catmull()
     //catmull.attach(otherMesh);
     //prepare(otherMesh);
 
-    subdivide(otherMesh, subdivisionLevel, isSharp);
-    std::cout << "Apply catmullclark subdivision, may take a few minutes or so" << std::endl;
+    if (needSubdivision) {
+        subdivide(otherMesh, subdivisionLevel, isSharp);
+        std::cout << "Apply catmullclark subdivision, may take a few minutes or so" << std::endl;
+    }
+    if (needOffset) {
+        offset(otherMesh);
+        std::cout << "Apply offset, may take a few minutes or so" << std::endl;
+
+    }
     //catmull(4);
     //cleanup(otherMesh);
     //catmull.detach();
@@ -66,7 +69,7 @@ void CMeshMerger::Catmull()
     float minY = std::numeric_limits<double>::infinity();
     for (auto vi = otherMesh.vertices_begin(); vi != otherMesh.vertices_end(); ++vi)
     {
-        std::cout << vi->idx() << std::endl;
+//        std::cout << vi->idx() << std::endl;
         const auto& posArray = otherMesh.point(*vi);
         Vector3 localPos = Vector3(posArray[0], posArray[1], posArray[2]);
         Vector3 worldPos = tf * localPos;
@@ -77,7 +80,7 @@ void CMeshMerger::Catmull()
          ++vi) // Iterate through all the vertices in the mesh (the non-merger mesh, aka the one
         // you're trying copy vertices from)
     {
-        std::cout << vi->idx() << std::endl;
+//        std::cout << vi->idx() << std::endl;
         const auto& posArray = otherMesh.point(*vi);
         Vector3 localPos = Vector3(posArray[0], posArray[1],
                                    posArray[2]);
@@ -102,7 +105,7 @@ void CMeshMerger::Catmull()
     for (auto fi = otherMesh.faces_begin(); fi != otherMesh.faces_end();
          ++fi)
     {
-        std::cout << fi->idx() << std::endl;
+//        std::cout << fi->idx() << std::endl;
         std::vector<CMeshImpl::VertexHandle> verts;
         for (auto vert : otherMesh.fv_range(*fi))
             verts.emplace_back(vertMap[vert]);
@@ -203,6 +206,51 @@ std::pair<CMeshImpl::VertexHandle, float> CMeshMerger::FindClosestVertex(const t
         }
     }
     return { result, minDist };
+}
+
+bool CMeshMerger::offset(CMeshImpl& _m)
+{
+    COffsetRefiner offsetRefiner(_m, offsetFlag);
+    offsetRefiner.Refine(Height.GetValue(0.0f), Width.GetValue(0.0f));
+    _m.clear();
+
+    std::vector<Vector3> vertices = offsetRefiner.GetVertices();
+    std::vector<std::vector<int>> faces = offsetRefiner.GetFaces();
+
+    // Print vertices
+    printf("============ output vertices ======\n");
+    for (int index = 0; index < vertices.size(); index++) {
+        Vector3 point = vertices[index];
+        _m.add_vertex(CMeshImpl::Point(point.x, point.y, point.z));
+        printf("v%d: %f %f %f\n", index, point.x, point.y, point.z);
+    }
+
+    // Print faces
+    printf("============ output faces ======\n");
+    for (int index = 0; index < faces.size(); index++) {
+        std::vector<int> indexList = faces[index];
+        auto face = _m.add_face(_m.vertex_handle(indexList[0]), _m.vertex_handle(indexList[1]), _m.vertex_handle(indexList[2]), _m.vertex_handle(indexList[3]));
+        if (!face.is_valid())
+        {
+            printf("========= false\n");
+        } else
+        {
+            printf("========= true\n");
+        }
+            printf("%f %f %f\n", vertices[indexList[0]].x, vertices[indexList[0]].y, vertices[indexList[0]].z);
+            printf("%f %f %f\n", vertices[indexList[1]].x, vertices[indexList[1]].y, vertices[indexList[1]].z);
+            printf("%f %f %f\n", vertices[indexList[2]].x, vertices[indexList[2]].y, vertices[indexList[2]].z);
+            printf("%f %f %f\n", vertices[indexList[3]].x, vertices[indexList[3]].y, vertices[indexList[3]].z);
+            printf("=========\n");
+
+        printf("f%d %d: ", index, face.is_valid());
+        for (int id : indexList) {
+            printf("%d ", id); // OBJ uses 1-based arrays...
+        }
+        printf("\n");
+    }
+
+    return true;
 }
 
 bool CMeshMerger::subdivide(CMeshImpl& _m, unsigned int n, bool isSharp)

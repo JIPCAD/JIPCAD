@@ -229,7 +229,6 @@ void CScene::Update()
                     });
                 }
                 ent->Catmull();
-                ent->GetOffset();
             }
         }
 

@@ -32,10 +32,10 @@ public:
 
     void MergeClear();
 
-    void GetOffset();
     // sd_flag can be set to sharp and plain cc to have different types of subdivision
     void Catmull();
 
+    bool offset(CMeshImpl& _m);
     bool subdivide(CMeshImpl& _m, unsigned int n, bool isSharp);
 
     void split_face(CMeshImpl& _m, const CMeshImpl::FaceHandle& _fh);
@@ -71,9 +71,6 @@ private:
     bool isSharp = true;
     // true == NOME_OFFSET_DEFAULT, false == NOME_OFFSET_GRID
     bool offsetFlag = true;
-    unsigned int offsetWidth = 0;
-    unsigned int offsetHeight = 0;
-
 
 };
 
