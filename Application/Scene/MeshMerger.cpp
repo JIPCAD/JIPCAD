@@ -210,8 +210,12 @@ std::pair<CMeshImpl::VertexHandle, float> CMeshMerger::FindClosestVertex(const t
 
 bool CMeshMerger::offset(CMeshImpl& _m)
 {
+    float height = Height.GetValue(0.0f);
+    float width = Width.GetValue(0.0f);
+    if (height <= 0 && width <= 0) { return true; }
+
     COffsetRefiner offsetRefiner(_m, offsetFlag);
-    offsetRefiner.Refine(Height.GetValue(0.0f), Width.GetValue(0.0f));
+    offsetRefiner.Refine(height, width);
     _m.clear();
 
     std::vector<Vector3> vertices = offsetRefiner.GetVertices();
@@ -230,20 +234,8 @@ bool CMeshMerger::offset(CMeshImpl& _m)
     for (int index = 0; index < faces.size(); index++) {
         std::vector<int> indexList = faces[index];
         auto face = _m.add_face(_m.vertex_handle(indexList[0]), _m.vertex_handle(indexList[1]), _m.vertex_handle(indexList[2]), _m.vertex_handle(indexList[3]));
-        if (!face.is_valid())
-        {
-            printf("========= false\n");
-        } else
-        {
-            printf("========= true\n");
-        }
-            printf("%f %f %f\n", vertices[indexList[0]].x, vertices[indexList[0]].y, vertices[indexList[0]].z);
-            printf("%f %f %f\n", vertices[indexList[1]].x, vertices[indexList[1]].y, vertices[indexList[1]].z);
-            printf("%f %f %f\n", vertices[indexList[2]].x, vertices[indexList[2]].y, vertices[indexList[2]].z);
-            printf("%f %f %f\n", vertices[indexList[3]].x, vertices[indexList[3]].y, vertices[indexList[3]].z);
-            printf("=========\n");
 
-        printf("f%d %d: ", index, face.is_valid());
+        printf("f%d: ", index);
         for (int id : indexList) {
             printf("%d ", id); // OBJ uses 1-based arrays...
         }

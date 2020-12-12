@@ -18,6 +18,7 @@ COffsetRefiner::COffsetRefiner(CMeshImpl& _m, bool offsetFlag) {
             i++;
         faceVertices[face.idx()] = i;
     }
+    Mesh.request_face_normals();
 
     size_t numVertices = Mesh.n_vertices();
     vertexEdges.resize(numVertices);
@@ -31,6 +32,8 @@ COffsetRefiner::COffsetRefiner(CMeshImpl& _m, bool offsetFlag) {
 }
 
 void COffsetRefiner::Refine(float height, float width) {
+    bool needGrid = (width > 0);
+    bool needOffset = (height > 0);
     for (auto vertex : Mesh.vertices()) {
         if (vertexEdges[vertex.idx()] < 2) { continue; }
         generateNewVertices(vertex, height);
@@ -38,17 +41,27 @@ void COffsetRefiner::Refine(float height, float width) {
 
     auto faces = Mesh.faces().to_vector();
     for (auto face : faces) {
-        generateNewFaceVertices(face, width);
-        generateNewFaces(face);
+        if (needGrid) {
+            generateNewFaceVertices(face, width, height);
+        }
+        generateNewFaces(face, needGrid, needOffset);
     }
 
-    for (auto face : faces) {
-        closeFace(face);
+    if (needOffset) {
+        for (auto face : faces)
+            closeFace(face);
     }
 }
 
 void COffsetRefiner::generateNewVertices(OpenMesh::SmartVertexHandle vertex, float height) {
     Vector3 point = getPosition(vertex);
+
+    if (height <= 0) {
+        addPoint(point);
+        newVertices[vertex.idx()] = OffsetVerticesInfo{ point, (int)offsetVertices.size() - 1 };
+        return;
+    }
+
     Vector3 sumEdges;
 
     if (vertexEdges[vertex.idx()] > 2) {
@@ -76,7 +89,7 @@ void COffsetRefiner::generateNewVertices(OpenMesh::SmartVertexHandle vertex, flo
     newVertices[vertex.idx()] = OffsetVerticesInfo{newPoint1, size - 2, newPoint2, size - 1};
 }
 
-void COffsetRefiner::generateNewFaceVertices(OpenMesh::SmartFaceHandle face, float width) {
+void COffsetRefiner::generateNewFaceVertices(OpenMesh::SmartFaceHandle face, float width, float height) {
 
     size_t length = faceVertices[face.idx()];
 
@@ -103,23 +116,50 @@ void COffsetRefiner::generateNewFaceVertices(OpenMesh::SmartFaceHandle face, flo
         float angle = getAngle(prevPath, curPath);
         Vector3 offsetVector = (prevPath + curPath).Normalized() * width / sinf(angle / 2);
 
-        int idx = idxList[index];
-        auto newVerticesInfo = newVertices[idx];
-        Vector3 newPoint1 = newVerticesInfo.topPos + offsetVector;
-        Vector3 newPoint2 = newVerticesInfo.bottomPos + offsetVector;
+        Vector3 norm = crossProduct(prevPath, curPath).Normalized() * height / 2;
+
+        Vector3 newPoint1 = curPoint + offsetVector - norm;
+        Vector3 newPoint2 = curPoint + offsetVector + norm;
 
         addPoint(newPoint1);
         addPoint(newPoint2);
 
         int size = offsetVertices.size();
-        newFaceVertices[face.idx()][idx] = OffsetVerticesInfo{newPoint1, size - 2, newPoint2, size - 1};
+        newFaceVertices[face.idx()][idxList[index]] = OffsetVerticesInfo{newPoint1, size - 2, newPoint2, size - 1};
     }
 }
 
-void COffsetRefiner::generateNewFaces(OpenMesh::SmartFaceHandle face) {
-    int faceId = face.idx();
+void COffsetRefiner::generateNewFaces(OpenMesh::SmartFaceHandle face, bool needGrid, bool needOffset) {
 
+    if (!needGrid) {
+        std::vector<int> indexList1, indexList2;
+        std::vector<OpenMesh::SmartVertexHandle> vertices1, vertices2;
+        for (auto vertex : face.vertices()) {
+            int index = vertex.idx();
+
+            int topIndex = newVertices[index].topIndex;
+            int bottomIndex = newVertices[index].bottomIndex;
+            indexList1.push_back(topIndex);
+            indexList2.push_back(bottomIndex);
+            vertices1.push_back(newVertexHandleList[topIndex]);
+            vertices2.push_back(newVertexHandleList[bottomIndex]);
+        }
+
+        std::reverse(indexList2.begin(), indexList2.end());
+        std::reverse(vertices2.begin(), vertices2.end());
+
+        offsetFaces.push_back(indexList1);
+        offsetFaces.push_back(indexList2);
+
+        Mesh.add_face(vertices1);
+        Mesh.add_face(vertices2);
+
+        return;
+    }
+
+    int faceId = face.idx();
     std::vector<int> idxList;
+
     for (auto vertex : face.vertices())
         idxList.push_back(vertex.idx());
 
@@ -128,14 +168,10 @@ void COffsetRefiner::generateNewFaces(OpenMesh::SmartFaceHandle face) {
         int vertex2Id = idxList[(i + 1) % idxList.size()];
 
         int vertex1TopIndex = newVertices[vertex1Id].topIndex;
-        int vertex1BottomIndex = newVertices[vertex1Id].bottomIndex;
         int vertex1TopInsideIndex = newFaceVertices[faceId][vertex1Id].topIndex;
-        int vertex1BottomInsideIndex = newFaceVertices[faceId][vertex1Id].bottomIndex;
 
         int vertex2TopIndex = newVertices[vertex2Id].topIndex;
-        int vertex2BottomIndex = newVertices[vertex2Id].bottomIndex;
         int vertex2TopInsideIndex = newFaceVertices[faceId][vertex2Id].topIndex;
-        int vertex2BottomInsideIndex = newFaceVertices[faceId][vertex2Id].bottomIndex;
 
         std::vector<int> faceIndexList;
         faceIndexList = { vertex1TopInsideIndex, vertex1TopIndex,  vertex2TopIndex, vertex2TopInsideIndex, };
@@ -147,23 +183,29 @@ void COffsetRefiner::generateNewFaces(OpenMesh::SmartFaceHandle face) {
             newVertexHandleList[vertex2TopInsideIndex]
         );
 
-        faceIndexList = { vertex1BottomInsideIndex, vertex1TopInsideIndex, vertex2TopInsideIndex, vertex2BottomInsideIndex };
-        offsetFaces.push_back(faceIndexList);
-        Mesh.add_face(
-        newVertexHandleList[vertex1BottomInsideIndex],
-            newVertexHandleList[vertex1TopInsideIndex],
-            newVertexHandleList[vertex2TopInsideIndex],
-            newVertexHandleList[vertex2BottomInsideIndex]
-        );
+        if (needOffset)
+        {
+            int vertex1BottomIndex = newVertices[vertex1Id].bottomIndex;
+            int vertex1BottomInsideIndex = newFaceVertices[faceId][vertex1Id].bottomIndex;
+            int vertex2BottomIndex = newVertices[vertex2Id].bottomIndex;
+            int vertex2BottomInsideIndex = newFaceVertices[faceId][vertex2Id].bottomIndex;
 
-        faceIndexList = { vertex1BottomIndex, vertex1BottomInsideIndex, vertex2BottomInsideIndex, vertex2BottomIndex };
-        offsetFaces.push_back(faceIndexList);
-        Mesh.add_face(
-        newVertexHandleList[vertex1BottomIndex],
-            newVertexHandleList[vertex1BottomInsideIndex],
-            newVertexHandleList[vertex2BottomInsideIndex],
-            newVertexHandleList[vertex2BottomInsideIndex]
-        );
+            faceIndexList = { vertex1BottomInsideIndex, vertex1TopInsideIndex,
+                              vertex2TopInsideIndex, vertex2BottomInsideIndex };
+            offsetFaces.push_back(faceIndexList);
+            Mesh.add_face(newVertexHandleList[vertex1BottomInsideIndex],
+                          newVertexHandleList[vertex1TopInsideIndex],
+                          newVertexHandleList[vertex2TopInsideIndex],
+                          newVertexHandleList[vertex2BottomInsideIndex]);
+
+            faceIndexList = { vertex1BottomIndex, vertex1BottomInsideIndex,
+                              vertex2BottomInsideIndex, vertex2BottomIndex };
+            offsetFaces.push_back(faceIndexList);
+            Mesh.add_face(newVertexHandleList[vertex1BottomIndex],
+                          newVertexHandleList[vertex1BottomInsideIndex],
+                          newVertexHandleList[vertex2BottomInsideIndex],
+                          newVertexHandleList[vertex2BottomInsideIndex]);
+        }
     }
 
 }

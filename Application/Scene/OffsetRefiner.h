@@ -22,8 +22,8 @@ private:
     };
 
     void generateNewVertices(OpenMesh::SmartVertexHandle vertex, float height);
-    void generateNewFaceVertices(OpenMesh::SmartFaceHandle face, float width);
-    void generateNewFaces(OpenMesh::SmartFaceHandle face);
+    void generateNewFaceVertices(OpenMesh::SmartFaceHandle face, float width, float height);
+    void generateNewFaces(OpenMesh::SmartFaceHandle face, bool needGrid, bool needOffset);
     void closeFace(OpenMesh::SmartFaceHandle face);
 
     Vector3 getPosition(OpenMesh::SmartVertexHandle vertex);
