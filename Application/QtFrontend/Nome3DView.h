@@ -75,6 +75,7 @@ public:
 
 
     bool PickVertexBool = false; // Randy added on 11/5/20
+    bool BackFaceBool = true;
     bool VertexSharpnessBool = false; // Randy added on 6/20/21
     bool PickFaceBool = false; // Randy added on 11/5/20
     bool PickEdgeBool = false; // Randy added on 11/5/20

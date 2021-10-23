@@ -15,10 +15,9 @@ Sdc::Options SubdivisionOptions() {
     Sdc::Options options;
 
     options.SetVtxBoundaryInterpolation(Sdc::Options::VTX_BOUNDARY_EDGE_ONLY);
-    // options.SetVtxBoundaryInterpolation(Sdc::Options::VTX_BOUNDARY_NONE);
-    // options.SetVtxBoundaryInterpolation(Sdc::Options::VTX_BOUNDARY_NONE);
+    //options.SetVtxBoundaryInterpolation(Sdc::Options::VTX_BOUNDARY_EDGE_AND_CORNER);
     // options.SetCreasingMethod(Sdc::Options::CREASE_CHAIKIN);
-
+    options.SetFVarLinearInterpolation(Sdc::Options::FVAR_LINEAR_NONE);
     return options;
 }
 
@@ -31,7 +30,6 @@ Far::TopologyRefiner * GetRefiner(DSMesh& _m, bool isSharp) {
 
     /// assign topology
     {
-
         desc.numVertices = _m.n_vertices();
         desc.numFaces = _m.n_faces();
         int *faceVerts = new int[_m.n_faces()];
@@ -42,7 +40,7 @@ Far::TopologyRefiner * GetRefiner(DSMesh& _m, bool isSharp) {
                 i++;
                 count++;
             }
-            faceVerts[face->id] = i; // TODO
+            faceVerts[face->id] = i;
         }
         int *faceVertsIndices = new int[count];
         int i = 0;
@@ -58,7 +56,6 @@ Far::TopologyRefiner * GetRefiner(DSMesh& _m, bool isSharp) {
 
     if (isSharp)
     {
-
         /// assign vertex sharpness
         {
             desc.numCorners = _m.n_vertices();
@@ -96,7 +93,6 @@ Far::TopologyRefiner * GetRefiner(DSMesh& _m, bool isSharp) {
 
     return Far::TopologyRefinerFactory<Descriptor>::Create(desc,
                                                     Far::TopologyRefinerFactory<Descriptor>::Options(SubdivisionType(), SubdivisionOptions()));
-
 }
 
 

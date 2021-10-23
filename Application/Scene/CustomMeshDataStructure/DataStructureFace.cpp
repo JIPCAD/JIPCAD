@@ -15,6 +15,7 @@ Face::Face()
     name = "";
     user_defined_color = false;
     surfaceName = ""; // Randy added this
+    backfaceName = "";
 }
 
 Face::Face(std::vector<Vertex*> vertices) // Randy changed Vertex to Vertex* here
@@ -27,6 +28,7 @@ Face::Face(std::vector<Vertex*> vertices) // Randy changed Vertex to Vertex* her
     user_defined_color = false;
     this->vertices = vertices;
     surfaceName = ""; // Randy added this
+    backfaceName = ""; // Xinyu added this
 }
 
 

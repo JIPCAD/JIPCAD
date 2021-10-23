@@ -155,7 +155,7 @@ void CNome3DView::TakeScene(const tc::TAutoPtr<Scene::CScene>& scene)
             if (entity->IsMesh())
             {
                 // Create an InteractiveMesh from the scene node
-                auto* mesh = new CInteractiveMesh(node);
+                auto* mesh = new CInteractiveMesh(node, Scene->frontColor, Scene->backColor);
                 mesh->setParent(this->Root);
                 InteractiveMeshes.insert(mesh);
             }
@@ -315,14 +315,14 @@ void CNome3DView::PostSceneUpdate()
                         if (node->WasEntityUpdated() || bUpdateScene) {
                             printf("Geom regen for %s\n", node->GetPath().c_str());
                             mesh->UpdateMaterial(WireFrameMode);
-                            mesh->UpdateGeometry(PickVertexBool);
+                            mesh->UpdateGeometry(PickVertexBool, BackFaceBool);
                             node->SetEntityUpdated(false);
                         }
                     }
                 }
                 else if (!entity->isMerged)
                 {
-                    mesh = new CInteractiveMesh(node);
+                    mesh = new CInteractiveMesh(node, Scene->frontColor, Scene->backColor);
                     mesh->setParent(this->Root);
                     aliveSetMesh.insert(mesh);
                     InteractiveMeshes.insert(mesh);

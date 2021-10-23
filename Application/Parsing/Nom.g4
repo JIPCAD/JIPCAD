@@ -42,6 +42,7 @@ argHidden : 'hidden' ;
 argBeginCap : 'begincap' ;
 argEndCap : 'endcap' ;
 argSurface : 'surface' ident ;
+argBackface : 'backface' ident ;
 argCross : 'cross' ident ;
 argSegs : 'segs' expression ;
 argOrder : 'order' expression ;
@@ -81,7 +82,7 @@ command
    | open='polyline' name=ident idList argClosed* end='endpolyline' # CmdIdListOne
    | open='sweep' name=ident 'crosssection' crossId=ident (argBeginCap | argEndCap | argReverse)* 'endcrosssection' 'path' pathId=ident (argAzimuth | argTwist | argMintorsion)* 'endpath'  end='endsweep' # CmdSweep
    | open='controlpoint' name=ident argPoint argControlScale argControlRotate (argCross | argReverse)* end='endcontrolpoint' # CmdNamedArgs
-   | open='face' name=ident idList argSurface* end='endface' # CmdIdListOne
+   | open='face' name=ident idList argSurface* argBackface* end='endface' # CmdIdListOne
    | open='object' name=ident idList end='endobject' # CmdIdListOne
    | open='mesh' name=ident command* end='endmesh' # CmdSubCmds
    | open='group' name=ident command* end='endgroup' # CmdSubCmds
@@ -103,8 +104,11 @@ command
    | open='genimplicitsurf' name=ident argFunc LPAREN expression expression expression expression expression expression expression expression expression RPAREN end='endgenimplicitsurf' # CmdGeneral
    | open='beziercurve' name=ident idList argSegs* end='endbeziercurve' # CmdIdListOne
    | open='bspline' name=ident argOrder* idList argSegs* end='endbspline' # CmdIdListOne
-   | open='instance' name=ident entity=ident (argSurface | argTransform | argHidden)* end='endinstance' # CmdInstance
+   | open='instance' name=ident entity=ident (argSurface | argTransform | argHidden | argBackface)* end='endinstance' # CmdInstance
    | open='surface' name=ident argColor end='endsurface' # CmdSurface
+   | open='frontcolor' LPAREN expression expression expression RPAREN end='endfrontcolor' # CmdInitColor
+   | open='backcolor' LPAREN expression expression expression RPAREN end='endbackcolor' # CmdInitColor
+   | open='backface' name=ident argColor end='endbackface' # CmdSurface
    | open='window' name=ident argOrigin argSize argBackground end='endwindow' # CmdWindow
    | open='foreground' argSurface end='endforeground' # CmdArgSurface
    | open='insidefaces' argSurface end='endinsidefaces' # CmdArgSurface

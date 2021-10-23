@@ -40,7 +40,6 @@ public:
 
     bool subdivide(DSMesh& _m, unsigned int n) const;
 
-
     void setSubLevel(int level) {
         subdivisionLevel = level;
     }
@@ -49,8 +48,6 @@ public:
     void SetSharp(bool setSharp) { isSharp = setSharp; }
 
     void SetOffsetFlag(bool flag) { offsetFlag = flag; }
-
-
 
 private:
     DSMesh MergedMesh;
@@ -63,6 +60,15 @@ private:
     OpenMesh::VPropHandleT<CMeshImpl::Point> vp_pos_; // next vertex pos
     OpenMesh::EPropHandleT<CMeshImpl::Point> ep_pos_; // new edge pts
     OpenMesh::FPropHandleT<CMeshImpl::Point> fp_pos_; // new face pts
+
+    /// add ccsubdivision to subdivide non-manifold shapes
+    void setAllNewPointPointersToNull();
+    void compileNewMesh(std::vector<Face*>& newFaceList);
+    void makeVertexPointsD(std::vector<Vertex*>& newVertList);
+    void makeEdgePoints(std::vector<Vertex*>& newVertList);
+    void makeFacePoints(std::vector<Vertex*>& newVertList);
+    void ccSubdivision(int level);
+
 
     //CMeshImpl MergedMesh;
 

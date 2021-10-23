@@ -9,7 +9,10 @@ namespace Nome
 
     // Project SwitchDS
 CDataStructureMeshToQGeometry::CDataStructureMeshToQGeometry(
-    const DSMesh& fromMesh, std::array<float, 3>& InstanceColor, bool bGenPointGeometry)
+    const DSMesh& fromMesh,
+    std::array<float, 3>& InstanceColor,
+    std::array<float, 3>& InstanceBackColor,
+    bool bGenPointGeometry, bool renderBackFace)
 {
     // Per face normal, thus no shared vertices between faces
     struct CVertexData
@@ -24,12 +27,7 @@ CDataStructureMeshToQGeometry::CDataStructureMeshToQGeometry(
             builder.Ingest(Normal[0], Normal[1], Normal[2]);
             builder.Ingest(faceColor[0], faceColor[1], faceColor[2]);
         }
-        void SendBackfaceToBuilder(CGeometryBuilder2& builder) const
-        {
-            builder.Ingest(Pos[0], Pos[1], Pos[2]);
-            builder.Ingest(Normal[0], Normal[1], Normal[2]);
-            builder.Ingest(.0 , .0 , .0);
-        }
+
     };
     const uint32_t stride = sizeof(CVertexData);
     static_assert(stride == 36, "Vertex data size isn't as expected");
@@ -56,10 +54,17 @@ CDataStructureMeshToQGeometry::CDataStructureMeshToQGeometry(
         //CMeshImpl::FaceVertexIter fvIter = CMeshImpl::FaceVertexIter(fromMesh, *fIter);
 
         std::array<float, 3> potentialFaceColor = InstanceColor;
+        std::array<float, 3> backFaceColor = InstanceBackColor;
         std::array<float, 3> SelectedFaceColor {.7, .7, .7};
         Face* currFace = (*fIt);
         if (!currFace->surfaceName.empty())
+        {
             potentialFaceColor = currFace->color;
+        }
+        if (!currFace->backfaceName.empty())
+        {
+            backFaceColor = currFace->backcolor;
+        }
 
         Edge* firstEdge = currFace->oneEdge;
         Edge* currEdge = firstEdge;
@@ -130,10 +135,19 @@ CDataStructureMeshToQGeometry::CDataStructureMeshToQGeometry(
                 v0.SendToBuilder(builder);
                 vPrev.SendToBuilder(builder);
                 vCurr.SendToBuilder(builder);
-                v0.SendBackfaceToBuilder(builder);
-                vCurr.SendBackfaceToBuilder(builder);
-                vPrev.SendBackfaceToBuilder(builder);
-
+                if (renderBackFace)
+                {
+                    auto temp = v0.faceColor;
+                    v0.faceColor = backFaceColor;
+                    vCurr.faceColor = backFaceColor;
+                    vPrev.faceColor = backFaceColor;
+                    v0.SendToBuilder(builder);
+                    vCurr.SendToBuilder(builder);
+                    vPrev.SendToBuilder(builder);
+                    v0.faceColor = temp;
+                    vCurr.faceColor = temp;
+                    vPrev.faceColor = temp;
+                }
 
                 vPrev = vCurr;
             }

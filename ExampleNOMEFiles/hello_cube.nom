@@ -1,15 +1,10 @@
-bank param
-  set sharpness 2 0 10 0.5
-endbank
-
-
 point p1 (1 1 1) endpoint ### directly assign sharpness to entities
 point p2 (1 -1 1)  endpoint
 point p3 (-1 -1 1) endpoint
 point p4 (-1 1 1) endpoint
 
 bank sub_level
-  set level 2 0 5 1
+  set level 0 0 5 1
 endbank
 
 mesh one_face
@@ -28,8 +23,8 @@ endgroup
 
 
 subdivision sub0
-
-instance front cube endinstance
+    sd_level {expr $sub_level.level}
+    instance front cube endinstance
 endsubdivision
 
 

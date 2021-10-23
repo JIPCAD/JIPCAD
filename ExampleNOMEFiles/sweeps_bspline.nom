@@ -33,7 +33,7 @@ point wi  ( {expr  $p.mrd}    0.5  {expr -$p.msl} )  endpoint
 
 controlpoint cp point wd scale ({expr $p.scaleX} {expr $p.scaleY} 0) rotate (0 0 {expr $p.rot}) endcontrolpoint
 
-bspline s_path  order 4 ( eaR eb ecR  cp we wf wg wh wi )  slices {expr $p.slicesN}  endbspline
+bspline s_path  order 4 ( eaR eb ecR  cp we wf wg wh wi )  segs {expr $p.slicesN}  endbspline
 
 point ra  ( 0.5 0.5 0 ) endpoint
 point rb  ( -0.5 0.5 0 ) endpoint

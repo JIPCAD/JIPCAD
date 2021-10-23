@@ -21,6 +21,7 @@ public:
     antlrcpp::Any visitArgEndCap(NomParser::ArgEndCapContext* context) override;
     antlrcpp::Any visitArgHidden(NomParser::ArgHiddenContext* context) override;
     antlrcpp::Any visitArgSurface(NomParser::ArgSurfaceContext* context) override;
+    antlrcpp::Any visitArgBackface(NomParser::ArgBackfaceContext* context) override;
     antlrcpp::Any visitArgCross(NomParser::ArgCrossContext* context) override;
     antlrcpp::Any visitArgSegs(NomParser::ArgSegsContext* context) override;
     antlrcpp::Any visitArgOrder(NomParser::ArgOrderContext* context) override;
@@ -90,6 +91,7 @@ public:
     antlrcpp::Any visitIdList(NomParser::IdListContext *context) override;
     antlrcpp::Any visitCmdOffset(NomParser::CmdOffsetContext* context) override;
     antlrcpp::Any visitCmdSubdivision(NomParser::CmdSubdivisionContext* context) override;
+    antlrcpp::Any visitCmdInitColor(NomParser::CmdInitColorContext* context) override;
 
     antlrcpp::Any visitVector3(NomParser::Vector3Context *context) override;
 

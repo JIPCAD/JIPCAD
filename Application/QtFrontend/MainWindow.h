@@ -83,6 +83,8 @@ private slots:
     void on_actionTogglePolylineSelection_triggered(); // Randy added this on 12/22
     void on_actionToggleFaceSelection_triggered(); // Randy added this on 11/5
 
+    void on_actionToggleBackFace_triggered();
+
 private:
     // Load nome files into the current window, only call one of them
     void SetupUI();

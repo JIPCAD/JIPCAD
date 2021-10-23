@@ -38,6 +38,7 @@ public:
 
 
     std::string faceSurfaceIdent = ""; // Randy added this on 12/12
+    std::string faceBackfaceIdent = "";
 //
 //private:
 //    std::string faceSurfaceIdent = "";

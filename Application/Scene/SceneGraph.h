@@ -1,5 +1,6 @@
 #pragma once
 #include "Surface.h"
+#include "Backface.h"
 #include "Transforms.h"
 #include <Parsing/ASTContext.h>
 #include <SignalSlot.h>
@@ -120,6 +121,8 @@ public:
     // TODO: generalize this and tie this to the AST
     void SetSurface(const TAutoPtr<CSurface>& surface) { Surface = surface; }
     TAutoPtr<CSurface> GetSurface() const { return Surface; }
+    void SetBackface(const TAutoPtr<CBackface>& backface) { Backface = backface; }
+    TAutoPtr<CBackface> GetBackface() const { return Backface; }
     void NotifySurfaceDirty() const;
 
     void SyncFromAST(AST::ACommand* cmd, CScene& scene);
@@ -165,6 +168,7 @@ private:
     // Associated entity, aka the generator instantiated
     TAutoPtr<CEntity> Entity;
     TAutoPtr<CSurface> Surface;
+    TAutoPtr<CBackface> Backface;
 
     bool SelectBool = false;
     bool ResetColor = false;

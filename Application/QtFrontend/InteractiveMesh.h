@@ -13,12 +13,12 @@ namespace Nome
 class CInteractiveMesh : public Qt3DCore::QEntity
 {
 public:
-    explicit CInteractiveMesh(Scene::CSceneTreeNode* node);
+    explicit CInteractiveMesh(Scene::CSceneTreeNode* node, std::array<float, 3> frontColor, std::array<float, 3> backColor);
 
     [[nodiscard]] Scene::CSceneTreeNode* GetSceneTreeNode() const { return SceneTreeNode; }
 
     void UpdateTransform();
-    void UpdateGeometry(bool showVertBox);
+    void UpdateGeometry(bool showVertBox, bool showBackFace = true);
     void UpdateMaterial(bool showFacets);
     void InitInteractions();
     void SetDebugDraw(const CDebugDraw* debugDraw);
@@ -38,6 +38,7 @@ private:
     Qt3DRender::QGeometryRenderer* PointRenderer;
 
     std::array<float, 3> InstanceColor;
+    std::array<float, 3> InstanceBackColor;
 };
 
 }

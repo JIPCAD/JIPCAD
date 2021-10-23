@@ -130,21 +130,22 @@ Vector3 CMesh::GetVertexPos(const std::string& name) const
 
 // Called from AddFaceIntoMesh
 void CMesh::AddFace(const std::string& name, const std::vector<std::string>& facePointNames,
-                    std::string faceSurfaceIdent)
+                    std::string faceSurfaceIdent, std::string faceBackfaceIdent)
 {
     std::vector<Vertex*> faceVertices;
     for (const std::string& pointName : facePointNames)
     {
         faceVertices.push_back(currMesh.nameToVert.at(pointName));
     }
-    AddFace(name, faceVertices, faceSurfaceIdent);
+    AddFace(name, faceVertices, faceSurfaceIdent, faceBackfaceIdent);
 }
 
 void CMesh::AddFace(const std::string& name, const std::vector<Vertex*>& faceDSVerts,
-                    std::string faceSurfaceIdent)
+                    std::string faceSurfaceIdent, std::string faceBackfaceIdent)
 {
     Face * newFace = currMesh.addFace(faceDSVerts, false); // Project SwitchDS . Check if need to reverseOrder = true or false?
     newFace->surfaceName = faceSurfaceIdent;
+    newFace->backfaceName = faceBackfaceIdent;
 }
 
 void CMesh::AddLineStrip(const std::string& name,
@@ -281,6 +282,11 @@ void CMeshInstance::CopyFromGenerator()
             CSurface* surface = dynamic_cast<CSurface*>(scene->FindEntity(currFace->surfaceName).Get());
             currFace->color = {surface->ColorR.GetValue(0.f), surface->ColorG.GetValue(0.f),
                                 surface->ColorB.GetValue(0.f)};
+        }
+        if (currFace->backfaceName != "") {
+            CBackface* backface = dynamic_cast<CBackface*>(scene->FindEntity(currFace->backfaceName).Get());
+            currFace->backcolor = {backface->ColorR.GetValue(0.f), backface->ColorG.GetValue(0.f),
+                               backface->ColorB.GetValue(0.f)};
         }
     }
 }

@@ -27,7 +27,6 @@ class Parameter;
  */
 
 
-
 class Vertex
 {
 public:

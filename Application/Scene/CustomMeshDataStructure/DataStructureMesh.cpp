@@ -579,9 +579,12 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
         newMesh.faceList[newMesh.faceList.size() - 1]->user_defined_color =
             (*fIt)->user_defined_color;
         newMesh.faceList[newMesh.faceList.size() - 1]->color = (*fIt)->color;
+        newMesh.faceList[newMesh.faceList.size() - 1]->backcolor = (*fIt)->backcolor;
         newMesh.faceList[newMesh.faceList.size() - 1]->name = (*fIt)->name;
         newMesh.faceList[newMesh.faceList.size() - 1]->surfaceName =
             (*fIt)->surfaceName; // Randy added this
+        newMesh.faceList[newMesh.faceList.size() - 1]->backfaceName =
+            (*fIt)->backfaceName; // Randy added this
     }
 
     std::vector<Edge*>::iterator eItr;

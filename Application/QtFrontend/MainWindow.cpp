@@ -217,13 +217,12 @@ void CMainWindow::on_actionSubdivide_triggered()
                     mesh->setSubLevel(sub_level);
                 else
                     mesh->setSubLevel(3);
-                mesh->Catmull(); // TODO: pass in level argument
+                mesh->Catmull();
                 mesh->MarkDirty();
 
             }
         }
     });
-
 }
 
 /* Randy temporarily commenting out. Point and Instance don't work.
@@ -409,6 +408,20 @@ void CMainWindow::on_actionShowFacets_triggered()
 }
 
 
+// Toggle on/off Vertex selection
+void CMainWindow::on_actionToggleBackFace_triggered()
+{
+    Nome3DView->BackFaceBool = !Nome3DView->BackFaceBool;
+    // mark all mesh instances dirty. Added on 11/26
+    Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
+        auto* entity = node->GetInstanceEntity();
+        if (!entity)
+            entity = node->GetOwner()->GetEntity();
+
+        if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
+            mesh->MarkDirty();
+    });
+}
 
 // Toggle on/off Vertex selection
 void CMainWindow::on_actionToggleVertexSelection_triggered()

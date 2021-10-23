@@ -18,7 +18,7 @@ namespace Nome
 
     using namespace Qt3DRender;
 
-CInteractiveMesh::CInteractiveMesh(Scene::CSceneTreeNode* node)
+    CInteractiveMesh::CInteractiveMesh(Scene::CSceneTreeNode* node, std::array<float, 3> frontColor, std::array<float, 3> backColor)
     : SceneTreeNode(node)
     , PointEntity {}
     , PointMaterial {}
@@ -26,6 +26,9 @@ CInteractiveMesh::CInteractiveMesh(Scene::CSceneTreeNode* node)
     , PointRenderer {}
 {
     InstanceColor = { 255.0 / 255.0, 165.0 / 255.0, 0.0 }; // Prof prefers orange
+    InstanceBackColor = {0.3, 0.3, 0.3};
+    InstanceColor = frontColor;
+    InstanceBackColor = backColor;
     UpdateTransform();
     UpdateMaterial(false); // false = don't show facets by default
     UpdateGeometry(false); // false = don't show vert boxes by default
@@ -44,7 +47,7 @@ void CInteractiveMesh::UpdateTransform()
     Transform->setMatrix(qtf);
 }
 
-void CInteractiveMesh::UpdateGeometry(bool showVertBox)
+void CInteractiveMesh::UpdateGeometry(bool showVertBox, bool showBackFace)
 {
 
     auto* entity = SceneTreeNode->GetInstanceEntity();
@@ -75,8 +78,8 @@ void CInteractiveMesh::UpdateGeometry(bool showVertBox)
 
             auto DSFaceWithColorVector = meshInstance->GetDSFaceWithColorVector();
 
-            CDataStructureMeshToQGeometry DSmeshToQGeometry(meshInstance->GetDSMesh(), InstanceColor,
-                                                            true); // Project SwitchDS
+            CDataStructureMeshToQGeometry DSmeshToQGeometry(meshInstance->GetDSMesh(), InstanceColor, InstanceBackColor,
+                                                            true, showBackFace); // Project SwitchDS
 
             // Geometry = meshToQGeometry.GetGeometry();
             Geometry = DSmeshToQGeometry.GetGeometry();
@@ -135,6 +138,12 @@ void CInteractiveMesh::UpdateMaterial(bool showFacets)
             InstanceColor[1] = (surface->ColorG.GetValue(1.0f));
             InstanceColor[2] = (surface->ColorB.GetValue(1.0f));
         }
+        if (auto backface = SceneTreeNode->GetOwner()->GetBackface())
+        {
+            InstanceBackColor[0] = (backface->ColorR.GetValue(1.0f));
+            InstanceBackColor[1] = (backface->ColorG.GetValue(1.0f));
+            InstanceBackColor[2] = (backface->ColorB.GetValue(1.0f));
+        }
     }
     else // else, the scenetreenode is within a group, and we keep bubbling up from where we are
          // (going up the tree) UNTIL we get to an instance scene node that has a surface color
@@ -142,6 +151,7 @@ void CInteractiveMesh::UpdateMaterial(bool showFacets)
            // will color the object in the scene.
     {
         bool setColor = false;
+        bool setBackColor = false;
         auto currNode = SceneTreeNode;
         while (currNode->GetParent()->GetOwner()->IsGroup())
         { // while currNode is within a group
@@ -152,21 +162,39 @@ void CInteractiveMesh::UpdateMaterial(bool showFacets)
                 InstanceColor[1] = (surface->ColorG.GetValue(1.0f));
                 InstanceColor[2] = (surface->ColorB.GetValue(1.0f));
                 setColor = true;
+            }
+            if (auto backface = currNode->GetOwner()->GetBackface())
+            {
+                InstanceBackColor[0] = (backface->ColorR.GetValue(1.0f));
+                InstanceBackColor[1] = (backface->ColorG.GetValue(1.0f));
+                InstanceBackColor[2] = (backface->ColorB.GetValue(1.0f));
+                setBackColor = true;
                 break;
             }
             currNode = currNode->GetParent();
         }
 
-        if (!setColor) // If the surface color hasn't been set yet
+        if (!setColor || !setBackColor) // If the surface color hasn't been set yet
         {
             currNode = currNode->GetParent(); // here, currNode's parent is guaranteed to be a
             // instance scene tree node due to previous while loop
-
-            if (auto surface = currNode->GetOwner()->GetSurface())
+            if (!setColor)
             {
-                InstanceColor[0] = (surface->ColorR.GetValue(1.0f));
-                InstanceColor[1] = (surface->ColorG.GetValue(1.0f));
-                InstanceColor[2] = (surface->ColorB.GetValue(1.0f));
+                if (auto surface = currNode->GetOwner()->GetSurface())
+                {
+                    InstanceColor[0] = (surface->ColorR.GetValue(1.0f));
+                    InstanceColor[1] = (surface->ColorG.GetValue(1.0f));
+                    InstanceColor[2] = (surface->ColorB.GetValue(1.0f));
+                }
+            }
+            if (!setBackColor)
+            {
+                if (auto backface = currNode->GetOwner()->GetBackface())
+                {
+                    InstanceBackColor[0] = (backface->ColorR.GetValue(1.0f));
+                    InstanceBackColor[1] = (backface->ColorG.GetValue(1.0f));
+                    InstanceBackColor[2] = (backface->ColorB.GetValue(1.0f));
+                }
             }
         }
     }

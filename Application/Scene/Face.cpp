@@ -10,6 +10,7 @@ DEFINE_META_OBJECT(CFace)
 {
     BindPositionalArgument(&CFace::Points, 1);
     BindNamedArgument(&CFace::faceSurfaceIdent, "surface", 0); // Randy added on 12/12 to handle face entity coloring
+    BindNamedArgument(&CFace::faceBackfaceIdent, "backface", 0);
     // Handle argSurface
     // Handle parent mesh connection
 }
@@ -84,7 +85,7 @@ bool CFace::AddFaceIntoMesh(CMesh* mesh) const
 
         nameList.push_back(newName);
     }
-    mesh->AddFace(GetName(), nameList, faceSurfaceIdent); // Randy changed this on 12/12
+    mesh->AddFace(GetName(), nameList, faceSurfaceIdent, faceBackfaceIdent); // Randy changed this on 12/12
     return true;
 }
 

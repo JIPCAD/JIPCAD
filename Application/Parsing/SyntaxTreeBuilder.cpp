@@ -94,6 +94,13 @@ antlrcpp::Any CFileBuilder::visitArgSurface(NomParser::ArgSurfaceContext* contex
     return arg;
 }
 
+antlrcpp::Any CFileBuilder::visitArgBackface(NomParser::ArgBackfaceContext* context)
+{
+    AST::ANamedArgument* arg = new AST::ANamedArgument(ConvertToken(context->getStart()));
+    arg->AddChild(visit(context->ident()).as<AST::AExpr*>());
+    return arg;
+}
+
 antlrcpp::Any CFileBuilder::visitArgCross(NomParser::ArgCrossContext* context)
 {
     AST::ANamedArgument* arg = new AST::ANamedArgument(ConvertToken(context->getStart()));
@@ -390,6 +397,8 @@ antlrcpp::Any CFileBuilder::visitCmdIdListOne(NomParser::CmdIdListOneContext* co
     // Randy 12/12 note: this means we can add surface after face, polyline, etc.
     for (auto* arg : context->argSurface())
         cmd->AddNamedArgument(visit(arg));
+    for (auto* arg : context->argBackface())
+        cmd->AddNamedArgument(visit(arg));
     return cmd;
 }
 
@@ -445,7 +454,17 @@ antlrcpp::Any CFileBuilder::visitCmdSharp(NomParser::CmdSharpContext* context)
         cmd->AddSubCommand(subCmd);
     }
     return cmd;
+}
 
+antlrcpp::Any CFileBuilder::visitCmdInitColor(NomParser::CmdInitColorContext* context)
+{
+    auto* cmd = new AST::ACommand(ConvertToken(context->open), ConvertToken(context->end));
+    auto* list = new AST::AVector(ConvertToken(context->LPAREN()), ConvertToken(context->RPAREN()));
+    for (auto* expr : context->expression())
+        list->AddChild(visit(expr).as<AST::AExpr*>());
+    cmd->PushPositionalArgument(list);
+
+    return cmd;
 }
 
 antlrcpp::Any CFileBuilder::visitCmdOffset(NomParser::CmdOffsetContext* context)
@@ -473,6 +492,8 @@ antlrcpp::Any CFileBuilder::visitCmdInstance(NomParser::CmdInstanceContext* cont
     for (auto* arg : context->argHidden())
         cmd->AddNamedArgument(visit(arg));
     for (auto* arg : context->argSurface())
+        cmd->AddNamedArgument(visit(arg));
+    for (auto* arg : context->argBackface())
         cmd->AddNamedArgument(visit(arg));
     for (auto* arg : context->argTransform())
         cmd->AddTransform(visit(arg));

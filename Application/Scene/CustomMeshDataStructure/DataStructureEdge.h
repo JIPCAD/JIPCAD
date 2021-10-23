@@ -25,6 +25,7 @@ class Edge
 {
 public:
     int edge_ID = 0;
+    bool isSharp = false;
     // Pointer to Vertex A of this edge.
     Vertex* va;
     // Pointer to Vertex B of this edge.

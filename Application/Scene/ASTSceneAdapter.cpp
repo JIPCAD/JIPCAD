@@ -23,6 +23,7 @@
 #include "Sphere.h"
 #include "Spiral.h"
 #include "Surface.h"
+#include "Backface.h"
 #include "Sweep.h"
 #include "SweepControlPoint.h"
 #include "Torus.h"
@@ -69,6 +70,7 @@ static const std::unordered_map<std::string, ECommandKind> CommandInfoMap = {
     { "bspline", ECommandKind::Entity },
     { "instance", ECommandKind::Instance },
     { "surface", ECommandKind::Entity },
+    { "backface", ECommandKind::Entity },
     { "background", ECommandKind::Entity },
     { "foreground", ECommandKind::Dummy },
     { "insidefaces", ECommandKind::Dummy },
@@ -81,6 +83,8 @@ static const std::unordered_map<std::string, ECommandKind> CommandInfoMap = {
     { "set", ECommandKind::BankSet },
     { "delete", ECommandKind::Instance },
     { "subdivision", ECommandKind::Instance },
+    {"frontcolor", ECommandKind::Instance},
+    {"backcolor", ECommandKind::Instance},
     { "offset", ECommandKind::Instance },
     { "mobiusstrip", ECommandKind::Entity },
     { "helix", ECommandKind::Entity },
@@ -134,6 +138,8 @@ CEntity* CASTSceneAdapter::MakeEntity(const std::string& cmd, const std::string&
         return new CSweepControlPoint(name);
     else if (cmd == "surface")
         return new CSurface(name);
+    else if (cmd == "backface")
+        return new CBackface(name);
     else if (cmd == "tunnel")
         return new CTunnel(name);
     else if (cmd == "torusknot")
@@ -392,6 +398,17 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
             if (surfaceEntity)
                 sceneNode->SetSurface(dynamic_cast<CSurface*>(surfaceEntity.Get()));
         }
+        auto backface = cmd->GetNamedArgument("backface");
+        if (backface)
+        {
+            auto backfaceEntityNameExpr = backface->GetArgument(
+                0)[0]; // Returns a casted AExpr that was an AIdent before casting
+                auto backfaceIdentifier = static_cast<AST::AIdent*>(&backfaceEntityNameExpr)
+                    ->ToString(); // Downcast it back to an AIdent
+                    auto backfaceEntity = GEnv.Scene->FindEntity(backfaceIdentifier);
+                    if (backfaceEntity)
+                        sceneNode->SetBackface(dynamic_cast<CBackface*>(backfaceEntity.Get()));
+        }
         auto entityName = cmd->GetPositionalIdentAsString(1);
         auto entity = GEnv.Scene->FindEntity(entityName);
 
@@ -475,6 +492,30 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                              // This means you can only have one merger mesh each time. It will
                              // override previous merger meshes with the new vertices.
         sn->SetEntity(merger.Get()); // Set sn, which is the scene node, to point to entity merger
+    }
+    else if (cmd->GetCommand() == "frontcolor") {
+        auto* expr = cmd->GetPositionalArgument(0);
+
+        CExprEvalDirect eval;
+        // auto result = expr->Accept(&eval);
+        // return std::any_cast<float>(result);
+        auto items = static_cast<AST::AVector*>(expr)->GetItems();
+        auto R = std::any_cast<float>(items.at(0)->Accept(&eval));
+        auto G = std::any_cast<float>(items.at(1)->Accept(&eval));
+        auto B = std::any_cast<float>(items.at(2)->Accept(&eval));
+        GEnv.Scene->frontColor = {R, G, B};
+    }
+    else if (cmd->GetCommand() == "backcolor") {
+        auto* expr = cmd->GetPositionalArgument(0);
+
+        CExprEvalDirect eval;
+        // auto result = expr->Accept(&eval);
+        // return std::any_cast<float>(result);
+        auto items = static_cast<AST::AVector*>(expr)->GetItems();
+        auto R = std::any_cast<float>(items.at(0)->Accept(&eval));
+        auto G = std::any_cast<float>(items.at(1)->Accept(&eval));
+        auto B = std::any_cast<float>(items.at(2)->Accept(&eval));
+        GEnv.Scene->backColor = {R, G, B};
     }
     CmdTraverseStack.pop_back();
 }

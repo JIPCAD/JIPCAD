@@ -103,8 +103,8 @@ public:
 
     static void AddPointSharpness(Vertex* p, float sharpness);
     void AddEdgeSharpness(Vertex* e1, Vertex* e2, float sharpness);
-    void AddFace(const std::string& name, const std::vector<std::string>& facePointNames, std::string faceSurfaceIdent = ""); // Randy added faceSurfaceIdent on 12/12
-    void AddFace(const std::string& name, const std::vector<Vertex*>& faceDSVerts, std::string faceSurfaceIdent = ""); // Randy added faceSurfaceIdent on 12/12
+    void AddFace(const std::string& name, const std::vector<std::string>& facePointNames, std::string faceSurfaceIdent = "", std::string faceBackfaceIdent = ""); // Randy added faceSurfaceIdent on 12/12
+    void AddFace(const std::string& name, const std::vector<Vertex*>& faceDSVerts, std::string faceSurfaceIdent = "", std::string faceBackfaceIdent = ""); // Randy added faceSurfaceIdent on 12/12
     void AddLineStrip(const std::string& name, const std::vector<Vertex*>& points);
     void ClearMesh();
 
