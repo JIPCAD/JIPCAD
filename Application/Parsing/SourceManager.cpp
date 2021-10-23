@@ -216,8 +216,12 @@ void CSourceManager::ReportErros(std::string code) {
     std::unordered_map<std::string, std::string> idmap;
     std::unordered_map<std::string, std::string> referencemap;
     std::string thepath = CResourceMgr::Get().Find("DebugDrawLine.xml");
-    std::string basepath = thepath.substr(0, 43);
+    std::cout << thepath << std::endl;
+    std::string find = "/Resources/DebugDrawLine.xml";
+    size_t found = thepath.find(find);
+    std::string basepath = thepath.substr(0, found + 1);
     std::ifstream file (basepath + "Parsing/Nom.g4");
+
     if (file.is_open()) {
         std::string line;
         while (std::getline(file, line)) {
@@ -305,9 +309,6 @@ void CSourceManager::ReportErros(std::string code) {
             if (element.empty()) {
                 j = line.size();
                 continue; 
-            }
-            for(auto x : shapemap) {
-                std::cout << x.first << " " << x.second << "\n";
             }
             std::cout << element << std::endl;
             if (element == "group" || (shapemap.find(element))!= shapemap.end()) { //check for keywords here.
