@@ -64,9 +64,9 @@ bool CSourceManager::ParseMainSource()
     ASTRoot = builder.visitFile(tree);
     ASTContext.SetAstRoot(ASTRoot);
 
-    std::cout << "====== Debug Print AST ======" << std::endl;
+    //std::cout << "====== Debug Print AST ======" << std::endl;
     // std::cout << *ASTRoot;
-    std::cout << "====== End Debug Print AST ======" << std::endl;
+    // std::cout << "====== End Debug Print AST ======" << std::endl;
 
     return !errorListener.bDidErrorHappen;
 }
@@ -127,7 +127,7 @@ std::vector<std::string> removeDupWord(std::string str) {
     return parsedcode;
 }
 
-std::vector<std::string> CSourceManager::ParameterCheck(std::vector<std::string> code, std::string type, int numparams, std::unordered_map<std::string, std::string> idmap) {
+std::vector<std::string> CSourceManager::ParameterCheck(std::vector<std::string> code, std::string type, int numparams, std::unordered_map<std::string, std::string> idmap, std::unordered_map<std::string, std::string> referencemap) {
     int start = 0; 
     int end = 0;
     std::string concatstr = "";
@@ -202,6 +202,13 @@ std::vector<std::string> CSourceManager::ParameterCheck(std::vector<std::string>
                 }
             } 
         }
+    } else if (type == "bank") {
+        for (int i = 0; i < words.size(); i++) {
+            if (referencemap.find(words[i]) == referencemap.end()) {
+                return {std::to_string(i + 1), "false"};
+            }
+
+        }
     }
     return {"0", "true"}; 
 }
@@ -216,7 +223,6 @@ void CSourceManager::ReportErros(std::string code) {
     std::unordered_map<std::string, std::string> idmap;
     std::unordered_map<std::string, std::string> referencemap;
     std::string thepath = CResourceMgr::Get().Find("DebugDrawLine.xml");
-    std::cout << thepath << std::endl;
     std::string find = "/Resources/DebugDrawLine.xml";
     size_t found = thepath.find(find);
     std::string basepath = thepath.substr(0, found + 1);
@@ -310,11 +316,11 @@ void CSourceManager::ReportErros(std::string code) {
                 j = line.size();
                 continue; 
             }
-            std::cout << element << std::endl;
             if (element == "group" || (shapemap.find(element))!= shapemap.end()) { //check for keywords here.
                 auto cast = shapemap.find(element);
                 std::string endval = cast -> second;
                 std::vector<std::string> result;
+                std::cout << "Checking The Syntax of " << element << std::endl;
                 if (element == "circle") {
                     if (j == line.size() - 1) {
                         result = CheckCircle(parsedcode, idmap, i + 1, 0, shapemap);
@@ -628,15 +634,40 @@ std::vector<std::string> CSourceManager::CheckBank(std::vector<std::vector<std::
                             std::cout << "Error at Line " + std::to_string(i + 1) + ": " + secondval + " is already being used as an reference." << std::endl;
                             return {"error"};
                         }
-                        referencemap[secondval] = true; 
+                        referencemap[secondval] = "true"; 
                         l+=5;
                     } else {
                         std::cout << "Error at Line " + std::to_string(k + 1) + ": Expected 5 or (optional) 6 Parameters in Set, Received " + std::to_string(line.size() - 1)  << std::endl;
                         return {"error"};
                     }
 
+                } else if (element == "list") {
+                    std::string linestr = "";
+                    for (int l = 0; l < line.size(); l++) {
+                        linestr += line.at(l);
+                    }
+                    if (balancedbracket(linestr)) {
+                        std::vector<std::string> res = ParameterCheck(line, "bank", -1, idmap, referencemap);
+                        std::string truthval = res[1];
+                        int position = std::stoi(res[0]);
+                        if (truthval != "true") {
+                            int splitpoint = l + position;
+                            for (int f = 0; f < line.size(); f++) {
+                                std::cout << RemoveSpecials(line.at(f)) << ' ';
+                                if (f == splitpoint - 1) {
+                                    std::cout << ">>";
+                                }
+                            }
+                            std::cout << "\n";
+                            std::cout << "Error at Line " + std::to_string(i + 1) + ": Invalid List Parameter for type Bank." << std::endl;
+                            return {"error"};
+                        }
+                    } else {
+                        std::cout << "Error at Line " + std::to_string(i + 1) + ": Mismatched Parehthesis" << std::endl;
+                        return {"error"};
+                    }
                 } else {
-                    std::cout << "Error at Line " + std::to_string(k + 1) + ": Expected Set at the Start of a New Line." << std::endl;
+                    std::cout << "Error at Line " + std::to_string(k + 1) + ": Expected Set or List at the Start of a New Line." << std::endl;
                     return {"error"};
                 }
             }
@@ -888,7 +919,7 @@ std::vector<std::string> CSourceManager::CheckCircle(std::vector<std::vector<std
                 return {"error"};
             }
             if (cnt == 2 && element.find('(') != std::string::npos) {
-                std::vector<std::string> res = ParameterCheck(line, "circle", 2, idmap);
+                std::vector<std::string> res = ParameterCheck(line, "circle", 2, idmap, std::unordered_map<std::string, std::string>{});
                 std::string truthval = res[1];
                 int position = std::stoi(res[0]);
                 if (truthval != "true") {
@@ -975,7 +1006,7 @@ std::vector<std::string> CSourceManager::CheckPolyline(std::vector<std::vector<s
                     std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(l) + ": Mismatched Parenthesis" << std::endl;
                     return {"error"};
                 }
-                std::vector<std::string> res = ParameterCheck(line, "polyline", -1, idmap);
+                std::vector<std::string> res = ParameterCheck(line, "polyline", -1, idmap, std::unordered_map<std::string, std::string>{});
                 std::string truthval = res[1];
                 int position = std::stoi(res[0]);
                 if (truthval != "true") {
@@ -1071,7 +1102,7 @@ std::vector<std::string> CSourceManager::CheckSurface(std::vector<std::vector<st
                     std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(l) + ": Mismatched Parenthesis" << std::endl;
                     return {"error"};
                 }
-                std::vector<std::string> res = ParameterCheck(line, "surface", 3, idmap);
+                std::vector<std::string> res = ParameterCheck(line, "surface", 3, idmap, std::unordered_map<std::string, std::string>{});
                 std::string truthval = res[1];
                 int position = std::stoi(res[0]);
                 if (truthval != "true") {
@@ -1151,7 +1182,7 @@ std::vector<std::string> CSourceManager::CheckPoint(std::vector<std::vector<std:
                 return {"error"};
             }
             if (cnt == 2 && element.find('(') != std::string::npos) {
-                std::vector<std::string> res = ParameterCheck(line, "point", 3, idmap);
+                std::vector<std::string> res = ParameterCheck(line, "point", 3, idmap, std::unordered_map<std::string, std::string>{});
                 std::string truthval = res[1];
                 int position = std::stoi(res[0]);
                 if (truthval != "true") {
@@ -1237,7 +1268,7 @@ std::vector<std::string> CSourceManager::CheckFace(std::vector<std::vector<std::
                     std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(l) + ": Mismatched Parenthesis" << std::endl;
                     return {"error"};
                 }
-                std::vector<std::string> res = ParameterCheck(line, "face", -1, idmap);
+                std::vector<std::string> res = ParameterCheck(line, "face", -1, idmap, std::unordered_map<std::string, std::string>{});
                 std::string truthval = res[1];
                 int position = std::stoi(res[0]);
                 if (truthval != "true") {
