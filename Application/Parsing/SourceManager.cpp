@@ -70,6 +70,27 @@ bool CSourceManager::ParseMainSource()
 
     return !errorListener.bDidErrorHappen;
 }
+std::vector<std::string> CSourceManager::parsecomments(std::vector<std::string> input) {
+    std::vector<std::string> retvector;
+    for (int i = 0; i < input.size(); i++) {
+        if (input[i].find('#') != std::string::npos) {
+            break;
+        } else {
+            retvector.push_back(input[i]);
+        }
+    }
+    return retvector;
+
+}
+std::vector<std::string> CSourceManager::split(std::string const &input) { 
+    std::istringstream buffer(input);
+    std::vector<std::string> ret;
+
+    std::copy(std::istream_iterator<std::string>(buffer), 
+              std::istream_iterator<std::string>(),
+              std::back_inserter(ret));
+    return ret;
+}
 bool CSourceManager::balancedbracket(std::string codeline) {   
     std::stack<char> stk; 
     char x; 
@@ -111,21 +132,6 @@ bool CSourceManager::balancedbracket(std::string codeline) {
     return (stk.empty()); 
 }
 
-std::vector<std::string> removeDupWord(std::string str) {
-    std::string word = "";
-    std::vector<std::string> parsedcode;
-    for (auto x : str) {
-        if (x == ' ') {
-            parsedcode.push_back(word);
-            word = "";
-        }
-        else {
-            word = word + x;
-        }
-    }
-    parsedcode.push_back(word);
-    return parsedcode;
-}
 
 std::vector<std::string> CSourceManager::ParameterCheck(std::vector<std::string> code, std::string type, int numparams, std::unordered_map<std::string, std::string> idmap, std::unordered_map<std::string, std::string> referencemap) {
     int start = 0; 
@@ -151,7 +157,11 @@ std::vector<std::string> CSourceManager::ParameterCheck(std::vector<std::string>
     }
     std::string parenthesiscode = concatstr.substr(start + 1, end-start - 1);
     std::vector<std::string> words{};
-    words = removeDupWord(parenthesiscode);
+    words = split(parenthesiscode);
+
+    if (parenthesiscode.find("expr") != std::string::npos) {
+        return {"0", "true"}; 
+    }
     
     if (numparams != -1 && words.size() != numparams) {
         return {"0", "false"};
@@ -233,12 +243,7 @@ void CSourceManager::ReportErros(std::string code) {
         while (std::getline(file, line)) {
             std::vector<std::string> spaces;
             std::string str = line.c_str();
-            size_t pos = 0; 
-            while ((pos = str.find(delimiter2)) != std::string::npos) {
-                token = str.substr(0, pos);
-                str.erase(0, pos + delimiter.length());
-                spaces.push_back(token);
-            }
+            spaces = split(str);
             for (int i = 0; i < spaces.size(); i++) {
                 std::string keyword;
                 std::string endword;
@@ -344,6 +349,17 @@ void CSourceManager::ReportErros(std::string code) {
                     i = std::stoi(result[0]);
                     j = std::stoi(result[1]);
 
+                } else if (element == "instance") {
+                    if (j == line.size() - 1) {
+                        result = CheckInstance(parsedcode, idmap, i + 1, 0, shapemap);
+                    } else {
+                        result = CheckInstance(parsedcode, idmap, i, j + 1, shapemap);
+                    }
+                    if (result[0] == "error") {
+                        return;
+                    }
+                    i = std::stoi(result[0]);
+                    j = std::stoi(result[1]);
                 } else if (element == "polyline") {
                     if (j == line.size() - 1) {
                         result = CheckPolyline(parsedcode, idmap, i + 1, 0, shapemap);
@@ -476,6 +492,7 @@ std::vector<std::string> CSourceManager::CheckStatement(std::vector<std::vector<
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
+        line = parsecomments(line);
         std::string linestr = "";
         for (int l = 0; l < line.size(); l++) {
             linestr += line.at(l);
@@ -532,6 +549,7 @@ std::vector<std::string> CSourceManager::CheckGroup(std::vector<std::vector<std:
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
+        line = parsecomments(line);
         for (int l = 0; l < line.size(); l++) {
             if (first_time == true) {
                 l = j;
@@ -573,6 +591,8 @@ std::vector<std::string> CSourceManager::CheckGroup(std::vector<std::vector<std:
                 l = std::stoi(result[1]);
                 std::string elemid = RemoveSpecials(result[2]);
                 line = parsedcode.at(k);
+                line = parsecomments(line);
+
                 //idmap[elemid] = "TRUE";
             }
             else {
@@ -592,12 +612,14 @@ std::vector<std::string> CSourceManager::CheckBank(std::vector<std::vector<std::
                                                         int i, int j,
                                                         std::unordered_map<std::string, std::string> shapemap) {
     bool first_time = true;
+    bool elementlisted = false;
     std::string id;
     for (int k = 0; k < parsedcode.size(); k++) {
         if (first_time == true) {
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
+        line = parsecomments(line);
         for (int l = 0; l < line.size(); l++) {
             if (first_time == true) {
                 l = j;
@@ -612,13 +634,18 @@ std::vector<std::string> CSourceManager::CheckBank(std::vector<std::vector<std::
             std::vector<std::string> result;
             std::string element = RemoveSpecials(line.at(l));
             if (element == "endbank") {
-                std::vector<std::string> ret;
-                if (l == line.size() - 1) {
-                    ret = {std::to_string(k), std::to_string(l)};
+                if (elementlisted) {
+                    std::vector<std::string> ret;
+                    if (l == line.size() - 1) {
+                        ret = {std::to_string(k), std::to_string(l)};
+                    } else {
+                        ret = {std::to_string(k), std::to_string(l)};
+                    }
+                    return ret; 
                 } else {
-                    ret = {std::to_string(k), std::to_string(l)};
+                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + "List expected at the end of bank." << std::endl;
+                    return {"error"};
                 }
-                return ret; 
             }
             if (l == 0) {
                 if (element == "set") {
@@ -642,6 +669,7 @@ std::vector<std::string> CSourceManager::CheckBank(std::vector<std::vector<std::
                     }
 
                 } else if (element == "list") {
+                    elementlisted = true;
                     std::string linestr = "";
                     for (int l = 0; l < line.size(); l++) {
                         linestr += line.at(l);
@@ -659,11 +687,11 @@ std::vector<std::string> CSourceManager::CheckBank(std::vector<std::vector<std::
                                 }
                             }
                             std::cout << "\n";
-                            std::cout << "Error at Line " + std::to_string(i + 1) + ": Invalid List Parameter for type Bank." << std::endl;
+                            std::cout << "Error at Line " + std::to_string(k + 1) + ": Invalid List Parameter for type Bank." << std::endl;
                             return {"error"};
                         }
                     } else {
-                        std::cout << "Error at Line " + std::to_string(i + 1) + ": Mismatched Parehthesis" << std::endl;
+                        std::cout << "Error at Line " + std::to_string(k + 1) + ": Mismatched Parehthesis" << std::endl;
                         return {"error"};
                     }
                 } else {
@@ -691,6 +719,7 @@ std::vector<std::string> CSourceManager::CheckInstance(std::vector<std::vector<s
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
+        line = parsecomments(line);
         for (int l = 0; l < line.size(); l++) {
             if (first_time == true) {
                 l = j;
@@ -729,8 +758,8 @@ std::vector<std::string> CSourceManager::CheckInstance(std::vector<std::vector<s
             } else if (element == "surface" || element == "LOD" || element == "shading") {
                 int templ = l+1;
                 std::string secondelem = line.at(templ);
-                if ((shapemap.find(secondelem))!= shapemap.end()) {
-                    std::cout << "Error at Line " + std::to_string(k + 1) + ": " + element + " is a reserved keyword." << std::endl;
+                if ((idmap.find(secondelem)) == idmap.end()) {
+                    std::cout << "Error at Line " + std::to_string(k + 1) + ": " + secondelem + " is not a valid shape." << std::endl;
                 }
                 l = templ; 
             }
@@ -754,6 +783,7 @@ std::vector<std::string> CSourceManager::CheckSubdivision(std::vector<std::vecto
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
+        line = parsecomments(line);
         for (int l = 0; l < line.size(); l++) {
             if (first_time == true) {
                 l = j;
@@ -825,6 +855,7 @@ std::vector<std::string> CSourceManager::CheckMesh(std::vector<std::vector<std::
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
+        line = parsecomments(line);
         for (int l = 0; l < line.size(); l++) {
             if (first_time == true) {
                 l = j;
@@ -897,6 +928,7 @@ std::vector<std::string> CSourceManager::CheckCircle(std::vector<std::vector<std
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
+        line = parsecomments(line);
         for (int l = 0; l < line.size(); l++) {
             if (first_time == true) {
                 l = j;
@@ -965,6 +997,7 @@ std::vector<std::string> CSourceManager::CheckPolyline(std::vector<std::vector<s
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
+        line = parsecomments(line);
         for (int l = 0; l < line.size(); l++) {
             if (first_time == true) {
                 l = j;
@@ -991,6 +1024,7 @@ std::vector<std::string> CSourceManager::CheckPolyline(std::vector<std::vector<s
             std::string element = RemoveSpecials(line.at(l));
             if (l == 2 && element.find('(') != std::string::npos) {
                 std::vector<std::string> line = parsedcode.at(k);
+                line = parsecomments(line);
                 std::string linestr = "";
                 for (int l = 0; l < line.size(); l++) {
                     linestr += line.at(l);
@@ -1059,6 +1093,7 @@ std::vector<std::string> CSourceManager::CheckSurface(std::vector<std::vector<st
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
+        line = parsecomments(line);
         for (int l = 0; l < line.size(); l++) {
             if (first_time == true) {
                 l = j;
@@ -1087,6 +1122,7 @@ std::vector<std::string> CSourceManager::CheckSurface(std::vector<std::vector<st
                 continue;
             } else if (l == 3 && element.find('(') != std::string::npos) {
                 std::vector<std::string> line = parsedcode.at(k);
+                line = parsecomments(line);
                 std::string linestr = "";
                 for (int l = 0; l < line.size(); l++) {
                     linestr += line.at(l);
@@ -1160,6 +1196,7 @@ std::vector<std::string> CSourceManager::CheckPoint(std::vector<std::vector<std:
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
+        line = parsecomments(line);
         for (int l = 0; l < line.size(); l++) {
             if (first_time == true) {
                 l = j;
@@ -1227,6 +1264,7 @@ std::vector<std::string> CSourceManager::CheckFace(std::vector<std::vector<std::
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
+        line = parsecomments(line);
         for (int l = 0; l < line.size(); l++) {
             if (first_time == true) {
                 l = j;
@@ -1253,6 +1291,7 @@ std::vector<std::string> CSourceManager::CheckFace(std::vector<std::vector<std::
             std::string element = RemoveSpecials(line.at(l));
             if (cnt == 2 && element.find('(') != std::string::npos) {
                 std::vector<std::string> line = parsedcode.at(k);
+                line = parsecomments(line);
                 std::string linestr = "";
                 for (int l = 0; l < line.size(); l++) {
                     linestr += line.at(l);
