@@ -75,6 +75,8 @@ std::vector<std::string> CSourceManager::parsecomments(std::vector<std::string> 
     for (int i = 0; i < input.size(); i++) {
         if (input[i].find('#') != std::string::npos) {
             break;
+        } else if (input[i] == "" ||input[i] == " " ) {
+            continue;
         } else {
             retvector.push_back(input[i]);
         }
@@ -83,13 +85,49 @@ std::vector<std::string> CSourceManager::parsecomments(std::vector<std::string> 
 
 }
 std::vector<std::string> CSourceManager::split(std::string const &input) { 
-    std::istringstream buffer(input);
-    std::vector<std::string> ret;
+    if (input.find("expr") != std::string::npos) {
+        bool append = false;
+        std::string concatstr = "";
+        std::vector<std::string> paramlst;
+        for (int i = 0; i < input.size(); i++) {
+            if (input[i] == '{') {
+                append = true;
+                continue;
+            } else if (input[i] == '}') {
+                append = false;
+                paramlst.push_back(concatstr);
+                concatstr = "";
+                continue;
+            }             
+            if (append) {
+                concatstr += input[i];
+            }
+        }
+        std::istringstream buffer(input);
+        std::vector<std::string> ret;
+        std::copy(std::istream_iterator<std::string>(buffer), 
+                std::istream_iterator<std::string>(),
+                std::back_inserter(ret));
+        for (int i = 0; i < ret.size(); i++) {
+            if (ret[i].find("}") != std::string::npos || ret[i].find("$") != std::string::npos || ret[i].find("{") != std::string::npos) {
+                ret.erase(ret.begin() + i);
+                i--;
+            } 
+        }
+        for (int i = 0; i < paramlst.size(); i++) {
+            ret.push_back(paramlst[i]);
+        }
+        return ret;
 
-    std::copy(std::istream_iterator<std::string>(buffer), 
-              std::istream_iterator<std::string>(),
-              std::back_inserter(ret));
-    return ret;
+    } else {
+        std::istringstream buffer(input);
+        std::vector<std::string> ret;
+
+        std::copy(std::istream_iterator<std::string>(buffer), 
+                std::istream_iterator<std::string>(),
+                std::back_inserter(ret));
+        return ret;
+    }
 }
 bool CSourceManager::balancedbracket(std::string codeline) {   
     std::stack<char> stk; 
@@ -159,10 +197,12 @@ std::vector<std::string> CSourceManager::ParameterCheck(std::vector<std::string>
     std::vector<std::string> words{};
     words = split(parenthesiscode);
 
-    if (parenthesiscode.find("expr") != std::string::npos) {
-        return {"0", "true"}; 
+    if (type == "circle") {
+        for (int i = 0; i < words.size(); i++) {
+            std::cout << words[i] << std::endl;
+        }
+        std::cout << words.size() << std::endl;
     }
-    
     if (numparams != -1 && words.size() != numparams) {
         return {"0", "false"};
     }
@@ -182,6 +222,10 @@ std::vector<std::string> CSourceManager::ParameterCheck(std::vector<std::string>
         //     std::cout << "The Word: " << words[i] << std::endl; 
         //     std::cout << "THE ID: " << idmap[words[i]] << std::endl; 
 
+        // }
+        // for(auto elem : idmap)
+        // {
+        //     std::cout << elem.first << "-" <<elem.second << "\n";
         // }
         for (int i = 0; i < words.size(); i++) {
             if (idmap[words[i]] != "Point") {
@@ -872,6 +916,9 @@ std::vector<std::string> CSourceManager::CheckMesh(std::vector<std::vector<std::
             global_l = l;
             std::vector<std::string> result;
             std::string element = RemoveSpecials(line.at(l));
+            if (element == "") {
+                continue;
+            }
             if (element == "endmesh") {
                 std::vector<std::string> ret;
                 if (l == line.size() - 1) {
@@ -882,9 +929,9 @@ std::vector<std::string> CSourceManager::CheckMesh(std::vector<std::vector<std::
                 return ret; 
             } else if (element == "point") {
                 if (l == line.size() - 1) {
-                    result = CheckStatement(parsedcode, idmap, "endpoint", k + 1, 0, shapemap);
+                    result = CheckPoint(parsedcode, idmap, k + 1, 0, shapemap);
                 } else {
-                    result = CheckStatement(parsedcode, idmap, "endpoint", k, l + 1, shapemap);
+                    result = CheckPoint(parsedcode, idmap, k, l + 1, shapemap);
                 }
                 if (result[0] == "error") {
                     return {"error"};
@@ -905,8 +952,6 @@ std::vector<std::string> CSourceManager::CheckMesh(std::vector<std::vector<std::
             }
             k = std::stoi(result[0]);
             l = std::stoi(result[1]);
-            std::string elemid = result[2];
-            idmap[elemid] = "TRUE";
             cnt++;
         }
     }
@@ -1078,6 +1123,15 @@ std::vector<std::string> CSourceManager::CheckPolyline(std::vector<std::vector<s
     return {"error"};
 }
 
+void CSourceManager::PrintLocationError(std::vector<std::string> line, int splitpoint) {
+    for (int f = 0; f < line.size(); f++) {
+        std::cout << RemoveSpecials(line.at(f)) << ' ';
+        if (f == splitpoint - 1) {
+            std::cout << ">>";
+        }
+    }
+    std::cout << "\n";
+}
 
 std::vector<std::string> CSourceManager::CheckSurface(std::vector<std::vector<std::string>> parsedcode,
                                                         std::unordered_map<std::string, std::string> &idmap,
@@ -1118,42 +1172,77 @@ std::vector<std::string> CSourceManager::CheckSurface(std::vector<std::vector<st
             global_l = l;
             std::vector<std::string> result;
             std::string element = RemoveSpecials(line.at(l));
-            if (l == 2 && element == "color") {
-                continue;
-            } else if (l == 3 && element.find('(') != std::string::npos) {
-                std::vector<std::string> line = parsedcode.at(k);
-                line = parsecomments(line);
-                std::string linestr = "";
-                for (int l = 0; l < line.size(); l++) {
-                    linestr += line.at(l);
+            if (cnt > 4) {
+                std::cout << "Error at Line " + std::to_string(i + 1) + ": endsurface expected" << std::endl;
+                return {"error"};
+            }
+            if (cnt == 2) {
+                if (element == "color") {
+                    cnt++;
+                    continue;
+                } else {
+                    PrintLocationError(line, l);
+                    std::cout << "Error at Line " + std::to_string(i + 1) + ": Expected Color" << std::endl;
+                    return {"error"}; 
                 }
-                if (!balancedbracket(linestr)) {
-                    for (int f = 0; f < line.size(); f++) {
-                        std::cout << RemoveSpecials(line.at(f)) << ' ';
-                        if (f == l - 1) {
-                            std::cout << ">>";
-                        }
+            } else if (cnt == 3) {
+                if (element.find('(') != std::string::npos) {   
+                    std::vector<std::string> line = parsedcode.at(k);
+                    line = parsecomments(line);
+                    std::string linestr = "";
+                    for (int l = 0; l < line.size(); l++) {
+                        linestr += line.at(l);
                     }
-                    std::cout << "\n";
-                    std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(l) + ": Mismatched Parenthesis" << std::endl;
-                    return {"error"};
-                }
-                std::vector<std::string> res = ParameterCheck(line, "surface", 3, idmap, std::unordered_map<std::string, std::string>{});
-                std::string truthval = res[1];
-                int position = std::stoi(res[0]);
-                if (truthval != "true") {
-                    int splitpoint = l + position;
-                    for (int f = 0; f < line.size(); f++) {
-                        std::cout << RemoveSpecials(line.at(f)) << ' ';
-                        if (f == splitpoint - 1) {
-                            std::cout << ">>";
+                    if (!balancedbracket(linestr)) {
+                        for (int f = 0; f < line.size(); f++) {
+                            std::cout << RemoveSpecials(line.at(f)) << ' ';
+                            if (f == l - 1) {
+                                std::cout << ">>";
+                            }
                         }
+                        std::cout << "\n";
+                        std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(l) + ": Mismatched Parenthesis" << std::endl;
+                        return {"error"};
                     }
-                    std::cout << "\n";
-                    std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(splitpoint) + ": Invalid Parameters for type Surface." << std::endl;
-                    return {"error"};
+                    std::vector<std::string> res = ParameterCheck(line, "surface", 3, idmap, std::unordered_map<std::string, std::string>{});
+                    std::string truthval = res[1];
+                    int position = std::stoi(res[0]);
+                    if (truthval != "true") {
+                        int splitpoint = l + position;
+                        for (int f = 0; f < line.size(); f++) {
+                            std::cout << RemoveSpecials(line.at(f)) << ' ';
+                            if (f == splitpoint - 1) {
+                                std::cout << ">>";
+                            }
+                        }
+                        std::cout << "\n";
+                        std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(splitpoint) + ": Invalid Parameters for type Surface." << std::endl;
+                        return {"error"};
+                    }
+                    bool foundend = false;
+                    for (int k = l; k < line.size(); k++) {
+                        std::string element2 = RemoveSpecials(line.at(k));
+                        if (element2.find(')') != std::string::npos) {
+                            l = k; 
+                            cnt++;
+                            foundend = true;
+                            break;
+                        } 
+    
+                    }
+                    if (foundend) {
+                        continue;
+                    } else {
+                        std::cout << "Error at Line " + std::to_string(i + 1) + ": Expecting Close of Parenthesis." << std::endl;
+                        return {"error"};
+                    }
+                    continue; 
+                } else {
+                    PrintLocationError(line, l);
+                    std::cout << "Error at Line " + std::to_string(i + 1) + ": Expected Start of Parameter at Surface" << std::endl;
+                    return {"error"}; 
+
                 }
-                continue; 
 
             } else if (element == "endsurface") {
                 std::vector<std::string> ret;
@@ -1164,19 +1253,9 @@ std::vector<std::string> CSourceManager::CheckSurface(std::vector<std::vector<st
                 }
                 return ret;
             } else {
-                    // int splitpoint = l;
-                    // for (int f = 0; f < line.size(); f++) {
-                    //     std::cout << RemoveSpecials(line.at(f)) << ' ';
-                    //     if (f == splitpoint - 1) {
-                    //         std::cout << ">>";
-                    //     }
-                    // }
-                    // std::cout << "\n";
-                    // std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(splitpoint) + ": Invalid Phrase for type Surface." << std::endl;
-                    // return {"error"};
-                    continue; 
+                cnt++;
+                continue; 
             }
-            cnt++;
         }
     }
     std::cout << "Error at Line " + std::to_string(i + 1) + ": endsurface expected" << std::endl;
@@ -1198,7 +1277,7 @@ std::vector<std::string> CSourceManager::CheckPoint(std::vector<std::vector<std:
         std::vector<std::string> line = parsedcode.at(k);
         line = parsecomments(line);
         for (int l = 0; l < line.size(); l++) {
-            if (first_time == true) {
+            if (first_time == true) { //ID Check
                 l = j;
                 first_time = false;
                 id = RemoveSpecials(line.at(l));
@@ -1214,20 +1293,41 @@ std::vector<std::string> CSourceManager::CheckPoint(std::vector<std::vector<std:
             global_l = l;
             std::vector<std::string> result;
             std::string element = RemoveSpecials(line.at(l));
-            if (cnt > 5) {
+            if (cnt > 3) {
                 std::cout << "Error at Line " + std::to_string(i + 1) + ": endpoint expected" << std::endl;
                 return {"error"};
             }
-            if (cnt == 2 && element.find('(') != std::string::npos) {
-                std::vector<std::string> res = ParameterCheck(line, "point", 3, idmap, std::unordered_map<std::string, std::string>{});
-                std::string truthval = res[1];
-                int position = std::stoi(res[0]);
-                if (truthval != "true") {
-                    std::cout << "Error at Line " + std::to_string(i + 1) + ": Invalid Parameters for type point." << std::endl;
+            if (cnt == 2) { //Parameter Position
+                if (element.find('(') != std::string::npos) {
+                    std::vector<std::string> res = ParameterCheck(line, "point", 3, idmap, std::unordered_map<std::string, std::string>{});
+                    std::string truthval = res[1];
+                    int position = std::stoi(res[0]);
+                    if (truthval != "true") {
+                        std::cout << "Error at Line " + std::to_string(i + 1) + ": Invalid Parameters for type point." << std::endl;
+                        return {"error"};
+                    }
+                    bool foundend = false;
+                    for (int k = l; k < line.size(); k++) {
+                        std::string element2 = RemoveSpecials(line.at(k));
+                        if (element2.find(')') != std::string::npos) {
+                            l = k; 
+                            cnt++;
+                            foundend = true;
+                            break;
+                        } 
+    
+                    }
+                    if (foundend) {
+                        continue;
+                    } else {
+                        std::cout << "Error at Line " + std::to_string(i + 1) + ": Expecting Close of Parenthesis." << std::endl;
+                        return {"error"};
+                    }
+                } else {
+                    PrintLocationError(line, l);
+                    std::cout << "Error at Line " + std::to_string(i + 1) + ": Expected Start of Parameter at Point" << std::endl;
                     return {"error"};
                 }
-                continue; 
-
             } else if (element == "endpoint") {
                 std::vector<std::string> ret;
                 if (l == line.size() - 1) {
@@ -1237,13 +1337,9 @@ std::vector<std::string> CSourceManager::CheckPoint(std::vector<std::vector<std:
                 }
                 return ret;
             } else {
+                cnt++;
                 continue;
             }
-            k = std::stoi(result[0]);
-            l = std::stoi(result[1]);
-            std::string elemid = result[2];
-            idmap[elemid] = "TRUE";
-            cnt++;
         }
     }
     std::cout << "Error at Line " + std::to_string(i + 1) + ": endpoint expected" << std::endl;
@@ -1255,6 +1351,7 @@ std::vector<std::string> CSourceManager::CheckFace(std::vector<std::vector<std::
                                                         int i, int j,
                                                         std::unordered_map<std::string, std::string> shapemap) {
     bool first_time = true;
+    bool opt_surface = false;
     std::string id;
     int global_k;
     int global_l;
@@ -1289,43 +1386,75 @@ std::vector<std::string> CSourceManager::CheckFace(std::vector<std::vector<std::
             global_l = l;
             std::vector<std::string> result;
             std::string element = RemoveSpecials(line.at(l));
-            if (cnt == 2 && element.find('(') != std::string::npos) {
-                std::vector<std::string> line = parsedcode.at(k);
-                line = parsecomments(line);
-                std::string linestr = "";
-                for (int l = 0; l < line.size(); l++) {
-                    linestr += line.at(l);
-                }
-                if (!balancedbracket(linestr)) {
-                    for (int f = 0; f < line.size(); f++) {
-                        std::cout << RemoveSpecials(line.at(f)) << ' ';
-                        if (f == l - 1) {
-                            std::cout << ">>";
-                        }
+            if (!opt_surface && cnt > 3) {
+                std::cout << "Error at Line " + std::to_string(i + 1) + ": endface expected" << std::endl;
+                return {"error"};
+            } else if (opt_surface && cnt > 4) {
+                std::cout << "Error at Line " + std::to_string(i + 1) + ": endface expected" << std::endl;
+                return {"error"};
+            }
+            if (cnt == 2) {
+                if (element.find('(') != std::string::npos) {
+                    std::vector<std::string> line = parsedcode.at(k);
+                    line = parsecomments(line);
+                    std::string linestr = "";
+                    for (int l = 0; l < line.size(); l++) {
+                        linestr += line.at(l);
                     }
-                    std::cout << "\n";
-                    std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(l) + ": Mismatched Parenthesis" << std::endl;
+                    if (!balancedbracket(linestr)) {
+                        for (int f = 0; f < line.size(); f++) {
+                            std::cout << RemoveSpecials(line.at(f)) << ' ';
+                            if (f == l - 1) {
+                                std::cout << ">>";
+                            }
+                        }
+                        std::cout << "\n";
+                        std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(l) + ": Mismatched Parenthesis" << std::endl;
+                        return {"error"};
+                    }
+                    std::vector<std::string> res = ParameterCheck(line, "face", -1, idmap, std::unordered_map<std::string, std::string>{});
+                    std::string truthval = res[1];
+                    int position = std::stoi(res[0]);
+                    if (truthval != "true") {
+                        PrintLocationError(line, l + position);
+                        std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(l + position) + ": Invalid Parameters for type Face." << std::endl;
+                        return {"error"};
+                    }
+                    bool foundend = false;
+                    for (int k = l; k < line.size(); k++) {
+                        std::string element2 = RemoveSpecials(line.at(k));
+                        if (element2.find(')') != std::string::npos) {
+                            l = k; 
+                            cnt++;
+                            foundend = true;
+                            break;
+                        } 
+
+                    }
+                    if (foundend) {
+                        continue;
+                    } else {
+                        std::cout << "Error at Line " + std::to_string(i + 1) + ": Expecting Close of Parenthesis." << std::endl;
+                        return {"error"};
+                    }
+                    continue; 
+                } else {
+                    PrintLocationError(line, l);
+                    std::cout << "Error at Line " + std::to_string(i + 1) + ": Expected Start of Parameter at Face" << std::endl;
+                    return {"error"};
+
+                }
+            } else if (cnt == 3 && element == "surface") {
+                std::string surface = RemoveSpecials(line.at(l + 1));
+                if (idmap[surface] != "Surface") {
+                    PrintLocationError(line, l);
+                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + surface + "is invalid" << std::endl;
                     return {"error"};
                 }
-                std::vector<std::string> res = ParameterCheck(line, "face", -1, idmap, std::unordered_map<std::string, std::string>{});
-                std::string truthval = res[1];
-                int position = std::stoi(res[0]);
-                if (truthval != "true") {
-                    int splitpoint = l + position;
-                    for (int f = 0; f < line.size(); f++) {
-                        std::cout << RemoveSpecials(line.at(f)) << ' ';
-                        if (f == splitpoint - 1) {
-                            std::cout << ">>";
-                        }
-                    }
-                    std::cout << "\n";
-                    std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(splitpoint) + ": Invalid Parameters for type Face." << std::endl;
-
-
-                    return {"error"};
-                }
-                continue; 
-
+                opt_surface = true;
+                l++;  
+                cnt++; 
+                continue;
             } else if (element == "endface") {
                 std::vector<std::string> ret;
                 if (l == line.size() - 1) {
@@ -1335,6 +1464,7 @@ std::vector<std::string> CSourceManager::CheckFace(std::vector<std::vector<std::
                 }
                 return ret;
             } else {
+                cnt++;
                 continue;
             }
         }
