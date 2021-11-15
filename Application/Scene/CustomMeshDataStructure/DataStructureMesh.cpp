@@ -413,22 +413,12 @@ void getVertexNormal(Vertex* currVert)
         }
         currFace = currEdge->theOtherFace(currFace);
         if (currFace == NULL)
-        { // If the face is NULL, need to skip this face
-            Edge* nextEdge = currEdge->nextEdge(currVert, currFace);
-            if (nextEdge->va == currEdge->va || nextEdge->vb == currEdge->vb)
-            {
-                mobiusCounter += 1;
-            }
-            currEdge = nextEdge;
-            currFace = currEdge->theOtherFace(currFace);
+        {
+            // If the face is NULL, need to skip this face
+            break;
         }
         currEdge = currEdge->nextEdge(currVert, currFace);
     } while (currEdge != firstEdge);
-    // if(currVert -> onMobius) {
-    // cout<<"The value of avgNorm is :"<<avgNorm[0]<<" "<<avgNorm[1]<<" "<<avgNorm[2]<<endl;
-    // cout<<"The position of this vertex is :"<<currVert -> position[0]<<" "<<currVert ->
-    // position[1]<<" "<<currVert -> position[2]<<endl;
-    //}//cout<<"ID: "<<currVert -> ID <<" has "<<mobiusCounter<<" mConter"<<endl;
     currVert->normal = avgNorm.Normalized();
 }
 
