@@ -7,7 +7,7 @@ install:
 
   # setup envionment
   - set PATH=C:\Qt\5.13\msvc2017_64\bin;%PATH%
-  - call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
+  - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
   # Download Antlr 4 jar
   - curl -fsSL -o antlr.jar https://www.antlr.org/download/antlr-4.7.2-complete.jar
 
