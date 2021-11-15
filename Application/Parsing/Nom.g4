@@ -81,8 +81,8 @@ command
    : open='point' name=ident LPAREN expression expression expression RPAREN end='endpoint' # CmdExprListOne
    | open='polyline' name=ident idList argClosed* end='endpolyline' # CmdIdListOne
    | open='sweep' name=ident 'crosssection' crossId=ident (argBeginCap | argEndCap | argReverse)* 'endcrosssection' 'path' pathId=ident (argAzimuth | argTwist | argMintorsion)* 'endpath'  end='endsweep' # CmdSweep
-   | open='controlpoint' name=ident argPoint argControlScale argControlRotate (argCross | argReverse)* end='endcontrolpoint' # CmdNamedArgs
    | open='face' name=ident idList argSurface* argBackface* end='endface' # CmdIdListOne
+   | open='controlpoint' name=ident argPoint (argControlScale | argControlRotate | argCross | argReverse)* end='endcontrolpoint' # CmdNamedArgs
    | open='object' name=ident idList end='endobject' # CmdIdListOne
    | open='mesh' name=ident command* end='endmesh' # CmdSubCmds
    | open='group' name=ident command* end='endgroup' # CmdSubCmds
@@ -117,7 +117,7 @@ command
    | open='frontfaces' argSurface end='endfrontfaces' # CmdArgSurface
    | open='backfaces' argSurface end='endbackfaces' # CmdArgSurface
    | open='rimfaces' argSurface end='endrimfaces' # CmdArgSurface
-   | open='bank' name=ident set* end='endbank' # CmdBank
+   | open='bank' name=ident set* list end='endbank' # CmdBank
    | open='delete' deleteFace* end='enddelete' # CmdDelete
    | open='subdivision' name=ident argSdFlag* argSdLevel* command* end='endsubdivision' # CmdSubdivision
    | open='sharp' expression idList+ end='endsharp' # CmdSharp
@@ -130,6 +130,7 @@ command
 
 
 set : open='set' ident expression expression expression expression;
+list: open='list' idList;
 
 deleteFace : open='face' ident end='endface' ;
 

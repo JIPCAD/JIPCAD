@@ -125,7 +125,7 @@ public:
         std::array<float, 3>& InstanceColor,
         std::array<float, 3>& InstanceBackColor,
         bool bGenPointGeometry = false,
-        bool renderBackFace = true);
+        bool renderBackFace = false);
 
     ~CDataStructureMeshToQGeometry();
 

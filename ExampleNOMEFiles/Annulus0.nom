@@ -1,0 +1,106 @@
+## Annulus.nom
+#
+#  More testing;  What happens in two consecutive interactive edits with no clean-up in between.
+#
+##  CHS  2021/11/7
+
+#### Some Surface colors #####
+surface R color (1 0 0) endsurface          # Red
+surface O color (0.9 0.6 0) endsurface      # Orange
+surface Y color (1 1 0) endsurface          # Yellow
+surface L color (0.6 0.8 0) endsurface      # Lime
+surface G color (0 0.9 0) endsurface        # Green
+surface A color (0 0.9 0.7) endsurface      # Aqua
+surface C color (0 1 1) endsurface          # Cyan
+surface U color (0 0.5 1) endsurface        # Uniform
+surface B color (0 0 1) endsurface          # Blue
+surface M color (1 0 1) endsurface          # Magenta
+surface W color (1 1 1) endsurface          # White
+
+point o (0 0 0) endpoint
+point x (1 0 0) endpoint
+point y (0 1 0) endpoint
+point z (0 0 1) endpoint
+
+polyline xax (o x) endpolyline
+polyline yax (o y) endpolyline
+polyline zax (o z) endpolyline
+
+group coord
+  instance ixax xax  surface R  endinstance
+  instance iyax yax  surface B  endinstance
+  instance izax zax  surface G  endinstance
+endgroup
+
+instance icoord coord endinstance  ##  Show coordinate axes
+
+bank p
+    set		rimrad		3		2		9		0.1		# rim circle radius		
+    set		rimwid		-0.2		-0.5		1		0.01		# fractional ribbon width outwards		
+    set		rimhgt		0.25		-0.5		0.5		0.01		# height of cone 		
+    set		rimseg		12		3		20		1		# number of segments		
+
+    set		holrad		1		0.2		4		0.1		# hole circle radius		
+    set		holseg		12		3		20		1		# number of segments		
+    set		holwid		-0.2		-0.5		0.5		0.01		# fractional ribbon width  # not used with "circle		
+    set		holhgt		0.08		-0.1		0.1		0.01		# height of cone           # not used with "circle	
+    set		holery		30		-180		180		1		# slant	angle of hole
+    set		holetx		0.3		-2		2		0.01		# hole x-position
+    set		holetz		0.2		-2		2		0.01		# hole z-position
+  list ( rimrad rimwid rimhgt rimseg   holrad holseg holwid holhgt   holery holetx holetz )
+endbank
+
+
+funnel  funo  ( {expr $p.rimrad} {expr $p.rimwid} {expr $p.rimhgt}  {expr $p.rimseg}) endfunnel
+instance funo0  funo   surface O   scale(0.2 0.2 0.2)  endinstance
+
+funnel  tuni  ( {expr $p.holrad} {expr $p.holwid} {expr $p.holhgt} {expr $p.holseg}) endfunnel
+instance tuni0  tuni   surface R  rotate (0 1 0)({expr $p.holery})  translate ( {expr $p.holetx} 0 {expr $p.holetz} )  scale(0.2 0.2 0.2)     endinstance
+
+(*
+circle  hole  ( {expr $p.holrad}  {expr $p.holseg} ) endcircle
+instance hole0  hole   surface R     endinstance
+*)
+
+(*
+point a ( 0 0 0) endpoint
+point b ( 1 2 2) endpoint
+point c (-2 3 5) endpoint
+#polyline bar (a b c) endpolyline    ###>>> OK
+# face tria (a b c) endface          ###>>> NOT OK -- NOT a mesh instance
+instance itria tria  surface Y  endinstance
+*)
+
+mesh mm
+  point a (0 0 0) endpoint
+  point b (1 2 0.1) endpoint
+  point c (-2 3 0.05) endpoint
+  face tria (a b c) endface         
+endmesh
+
+instance imm mm  surface C  scale(0.2 0.2 0.2)   endinstance
+   
+###########################  
+   
+mesh TempMesh0 face new0 ( .tuni0.v2_6 .funo0.v1_6 .funo0.v1_7 .tuni0.v2_7 ) endface face new1 ( .tuni0.v2_9 .tuni0.v2_8 .funo0.v1_8 .funo0.v1_9 ) endface endmesh
+instance instTempMesh0 TempMesh0 endinstance
+polyline TempPoly0 ( .tuni0.v2_10 .funo0.v1_10 .tuni0.v2_11 .funo0.v1_0 ) endpolyline
+instance instTempPoly0 TempPoly0 endinstance
+   
+###########################  
+   
+mesh TempMesh0 face new0 ( .funo0.v1_1 .funo0.v1_2 .tuni0.v2_2 .tuni0.v2_1 ) endface endmesh
+instance instTempMesh0 TempMesh0 endinstance
+polyline TempPoly0 ( .funo0.v1_5 .tuni0.v2_5 .funo0.v1_4 ) endpolyline
+instance instTempPoly0 TempPoly0 endinstance
+
+
+###  The above is the situation after TWO edit sessions without any intermediate clean-up.
+###  Having a second "" is dangerous (and illegal) -- but miraculously, it does not crash (or report an error) and miraculously works to some degree.
+
+###  However, the two annuli no longer respond to some parameter changes. (But the attached faces and polylines do!).
+
+### MORE ERROR REPORTING:
+###>>>  point b (1 0.5 0.1) enspoint   ###>>> this makes it crash!  No syntax error is reported!
+
+

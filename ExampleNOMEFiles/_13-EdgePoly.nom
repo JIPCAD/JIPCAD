@@ -1,0 +1,96 @@
+####  _13-EdgePoly.nom  ##########################
+
+## Some testing of attaching polylines to vertices
+
+###  CHS 2021/11/7
+
+#####################################################
+
+surface R color (1 0 0) endsurface     # Red
+surface O color (0.9 0.6 0) endsurface # Orange
+surface Y color (1 1 0) endsurface     # Yellow
+surface L color (0.6 0.8 0) endsurface # Lime
+surface G color (0 0.9 0) endsurface   # Green
+surface A color (0 0.9 0.7) endsurface # Aqua
+surface C color (0 1 1) endsurface     # Cyan
+surface U color (0 0.5 1) endsurface   # Uniform
+surface B color (0 0 1) endsurface     # Blue
+surface P color (0.6 0 1) endsurface   # Purple
+surface M color (1 0 1) endsurface     # Magenta
+surface Z color (1 0 0.5) endsurface   # Zinnober
+
+surface W color (1 1 1) endsurface       # White
+surface D color (0.5 0.5 0.5) endsurface # Dark
+
+
+###############  Various parameters  ##############
+bank p
+    set ext     0.80   -0.5    2.0   0.1   ##  "extension / warp of cube face"
+    set pyr     1.80   -0.5    2.0   0.1   ##  "extension (height) of pyramid"
+  list (ext pyr)
+endbank
+
+###############  Polyhedra with 13 edges  #####################################
+
+#####  Prism3Pyr  --  A 3-sided prism with a 4-sided pyramid on one face:
+
+mesh Prism3Pyr  
+  point txyz  ( 0.866  0.866  0.5 ) endpoint
+  point tayz  (-0.866  0.866  0.5 ) endpoint
+  point tabz  (-0.866 -0.866  0.5 ) endpoint
+  point txbz  ( 0.866 -0.866  0.5 ) endpoint
+  point t3b   ( 0     -0.866  -1 ) endpoint
+  point t3y   ( 0      0.866  -1 ) endpoint
+  point tpyr  ( 0      0      {expr $p.pyr} ) endpoint
+
+# face base (txyz tayz tabz txbz)  surface P  endface  # Internal prism face
+  face tf1 (tabz tayz t3y t3b)  surface Z  endface
+  face tf2 (txyz txbz t3b t3y)  surface R  endface
+  face tf3 (txb tab t3b)    endface
+  face tf4 (tay txy t3y)    endface
+  face tp1 (tpyr txbz txyz)  surface L   endface
+  face tp2 (tpyr txyz tayz)  surface U   endface
+  face tp3 (tpyr tayz tabz)  surface G   endface
+  face tp4 (tpyr tabz txbz)  surface C   endface
+endmesh
+
+instance iP3P Prism3Pyr  rotate(0 1 0)(60)  translate(-2 0 0.5)   rotate (1 0 0)(-80)   endinstance  #  scale(0.3 0.3 0.3) 
+
+
+#####  WarpCube  --  A cube with one diagonally split, warped face.  This is the dual of the above.
+
+mesh WarpCube  
+  point cxyz  ( 1  1  {expr 1+$p.ext} ) endpoint
+  point cxyc  ( 1  1 -1 ) endpoint
+  point cxbz  ( 1 -1  {expr 1-$p.ext} ) endpoint
+  point cxbc  ( 1 -1 -1 ) endpoint
+  point cayz  (-1  1  {expr 1-$p.ext} ) endpoint
+  point cayc  (-1  1 -1 ) endpoint
+  point cabz  (-1 -1  {expr 1+$p.ext} ) endpoint
+  point cabc  (-1 -1 -1 ) endpoint
+ 
+  face cbas (cxbc cabc cayc cxyc)  surface P  endface
+  face cf1  (cxbc cxyc cxyz cxbz)  surface L  endface
+  face cf2  (cxyc cayc cayz cxyz)  surface U  endface
+  face cf3  (cayc cabc cabz cayz)  surface G  endface
+  face cf4  (cabc cxbc cxbz cabz)  surface C  endface
+  face cf5  (cxyz cabz cxbz)  surface R  endface
+  face cf6  (cabz cxyz cayz)  surface O  endface
+#   face comb (  cxyz cayz cabz cxbz )  surface Y  endface   ## combined warped quad face
+endmesh
+
+instance  iWCube  WarpCube  translate(2 0 1)   rotate(1 0 0)(-80)    endinstance   # scale(0.2 0.2 0.2)
+
+polyline bar ( iWCube.cabz  iP3P.tpyr  ) endpolyline    ###>>>  This is what I programmed manually.
+instance  ibar bar  surface W endinstance               ###>>>  Why is white line not hooked to the polyhedra vertices ?
+   
+###########################  
+   
+polyline TempPoly0 ( .iP3P.Prism3Pyr.tpyr .iWCube.WarpCube.cabz ) endpolyline   ###>>> This I got from interactive editing.
+instance instTempPoly0 TempPoly0 endinstance            ###>>> Let's discuss wheher the extra term in the hierarchical name is needed...
+###                                                     ###>>>  Also, the pyramid no longer shows its changes!
+
+##########################################  MORE  COMMENTS  ####################################################
+
+### Omitting the last "endmesh", the file is being parsed "incompletely" and produces an error message.
+#   It should say that there is a missing "endmesh."

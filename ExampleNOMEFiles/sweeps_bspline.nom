@@ -16,6 +16,7 @@ bank p
 	set rot    0       -30      30    1
 	set s_twist   0        0.1     360   1
 	set s_azimuth 0        0.1     360   1
+	list (mrd msl wdx wdz wex wey wez wfx wfy wfz slicesN scaleX scaleY rot s_twist s_azimuth)
 endbank
 
 

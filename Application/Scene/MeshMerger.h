@@ -1,6 +1,9 @@
 #pragma once
 #include "Mesh.h"
 #include <LangUtils.h>
+#include <QString>
+#include <iostream>
+#include <fstream>
 
 #include <cstdio>
 
@@ -48,6 +51,8 @@ public:
     void SetSharp(bool setSharp) { isSharp = setSharp; }
 
     void SetOffsetFlag(bool flag) { offsetFlag = flag; }
+
+    void ExportAsStl(QString filename);
 
 private:
     DSMesh MergedMesh;

@@ -4,13 +4,12 @@
 #include "NomParser.h"
 #include "SyntaxTreeBuilder.h"
 #include "antlr4-runtime.h"
+#include <ctype.h>
 #include <fstream>
+#include <regex>
 #include <stack>
 #include <unordered_map>
 #include <utility>
-#include <ctype.h>
-#include <regex>
-
 
 namespace Nome
 {
@@ -64,215 +63,334 @@ bool CSourceManager::ParseMainSource()
     ASTRoot = builder.visitFile(tree);
     ASTContext.SetAstRoot(ASTRoot);
 
-    std::cout << "====== Debug Print AST ======" << std::endl;
-    // std::cout << *ASTRoot;
-    std::cout << "====== End Debug Print AST ======" << std::endl;
+    // std::cout << "====== Debug Print AST ======" << std::endl;
+    //  std::cout << *ASTRoot;
+    //  std::cout << "====== End Debug Print AST ======" << std::endl;
 
     return !errorListener.bDidErrorHappen;
 }
-bool CSourceManager::balancedbracket(std::string codeline) {   
-    std::stack<char> stk; 
-    char x; 
-    for (int i = 0; i < codeline.length(); i++) { 
-        if (codeline[i] == '(' || codeline[i] == '[' || codeline[i] == '{') { 
-            stk.push(codeline[i]); 
-            continue; 
-        } 
-        switch (codeline[i]) { 
-        case ')': 
-            if (stk.empty()) {
-                return false;
-            }
-            x = stk.top(); 
-            stk.pop(); 
-            if (x == '{' || x == '[') 
-                return false; 
-            break; 
-        case '}': 
-            if (stk.empty()) {
-                return false;
-            }
-            x = stk.top(); 
-            stk.pop(); 
-            if (x == '(' || x == '[') 
-                return false; 
-            break; 
-        case ']': 
-            if (stk.empty()) {
-                return false;
-            }
-            x = stk.top(); 
-            stk.pop(); 
-            if (x == '(' || x == '{') 
-                return false; 
-            break; 
-        } 
-    } 
-    return (stk.empty()); 
-}
-
-std::vector<std::string> removeDupWord(std::string str) {
-    std::string word = "";
-    std::vector<std::string> parsedcode;
-    for (auto x : str) {
-        if (x == ' ') {
-            parsedcode.push_back(word);
-            word = "";
+std::vector<std::string> CSourceManager::parsecomments(std::vector<std::string> input)
+{
+    std::vector<std::string> retvector;
+    for (int i = 0; i < input.size(); i++)
+    {
+        if (input[i].find('#') != std::string::npos)
+        {
+            break;
         }
-        else {
-            word = word + x;
+        else if (input[i] == "" || input[i] == " ")
+        {
+            continue;
+        }
+        else
+        {
+            retvector.push_back(input[i]);
         }
     }
-    parsedcode.push_back(word);
-    return parsedcode;
+    return retvector;
+}
+std::vector<std::string> CSourceManager::split(std::string const& input)
+{
+    if (input.find("expr") != std::string::npos)
+    {
+        bool append = false;
+        std::string concatstr = "";
+        std::vector<std::string> paramlst;
+        for (int i = 0; i < input.size(); i++)
+        {
+            if (input[i] == '{')
+            {
+                append = true;
+                continue;
+            }
+            else if (input[i] == '}')
+            {
+                append = false;
+                paramlst.push_back(concatstr);
+                concatstr = "";
+                continue;
+            }
+            if (append)
+            {
+                concatstr += input[i];
+            }
+        }
+        std::istringstream buffer(input);
+        std::vector<std::string> ret;
+        std::copy(std::istream_iterator<std::string>(buffer), std::istream_iterator<std::string>(),
+                  std::back_inserter(ret));
+        for (int i = 0; i < ret.size(); i++)
+        {
+            if (ret[i].find("}") != std::string::npos || ret[i].find("$") != std::string::npos
+                || ret[i].find("{") != std::string::npos)
+            {
+                ret.erase(ret.begin() + i);
+                i--;
+            }
+        }
+        for (int i = 0; i < paramlst.size(); i++)
+        {
+            ret.push_back(paramlst[i]);
+        }
+        return ret;
+    }
+    else
+    {
+        std::istringstream buffer(input);
+        std::vector<std::string> ret;
+
+        std::copy(std::istream_iterator<std::string>(buffer), std::istream_iterator<std::string>(),
+                  std::back_inserter(ret));
+        return ret;
+    }
+}
+bool CSourceManager::balancedbracket(std::string codeline)
+{
+    std::stack<char> stk;
+    char x;
+    for (int i = 0; i < codeline.length(); i++)
+    {
+        if (codeline[i] == '(' || codeline[i] == '[' || codeline[i] == '{')
+        {
+            stk.push(codeline[i]);
+            continue;
+        }
+        switch (codeline[i])
+        {
+        case ')':
+            if (stk.empty())
+            {
+                return false;
+            }
+            x = stk.top();
+            stk.pop();
+            if (x == '{' || x == '[')
+                return false;
+            break;
+        case '}':
+            if (stk.empty())
+            {
+                return false;
+            }
+            x = stk.top();
+            stk.pop();
+            if (x == '(' || x == '[')
+                return false;
+            break;
+        case ']':
+            if (stk.empty())
+            {
+                return false;
+            }
+            x = stk.top();
+            stk.pop();
+            if (x == '(' || x == '{')
+                return false;
+            break;
+        }
+    }
+    return (stk.empty());
 }
 
-<<<<<<< HEAD
-bool CSourceManager::ParameterCheck(std::vector<std::string> code, std::string type, int numparams, std::unordered_map<std::string, std::string> idmap) {
-=======
-std::vector<std::string> CSourceManager::ParameterCheck(std::vector<std::string> code, std::string type, int numparams, std::unordered_map<std::string, std::string> idmap) {
->>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
-    int start = 0; 
+std::vector<std::string>
+CSourceManager::ParameterCheck(std::vector<std::string> code, std::string type, int numparams,
+                               std::unordered_map<std::string, std::string> idmap,
+                               std::unordered_map<std::string, std::string> referencemap)
+{
+    int start = 0;
     int end = 0;
     std::string concatstr = "";
-    for (int i = 0; i < code.size(); i++) {
-        std::cout << code[i];
+    for (int i = 0; i < code.size(); i++)
+    {
         concatstr += RemoveSpecials(code[i]);
         concatstr += " ";
     }
-    for (int i = 0; i < concatstr.length(); i++) {
-        if (concatstr[i] == '#') {
+    for (int i = 0; i < concatstr.length(); i++)
+    {
+        if (concatstr[i] == '#')
+        {
             break;
         }
-        if (concatstr[i] == '(') {
+        if (concatstr[i] == '(')
+        {
             start = i;
         }
-        if (concatstr[i] == ')') {
-            end = i; 
+        if (concatstr[i] == ')')
+        {
+            end = i;
         }
     }
-    if (start == 0 || end == 0) {
-<<<<<<< HEAD
-        return false;
+    if (start == 0 || end == 0)
+    {
+        return { "0", "false" };
     }
-    std::string parenthesiscode = concatstr.substr(start + 1, end-start - 1);
-    // std::string space_delimiter = " ";
-    std::vector<std::string> words{};
-    // size_t pos = 0;
-    // std::string backup = "";
-    // while ((pos = parenthesiscode.find(space_delimiter)) != std::string::npos) {
-    //     words.push_back(parenthesiscode.substr(0, pos));
-    //     backup = parenthesiscode;
-    //     parenthesiscode.erase(0, pos + space_delimiter.length());
-    // }
-    // words.push_back(backup);
-    words = removeDupWord(parenthesiscode);
-    
-    if (numparams != -1 && words.size() != numparams) {
-        return false;
-=======
-        return {"0", "false"};
+    std::string parenthesiscode = concatstr.substr(start + 1, end - start - 1);
+    std::vector<std::string> words {};
+    words = split(parenthesiscode);
+
+    if (type == "circle")
+    {
+        for (int i = 0; i < words.size(); i++)
+        {
+            std::cout << words[i] << std::endl;
+        }
+        std::cout << words.size() << std::endl;
     }
-    std::string parenthesiscode = concatstr.substr(start + 1, end-start - 1);
-    std::vector<std::string> words{};
-    words = removeDupWord(parenthesiscode);
-    
-    if (numparams != -1 && words.size() != numparams) {
-        return {"0", "false"};
->>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
+    if (numparams != -1 && words.size() != numparams)
+    {
+        return { "0", "false" };
     }
     // for(auto elem : idmap)
     // {
     //     std::cout << elem.first << "-" <<elem.second << "\n";
     // }
     // for (int i = 0; i < words.size(); i++) {
-    //     std::cout << "Each word: " << words[i] << std::endl; 
+    //     std::cout << "Each word: " << words[i] << std::endl;
 
     // }
-    if (type == "circle" || type == "point") {
-        for (int i = 0; i < words.size(); i++) {
-        }
-    } else if (type == "face") {
+    if (type == "circle" || type == "point")
+    {
+        for (int i = 0; i < words.size(); i++) { }
+    }
+    else if (type == "face")
+    {
         // for (int i = 0; i < words.size(); i++) {
-<<<<<<< HEAD
-        //     std::cout << "The Word:" << words[i] << std::endl; 
-        //     std::cout << idmap[words[i]] << std::endl; 
-=======
-        //     std::cout << "The Word: " << words[i] << std::endl; 
-        //     std::cout << "THE ID: " << idmap[words[i]] << std::endl; 
->>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
+        //     std::cout << "The Word: " << words[i] << std::endl;
+        //     std::cout << "THE ID: " << idmap[words[i]] << std::endl;
 
         // }
-        for (int i = 0; i < words.size(); i++) {
-            if (idmap[words[i]] != "Point") {
-<<<<<<< HEAD
-                return false; 
+        // for(auto elem : idmap)
+        // {
+        //     std::cout << elem.first << "-" <<elem.second << "\n";
+        // }
+        for (int i = 0; i < words.size(); i++)
+        {
+            if (idmap[words[i]] != "Point")
+            {
+                return { std::to_string(i), "false" };
             }
         }
     }
-    return true; 
-=======
-                return {std::to_string(i), "false"}; 
+    else if (type == "polyline")
+    {
+        for (int i = 0; i < words.size(); i++)
+        {
+            if (idmap[words[i]] != "Point")
+            {
+                return { std::to_string(i), "false" };
             }
         }
     }
-    return {"0", "true"}; 
->>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
+    else if (type == "surface")
+    {
+        if (words.size() > 3)
+        {
+            return { "4", "false" };
+        }
+        else if (words.size() < 3)
+        {
+            return { std::to_string(words.size()), "false" };
+        }
+        else
+        {
+            for (int i = 0; i < words.size(); i++)
+            {
+                if (isNumber(words[i]))
+                {
+                    int num = std::stoi(words[i]);
+                    if (num < 0 || num > 1)
+                    {
+                        return { std::to_string(i), "false" };
+                    }
+                }
+                else
+                {
+                    return { std::to_string(i), "false" };
+                }
+            }
+        }
+    }
+    else if (type == "bank")
+    {
+        for (int i = 0; i < words.size(); i++)
+        {
+            if (referencemap.find(words[i]) == referencemap.end())
+            {
+                return { std::to_string(i + 1), "false" };
+            }
+        }
+    }
+    return { "0", "true" };
 }
-void CSourceManager::ReportErros(std::string code) {
-    size_t pos = 0; 
+void CSourceManager::ReportErros(std::string code)
+{
+    size_t pos = 0;
     std::string delimiter = "\n";
-    std::string token; 
+    std::string token;
     std::vector<std::vector<std::string>> parsedcode;
-    std::string delimiter2 = " "; 
-    std::string token2; 
+    std::string delimiter2 = " ";
+    std::string token2;
     std::unordered_map<std::string, std::string> shapemap;
     std::unordered_map<std::string, std::string> idmap;
     std::unordered_map<std::string, std::string> referencemap;
     std::string thepath = CResourceMgr::Get().Find("DebugDrawLine.xml");
-    std::string basepath = thepath.substr(0, 43);
-    std::ifstream file (basepath + "Parsing/Nom.g4");
-    if (file.is_open()) {
+    std::string find = "/Resources/DebugDrawLine.xml";
+    size_t found = thepath.find(find);
+    std::string basepath = thepath.substr(0, found + 1);
+    std::ifstream file(basepath + "Parsing/Nom.g4");
+
+    if (file.is_open())
+    {
         std::string line;
-        while (std::getline(file, line)) {
+        while (std::getline(file, line))
+        {
             std::vector<std::string> spaces;
             std::string str = line.c_str();
-            size_t pos = 0; 
-            while ((pos = str.find(delimiter2)) != std::string::npos) {
-                token = str.substr(0, pos);
-                str.erase(0, pos + delimiter.length());
-                spaces.push_back(token);
-            }
-            for (int i = 0; i < spaces.size(); i++) {
+            spaces = split(str);
+            for (int i = 0; i < spaces.size(); i++)
+            {
                 std::string keyword;
                 std::string endword;
-                if (spaces[i].find("open=") != std::string::npos) {
-                    int start = 0; int end = 0;
-                    for (int k = 0; k < spaces[i].size(); k++) {
-                        if (start == 0 && spaces[i][k] == '\'') {
+                if (spaces[i].find("open=") != std::string::npos)
+                {
+                    int start = 0;
+                    int end = 0;
+                    for (int k = 0; k < spaces[i].size(); k++)
+                    {
+                        if (start == 0 && spaces[i][k] == '\'')
+                        {
                             start = k;
-                        } else if (start > 0 && spaces[i][k] == '\'') {
+                        }
+                        else if (start > 0 && spaces[i][k] == '\'')
+                        {
                             end = k;
                         }
                     }
                     end--;
                     keyword = spaces[i].substr(start + 1, end - start);
-                    if (keyword == "set") {
+                    if (keyword == "set")
+                    {
                         continue;
                     }
-                    for (int j = i; j < spaces.size(); j++) {
-                        if (spaces[j].find("end=") != std::string::npos) {
-                            int start = 0; int end = 0;
-                            for (int k = 0; k < spaces[j].size(); k++) {
-                                if (start == 0 && spaces[j][k] == '\'') {
+                    for (int j = i; j < spaces.size(); j++)
+                    {
+                        if (spaces[j].find("end=") != std::string::npos)
+                        {
+                            int start = 0;
+                            int end = 0;
+                            for (int k = 0; k < spaces[j].size(); k++)
+                            {
+                                if (start == 0 && spaces[j][k] == '\'')
+                                {
                                     start = k;
-                                } else if (start > 0 && spaces[j][k] == '\'') {
+                                }
+                                else if (start > 0 && spaces[j][k] == '\'')
+                                {
                                     end = k;
                                 }
                             }
                             endword = spaces[j].substr(start + 1, end - start - 1);
                             break;
-                            
                         }
                         i = j;
                     }
@@ -282,13 +400,16 @@ void CSourceManager::ReportErros(std::string code) {
         }
         file.close();
     }
-    while((pos = code.find(delimiter)) != std::string::npos) {
+    while ((pos = code.find(delimiter)) != std::string::npos)
+    {
         token = code.substr(0, pos);
         std::vector<std::string> spaces;
-        size_t pos2 = 0; 
-        while((pos2 = token.find(delimiter2)) != std::string::npos) {
+        size_t pos2 = 0;
+        while ((pos2 = token.find(delimiter2)) != std::string::npos)
+        {
             token2 = token.substr(0, pos2);
-            if(token2.find_first_not_of(' ') != std::string::npos) {
+            if (token2.find_first_not_of(' ') != std::string::npos)
+            {
                 spaces.push_back(token2);
             }
             token.erase(0, pos2 + delimiter2.length());
@@ -299,115 +420,221 @@ void CSourceManager::ReportErros(std::string code) {
     }
     std::vector<std::string> spaces;
     size_t pos2 = 0;
-    while((pos2 = code.find(delimiter2)) != std::string::npos) {
+    while ((pos2 = code.find(delimiter2)) != std::string::npos)
+    {
         token2 = code.substr(0, pos2);
-        if(token2.find_first_not_of(' ') != std::string::npos) {
+        if (token2.find_first_not_of(' ') != std::string::npos)
+        {
             spaces.push_back(token2);
-        } 
+        }
         code.erase(0, pos2 + delimiter2.length());
     }
     spaces.push_back(code);
     parsedcode.push_back(spaces);
-    for (int i = 0; i < parsedcode.size(); i++) {
+    for (int i = 0; i < parsedcode.size(); i++)
+    {
         std::vector<std::string> line = parsedcode.at(i);
-        for (int j = 0; j < line.size(); j++) {
-            std::string element = RemoveSpecials(line.at(j)); 
-            if (element.find("#") != std::string::npos && element.at(0) == '#') { //Comment Detection
+        for (int j = 0; j < line.size(); j++)
+        {
+            std::string element = RemoveSpecials(line.at(j));
+            if (element.find("#") != std::string::npos && element.at(0) == '#')
+            { // Comment Detection
                 j = line.size();
-                continue; 
-            } 
-            if (element.empty()) {
-                j = line.size();
-                continue; 
+                continue;
             }
-            if (element == "group" || (shapemap.find(element))!= shapemap.end()) { //check for keywords here.
+            if (element.empty())
+            {
+                j = line.size();
+                continue;
+            }
+            if (element == "group" || (shapemap.find(element)) != shapemap.end())
+            { // check for keywords here.
                 auto cast = shapemap.find(element);
-                std::string endval = cast -> second;
+                std::string endval = cast->second;
                 std::vector<std::string> result;
-                if (element == "circle") {
-                    if (j == line.size() - 1) {
+                std::cout << "Checking The Syntax of " << element << std::endl;
+                if (element == "circle")
+                {
+                    if (j == line.size() - 1)
+                    {
                         result = CheckCircle(parsedcode, idmap, i + 1, 0, shapemap);
-                    } else {
+                    }
+                    else
+                    {
                         result = CheckCircle(parsedcode, idmap, i, j + 1, shapemap);
                     }
-                    if (result[0] == "error") {
+                    if (result[0] == "error")
+                    {
                         return;
                     }
                     i = std::stoi(result[0]);
                     j = std::stoi(result[1]);
-                } else if (element == "point") {
-                    if (j == line.size() - 1) {
+                }
+                else if (element == "surface")
+                {
+                    if (j == line.size() - 1)
+                    {
+                        result = CheckSurface(parsedcode, idmap, i + 1, 0, shapemap);
+                    }
+                    else
+                    {
+                        result = CheckSurface(parsedcode, idmap, i, j + 1, shapemap);
+                    }
+                    if (result[0] == "error")
+                    {
+                        return;
+                    }
+                    i = std::stoi(result[0]);
+                    j = std::stoi(result[1]);
+                }
+                else if (element == "instance")
+                {
+                    if (j == line.size() - 1)
+                    {
+                        result = CheckInstance(parsedcode, idmap, i + 1, 0, shapemap);
+                    }
+                    else
+                    {
+                        result = CheckInstance(parsedcode, idmap, i, j + 1, shapemap);
+                    }
+                    if (result[0] == "error")
+                    {
+                        return;
+                    }
+                    i = std::stoi(result[0]);
+                    j = std::stoi(result[1]);
+                }
+                else if (element == "polyline")
+                {
+                    if (j == line.size() - 1)
+                    {
+                        result = CheckPolyline(parsedcode, idmap, i + 1, 0, shapemap);
+                    }
+                    else
+                    {
+                        result = CheckPolyline(parsedcode, idmap, i, j + 1, shapemap);
+                    }
+                    if (result[0] == "error")
+                    {
+                        return;
+                    }
+                    i = std::stoi(result[0]);
+                    j = std::stoi(result[1]);
+                }
+                else if (element == "point")
+                {
+                    if (j == line.size() - 1)
+                    {
                         result = CheckPoint(parsedcode, idmap, i + 1, 0, shapemap);
-                    } else {
+                    }
+                    else
+                    {
                         result = CheckPoint(parsedcode, idmap, i, j + 1, shapemap);
                     }
-                    if (result[0] == "error") {
+                    if (result[0] == "error")
+                    {
                         return;
                     }
                     i = std::stoi(result[0]);
                     j = std::stoi(result[1]);
-                } else if (element == "group") {
-                    if (j == line.size() - 1) {
+                }
+                else if (element == "group")
+                {
+                    if (j == line.size() - 1)
+                    {
                         result = CheckGroup(parsedcode, idmap, i + 1, 0, shapemap);
-                    } else {
+                    }
+                    else
+                    {
                         result = CheckGroup(parsedcode, idmap, i, j + 1, shapemap);
                     }
-                    if (result[0] == "error") {
+                    if (result[0] == "error")
+                    {
                         return;
                     }
                     i = std::stoi(result[0]);
                     j = std::stoi(result[1]);
-                } else if (element == "bank") {
-                    if (j == line.size() - 1) {
+                }
+                else if (element == "bank")
+                {
+                    if (j == line.size() - 1)
+                    {
                         result = CheckBank(parsedcode, referencemap, idmap, i + 1, 0, shapemap);
-                    } else {
-                        result = CheckBank(parsedcode,referencemap, idmap, i, j + 1, shapemap);
                     }
-                    if (result[0] == "error") {
+                    else
+                    {
+                        result = CheckBank(parsedcode, referencemap, idmap, i, j + 1, shapemap);
+                    }
+                    if (result[0] == "error")
+                    {
                         return;
                     }
                     i = std::stoi(result[0]);
                     j = std::stoi(result[1]);
-                } else if (element == "subdivision") {
-                    if (j == line.size() - 1) {
+                }
+                else if (element == "subdivision")
+                {
+                    if (j == line.size() - 1)
+                    {
                         result = CheckSubdivision(parsedcode, idmap, i + 1, 0, shapemap);
-                    } else {
+                    }
+                    else
+                    {
                         result = CheckSubdivision(parsedcode, idmap, i, j + 1, shapemap);
                     }
-                    if (result[0] == "error") {
+                    if (result[0] == "error")
+                    {
                         return;
                     }
                     i = std::stoi(result[0]);
                     j = std::stoi(result[1]);
-                } else if (element == "mesh") {
-                    if (j == line.size() - 1) {
+                }
+                else if (element == "mesh")
+                {
+                    if (j == line.size() - 1)
+                    {
                         result = CheckMesh(parsedcode, idmap, i + 1, 0, shapemap);
-                    } else {
+                    }
+                    else
+                    {
                         result = CheckMesh(parsedcode, idmap, i, j + 1, shapemap);
                     }
-                    if (result[0] == "error") {
+                    if (result[0] == "error")
+                    {
                         return;
                     }
                     i = std::stoi(result[0]);
                     j = std::stoi(result[1]);
-                } else if (element == "face") {
-                    if (j == line.size() - 1) {
+                }
+                else if (element == "face")
+                {
+                    if (j == line.size() - 1)
+                    {
                         result = CheckFace(parsedcode, idmap, i + 1, 0, shapemap);
-                    } else {
+                    }
+                    else
+                    {
                         result = CheckFace(parsedcode, idmap, i, j + 1, shapemap);
                     }
-                    if (result[0] == "error") {
+                    if (result[0] == "error")
+                    {
                         return;
                     }
                     i = std::stoi(result[0]);
                     j = std::stoi(result[1]);
-                } else {
-                    if (j == line.size() - 1) {
+                }
+                else
+                {
+                    if (j == line.size() - 1)
+                    {
                         result = CheckStatement(parsedcode, idmap, endval, i + 1, 0, shapemap);
-                    } else {
+                    }
+                    else
+                    {
                         result = CheckStatement(parsedcode, idmap, endval, i, j + 1, shapemap);
                     }
-                    if (result[0] == "error") {
+                    if (result[0] == "error")
+                    {
                         return;
                     }
                     i = std::stoi(result[0]);
@@ -416,10 +643,14 @@ void CSourceManager::ReportErros(std::string code) {
                     idmap[elemid] = "TRUE";
                 }
                 line = parsedcode.at(i);
-                element = line.at(j); 
-            } else {
-               std::cout << "Error at Line " + std::to_string(i + 1) + ": " + element + " is not a valid function." << std::endl;
-               return; 
+                element = line.at(j);
+            }
+            else
+            {
+                std::cout << "Error at Line " + std::to_string(i + 1) + ": " + element
+                        + " is not a valid function."
+                          << std::endl;
+                return;
             }
         }
     }
@@ -427,100 +658,133 @@ void CSourceManager::ReportErros(std::string code) {
 
 std::string CSourceManager::RemoveSpecials(std::string str)
 {
-	int i=0,len=str.length();
-	while (i < len)
-	{
-		char c = str[i];
-		if (c >= 33) {
-			++i;
-		} else {
-			str.erase(i,1);
-			--len;
-		}
-	}
-	return str;
+    int i = 0, len = str.length();
+    while (i < len)
+    {
+        char c = str[i];
+        if (c >= 33)
+        {
+            ++i;
+        }
+        else
+        {
+            str.erase(i, 1);
+            --len;
+        }
+    }
+    return str;
 }
 
-std::vector<std::string> CSourceManager::CheckStatement(std::vector<std::vector<std::string>> parsedcode,
-                                                        std::unordered_map<std::string, std::string> idmap,
-                                                        std::string endstatement,
-                                                        int i, int j,
-                                                        std::unordered_map<std::string, std::string> shapemap) {
+std::vector<std::string>
+CSourceManager::CheckStatement(std::vector<std::vector<std::string>> parsedcode,
+                               std::unordered_map<std::string, std::string> idmap,
+                               std::string endstatement, int i, int j,
+                               std::unordered_map<std::string, std::string> shapemap)
+{
     int global_k;
     int global_l;
     bool first_time = true;
     std::string id;
-    for (int k = 0; k < parsedcode.size(); k++) {
-        if (first_time == true) {
+    for (int k = 0; k < parsedcode.size(); k++)
+    {
+        if (first_time == true)
+        {
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
+        line = parsecomments(line);
         std::string linestr = "";
-        for (int l = 0; l < line.size(); l++) {
+        for (int l = 0; l < line.size(); l++)
+        {
             linestr += line.at(l);
         }
-        if (!balancedbracket(linestr)) {
-            std::cout << "Error at Line " + std::to_string(i + 1) + ": Mismatched Parehthesis" << std::endl;
-            return {"error"};
+        if (!balancedbracket(linestr))
+        {
+            std::cout << "Error at Line " + std::to_string(i + 1) + ": Mismatched Parehthesis"
+                      << std::endl;
+            return { "error" };
         }
-        int l = 0; 
-        while (l < line.size()) {
+        int l = 0;
+        while (l < line.size())
+        {
             global_k = k;
             global_l = l;
-            if (first_time == true) {
+            if (first_time == true)
+            {
                 l = j;
                 first_time = false;
                 id = RemoveSpecials(line.at(l));
-                if ((idmap.find(id))!= idmap.end()) {
-                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + id + " is already being used." << std::endl;
-                    return {"error"};
+                if ((idmap.find(id)) != idmap.end())
+                {
+                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + id
+                            + " is already being used."
+                              << std::endl;
+                    return { "error" };
                 }
             }
             std::string element = line.at(l);
-            if ((shapemap.find(element))!= shapemap.end() && element != "instance") {
+            if ((shapemap.find(element)) != shapemap.end() && element != "instance")
+            {
 
-                std::cout << "Error at Line " + std::to_string(i + 1) + ": " + element + " is a reserved keyword." << std::endl;
-                return {"error"};
+                std::cout << "Error at Line " + std::to_string(i + 1) + ": " + element
+                        + " is a reserved keyword."
+                          << std::endl;
+                return { "error" };
             }
             std::string flushedelem = RemoveSpecials(element);
-            if (flushedelem == endstatement) {
+            if (flushedelem == endstatement)
+            {
                 std::vector<std::string> ret;
-                if (l == line.size() - 1) {
-                    ret = {std::to_string(k), std::to_string(l), id};
-                } else {
-                    ret = {std::to_string(k), std::to_string(l), id};
+                if (l == line.size() - 1)
+                {
+                    ret = { std::to_string(k), std::to_string(l), id };
                 }
-                return ret; 
+                else
+                {
+                    ret = { std::to_string(k), std::to_string(l), id };
+                }
+                return ret;
             }
-            l++; 
+            l++;
         }
     }
-    return {std::to_string(global_k), std::to_string(global_l), ""};
+    return { std::to_string(global_k), std::to_string(global_l), "" };
 }
 
-std::vector<std::string> CSourceManager::CheckGroup(std::vector<std::vector<std::string>> parsedcode,
-                                                        std::unordered_map<std::string, std::string> &idmap,
-                                                        int i, int j,
-                                                        std::unordered_map<std::string, std::string> shapemap) {
+std::vector<std::string>
+CSourceManager::CheckGroup(std::vector<std::vector<std::string>> parsedcode,
+                           std::unordered_map<std::string, std::string>& idmap, int i, int j,
+                           std::unordered_map<std::string, std::string> shapemap)
+{
     bool first_time = true;
     std::string id;
     int global_k;
     int global_l;
-    for (int k = 0; k < parsedcode.size(); k++) {
-        if (first_time == true) {
+    for (int k = 0; k < parsedcode.size(); k++)
+    {
+        if (first_time == true)
+        {
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
-        for (int l = 0; l < line.size(); l++) {
-            if (first_time == true) {
+        line = parsecomments(line);
+        for (int l = 0; l < line.size(); l++)
+        {
+            if (first_time == true)
+            {
                 l = j;
                 first_time = false;
                 id = RemoveSpecials(line.at(l));
-                if ((idmap.find(id))!= idmap.end()) {
-                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + id + " is already being used." << std::endl;
-                    return {"error"};
-                } else {
-                    idmap[id] = "TRUE"; 
+                if ((idmap.find(id)) != idmap.end())
+                {
+                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + id
+                            + " is already being used."
+                              << std::endl;
+                    return { "error" };
+                }
+                else
+                {
+                    idmap[id] = "TRUE";
                 }
                 continue;
             }
@@ -529,201 +793,334 @@ std::vector<std::string> CSourceManager::CheckGroup(std::vector<std::vector<std:
             std::vector<std::string> result;
             std::string element = RemoveSpecials(line.at(l));
 
-            if (element == "endgroup") {
+            if (element == "endgroup")
+            {
                 std::vector<std::string> ret;
-                if (l == line.size() - 1) {
-                    ret = {std::to_string(k), std::to_string(l)};
-                } else {
-                    ret = {std::to_string(k), std::to_string(l)};
+                if (l == line.size() - 1)
+                {
+                    ret = { std::to_string(k), std::to_string(l) };
                 }
-                return ret; 
+                else
+                {
+                    ret = { std::to_string(k), std::to_string(l) };
+                }
+                return ret;
             }
-            if (element == "instance") {
-                if (l == line.size() - 1) {
+            if (element == "instance")
+            {
+                if (l == line.size() - 1)
+                {
                     result = CheckInstance(parsedcode, idmap, k + 1, 0, shapemap);
-                } else {
+                }
+                else
+                {
                     result = CheckInstance(parsedcode, idmap, k, l + 1, shapemap);
                 }
 
-                if (result[0] == "error") {
-                    return {"error"};
+                if (result[0] == "error")
+                {
+                    return { "error" };
                 }
                 k = std::stoi(result[0]);
                 l = std::stoi(result[1]);
                 std::string elemid = RemoveSpecials(result[2]);
                 line = parsedcode.at(k);
-                //idmap[elemid] = "TRUE";
-            }
-            else {
-                std::cout << "Error at Line " + std::to_string(k) + ": Expected Instance" << std::endl;
-                return {"error"};
-            }
+                line = parsecomments(line);
 
+                // idmap[elemid] = "TRUE";
+            }
+            else
+            {
+                std::cout << "Error at Line " + std::to_string(k) + ": Expected Instance"
+                          << std::endl;
+                return { "error" };
+            }
         }
     }
     std::cout << "Error at Line " + std::to_string(i + 1) + ": endgroup expected" << std::endl;
-    return {std::to_string(global_k), std::to_string(global_l)};
+    return { std::to_string(global_k), std::to_string(global_l) };
 }
 
-std::vector<std::string> CSourceManager::CheckBank(std::vector<std::vector<std::string>> parsedcode,
-                                                        std::unordered_map<std::string, std::string> &referencemap,
-                                                        std::unordered_map<std::string, std::string> &idmap,
-                                                        int i, int j,
-                                                        std::unordered_map<std::string, std::string> shapemap) {
+std::vector<std::string>
+CSourceManager::CheckBank(std::vector<std::vector<std::string>> parsedcode,
+                          std::unordered_map<std::string, std::string>& referencemap,
+                          std::unordered_map<std::string, std::string>& idmap, int i, int j,
+                          std::unordered_map<std::string, std::string> shapemap)
+{
     bool first_time = true;
+    bool elementlisted = false;
     std::string id;
-    for (int k = 0; k < parsedcode.size(); k++) {
-        if (first_time == true) {
+    for (int k = 0; k < parsedcode.size(); k++)
+    {
+        if (first_time == true)
+        {
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
-        for (int l = 0; l < line.size(); l++) {
-            if (first_time == true) {
+        line = parsecomments(line);
+        for (int l = 0; l < line.size(); l++)
+        {
+            if (first_time == true)
+            {
                 l = j;
                 first_time = false;
                 id = RemoveSpecials(line.at(l));
-                if ((idmap.find(id))!= idmap.end()) {
-                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + id + " is already being used." << std::endl;
-                    return {"error"};
+                if ((idmap.find(id)) != idmap.end())
+                {
+                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + id
+                            + " is already being used."
+                              << std::endl;
+                    return { "error" };
                 }
                 continue;
             }
             std::vector<std::string> result;
             std::string element = RemoveSpecials(line.at(l));
-            if (element == "endbank") {
-                std::vector<std::string> ret;
-                if (l == line.size() - 1) {
-                    ret = {std::to_string(k), std::to_string(l)};
-                } else {
-                    ret = {std::to_string(k), std::to_string(l)};
-                }
-                return ret; 
-            }
-            if (l == 0) {
-                if (element == "set") {
-                    if (line.size() == 6 || line.size() == 7) {
-                        std::string secondval = line.at(l + 1);
-                        if ((shapemap.find(secondval))!= shapemap.end() && secondval != "instance") {
-                            std::cout << "Error at Line " + std::to_string(i + 1) + ": " + secondval + " is a reserved keyword." << std::endl;
-                            return {"error"};
-                        } else if (idmap.find(secondval) != idmap.end()) {
-                            std::cout << "Error at Line " + std::to_string(i + 1) + ": " + secondval + " is already being used as an id." << std::endl;
-                            return {"error"};
-                        } else if (referencemap.find(secondval) != referencemap.end()) {
-                            std::cout << "Error at Line " + std::to_string(i + 1) + ": " + secondval + " is already being used as an reference." << std::endl;
-                            return {"error"};
-                        }
-                        referencemap[secondval] = true; 
-                        l+=5;
-                    } else {
-                        std::cout << "Error at Line " + std::to_string(k + 1) + ": Expected 5 or (optional) 6 Parameters in Set, Received " + std::to_string(line.size() - 1)  << std::endl;
-                        return {"error"};
+            if (element == "endbank")
+            {
+                if (elementlisted)
+                {
+                    std::vector<std::string> ret;
+                    if (l == line.size() - 1)
+                    {
+                        ret = { std::to_string(k), std::to_string(l) };
                     }
-
-                } else {
-                    std::cout << "Error at Line " + std::to_string(k + 1) + ": Expected Set at the Start of a New Line." << std::endl;
-                    return {"error"};
+                    else
+                    {
+                        ret = { std::to_string(k), std::to_string(l) };
+                    }
+                    return ret;
+                }
+                else
+                {
+                    std::cout << "Error at Line " + std::to_string(i + 1) + ": "
+                            + "List expected at the end of bank."
+                              << std::endl;
+                    return { "error" };
                 }
             }
-
+            if (l == 0)
+            {
+                if (element == "set")
+                {
+                    if (line.size() == 6 || line.size() == 7)
+                    {
+                        std::string secondval = line.at(l + 1);
+                        if ((shapemap.find(secondval)) != shapemap.end() && secondval != "instance")
+                        {
+                            std::cout << "Error at Line " + std::to_string(i + 1) + ": " + secondval
+                                    + " is a reserved keyword."
+                                      << std::endl;
+                            return { "error" };
+                        }
+                        else if (idmap.find(secondval) != idmap.end())
+                        {
+                            std::cout << "Error at Line " + std::to_string(i + 1) + ": " + secondval
+                                    + " is already being used as an id."
+                                      << std::endl;
+                            return { "error" };
+                        }
+                        else if (referencemap.find(secondval) != referencemap.end())
+                        {
+                            std::cout << "Error at Line " + std::to_string(i + 1) + ": " + secondval
+                                    + " is already being used as an reference."
+                                      << std::endl;
+                            return { "error" };
+                        }
+                        referencemap[secondval] = "true";
+                        l += 5;
+                    }
+                    else
+                    {
+                        std::cout << "Error at Line " + std::to_string(k + 1)
+                                + ": Expected 5 or (optional) 6 Parameters in Set, Received "
+                                + std::to_string(line.size() - 1)
+                                  << std::endl;
+                        return { "error" };
+                    }
+                }
+                else if (element == "list")
+                {
+                    elementlisted = true;
+                    std::string linestr = "";
+                    for (int l = 0; l < line.size(); l++)
+                    {
+                        linestr += line.at(l);
+                    }
+                    if (balancedbracket(linestr))
+                    {
+                        std::vector<std::string> res =
+                            ParameterCheck(line, "bank", -1, idmap, referencemap);
+                        std::string truthval = res[1];
+                        int position = std::stoi(res[0]);
+                        if (truthval != "true")
+                        {
+                            int splitpoint = l + position;
+                            for (int f = 0; f < line.size(); f++)
+                            {
+                                std::cout << RemoveSpecials(line.at(f)) << ' ';
+                                if (f == splitpoint - 1)
+                                {
+                                    std::cout << ">>";
+                                }
+                            }
+                            std::cout << "\n";
+                            std::cout << "Error at Line " + std::to_string(k + 1)
+                                    + ": Invalid List Parameter for type Bank."
+                                      << std::endl;
+                            return { "error" };
+                        }
+                    }
+                    else
+                    {
+                        std::cout << "Error at Line " + std::to_string(k + 1)
+                                + ": Mismatched Parehthesis"
+                                  << std::endl;
+                        return { "error" };
+                    }
+                }
+                else
+                {
+                    std::cout << "Error at Line " + std::to_string(k + 1)
+                            + ": Expected Set or List at the Start of a New Line."
+                              << std::endl;
+                    return { "error" };
+                }
+            }
         }
     }
     std::cout << "Error at Line " + std::to_string(i + 1) + ": endbank expected" << std::endl;
-    return {"error"};
+    return { "error" };
 }
 
-std::vector<std::string> CSourceManager::CheckInstance(std::vector<std::vector<std::string>> parsedcode,
-                                                        std::unordered_map<std::string, std::string> idmap,
-                                                        int i, int j,
-                                                        std::unordered_map<std::string, std::string> shapemap) {
+std::vector<std::string>
+CSourceManager::CheckInstance(std::vector<std::vector<std::string>> parsedcode,
+                              std::unordered_map<std::string, std::string> idmap, int i, int j,
+                              std::unordered_map<std::string, std::string> shapemap)
+{
     bool first_time = true;
     bool second_time = false;
     std::string id;
     std::string obj;
-    for (int k = 0; k < parsedcode.size(); k++) {
-        if (first_time == true) {
+    for (int k = 0; k < parsedcode.size(); k++)
+    {
+        if (first_time == true)
+        {
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
-        for (int l = 0; l < line.size(); l++) {
-            if (first_time == true) {
+        line = parsecomments(line);
+        for (int l = 0; l < line.size(); l++)
+        {
+            if (first_time == true)
+            {
                 l = j;
                 first_time = false;
                 id = RemoveSpecials(line.at(l));
-                if ((idmap.find(id))!= idmap.end()) {
-                    std::cout << "Error at Line " + std::to_string(k + 1) + ": " + id + " is already being used." << std::endl;
+                if ((idmap.find(id)) != idmap.end())
+                {
+                    std::cout << "Error at Line " + std::to_string(k + 1) + ": " + id
+                            + " is already being used."
+                              << std::endl;
                 }
                 idmap[id] = "TRUE";
                 second_time = true;
                 continue;
             }
-            if (second_time == true) {
-                obj = line.at(l); 
-                if (idmap.find(RemoveSpecials(obj)) == idmap.end()) {
+            if (second_time == true)
+            {
+                obj = line.at(l);
+                if (idmap.find(RemoveSpecials(obj)) == idmap.end())
+                {
                     // for(auto elem : idmap) {
                     //     std::cout << elem.first << "\n";
                     // }
-                    std::cout << "Error at Line " + std::to_string(k + 1) + ": " + obj + " is not defined." << std::endl;
+                    std::cout << "Error at Line " + std::to_string(k + 1) + ": " + obj
+                            + " is not defined."
+                              << std::endl;
                 }
-                second_time = false; 
+                second_time = false;
                 continue;
             }
             std::string element = RemoveSpecials(line.at(l));
-            if (element == "endinstance") {
+            if (element == "endinstance")
+            {
                 std::vector<std::string> ret;
-                ret = {std::to_string(k), std::to_string(l), id};
-                return ret; 
-            } else if (element == "rotate" || element == "scale" || element == "translate") {
-                int templ = l+1;
+                ret = { std::to_string(k), std::to_string(l), id };
+                return ret;
+            }
+            else if (element == "rotate" || element == "scale" || element == "translate")
+            {
+                int templ = l + 1;
                 std::string secondelem = line.at(templ);
-                if (secondelem.find('(') == std::string::npos) {
-                    std::cout << "Error at Line " + std::to_string(k + 1) + "Expected Start of Parenthesis" << std::endl;
-                    return {"error"};
+                if (secondelem.find('(') == std::string::npos)
+                {
+                    std::cout << "Error at Line " + std::to_string(k + 1)
+                            + "Expected Start of Parenthesis"
+                              << std::endl;
+                    return { "error" };
                 }
-            } else if (element == "surface" || element == "LOD" || element == "shading") {
-                int templ = l+1;
+            }
+            else if (element == "surface" || element == "LOD" || element == "shading")
+            {
+                int templ = l + 1;
                 std::string secondelem = line.at(templ);
-                if ((shapemap.find(secondelem))!= shapemap.end()) {
-                    std::cout << "Error at Line " + std::to_string(k + 1) + ": " + element + " is a reserved keyword." << std::endl;
+                if ((idmap.find(secondelem)) == idmap.end())
+                {
+                    std::cout << "Error at Line " + std::to_string(k + 1) + ": " + secondelem
+                            + " is not a valid shape."
+                              << std::endl;
                 }
-                l = templ; 
+                l = templ;
             }
         }
     }
     std::cout << "Error at Line " + std::to_string(i + 1) + ": endinstance expected" << std::endl;
-    return {"error"};
+    return { "error" };
 }
 
-std::vector<std::string> CSourceManager::CheckSubdivision(std::vector<std::vector<std::string>> parsedcode,
-                                                        std::unordered_map<std::string, std::string> &idmap,
-                                                        int i, int j,
-                                                        std::unordered_map<std::string, std::string> shapemap) {
+std::vector<std::string>
+CSourceManager::CheckSubdivision(std::vector<std::vector<std::string>> parsedcode,
+                                 std::unordered_map<std::string, std::string>& idmap, int i, int j,
+                                 std::unordered_map<std::string, std::string> shapemap)
+{
     bool first_time = true;
     std::string id;
     int global_k;
     int global_l;
     int cnt = 1;
-    for (int k = 0; k < parsedcode.size(); k++) {
-        if (first_time == true) {
+    for (int k = 0; k < parsedcode.size(); k++)
+    {
+        if (first_time == true)
+        {
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
-        for (int l = 0; l < line.size(); l++) {
-            if (first_time == true) {
+        line = parsecomments(line);
+        for (int l = 0; l < line.size(); l++)
+        {
+            if (first_time == true)
+            {
                 l = j;
                 first_time = false;
                 id = RemoveSpecials(line.at(l));
-                if ((idmap.find(id))!= idmap.end()) {
-                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + id + " is already being used." << std::endl;
-                    return {"error"};
+                if ((idmap.find(id)) != idmap.end())
+                {
+                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + id
+                            + " is already being used."
+                              << std::endl;
+                    return { "error" };
                 }
                 continue;
             }
-            if (cnt == 2 && line.at(l) == "NOME_OFFSET_DEFAULT" || line.at(l) == "NOME_OFFSET_GRID") {
+            if (cnt == 2 && line.at(l) == "NOME_OFFSET_DEFAULT" || line.at(l) == "NOME_OFFSET_GRID")
+            {
                 continue;
             }
-            if (cnt == 3 ) {
-                if (isNumber(line.at(l))) {
+            if (cnt == 3)
+            {
+                if (isNumber(line.at(l)))
+                {
                     continue;
                 }
             }
@@ -731,27 +1128,39 @@ std::vector<std::string> CSourceManager::CheckSubdivision(std::vector<std::vecto
             global_l = l;
             std::vector<std::string> result;
             std::string element = RemoveSpecials(line.at(l));
-            if (element == "endsubdivision") {
+            if (element == "endsubdivision")
+            {
                 std::vector<std::string> ret;
-                if (l == line.size() - 1) {
-                    ret = {std::to_string(k), std::to_string(l)};
-                } else {
-                    ret = {std::to_string(k), std::to_string(l)};
+                if (l == line.size() - 1)
+                {
+                    ret = { std::to_string(k), std::to_string(l) };
                 }
-                return ret; 
-            } else if (element == "instance") {
-                if (l == line.size() - 1) {
+                else
+                {
+                    ret = { std::to_string(k), std::to_string(l) };
+                }
+                return ret;
+            }
+            else if (element == "instance")
+            {
+                if (l == line.size() - 1)
+                {
                     result = CheckInstance(parsedcode, idmap, k + 1, 0, shapemap);
-                } else {
+                }
+                else
+                {
                     result = CheckInstance(parsedcode, idmap, k, l + 1, shapemap);
                 }
             }
-            else {
-                std::cout << "Error at Line " + std::to_string(k + 1) + ": Expected Instance" << std::endl;
-                return {"error"};
+            else
+            {
+                std::cout << "Error at Line " + std::to_string(k + 1) + ": Expected Instance"
+                          << std::endl;
+                return { "error" };
             }
-            if (result[0] == "error") {
-                return {"error"};
+            if (result[0] == "error")
+            {
+                return { "error" };
             }
             k = std::stoi(result[0]);
             l = std::stoi(result[1]);
@@ -760,33 +1169,42 @@ std::vector<std::string> CSourceManager::CheckSubdivision(std::vector<std::vecto
             cnt++;
         }
     }
-    std::cout << "Error at Line " + std::to_string(i + 1) + ": endsubdivision expected" << std::endl;
-    return {std::to_string(global_k), std::to_string(global_l)};
+    std::cout << "Error at Line " + std::to_string(i + 1) + ": endsubdivision expected"
+              << std::endl;
+    return { std::to_string(global_k), std::to_string(global_l) };
 }
 
-
-std::vector<std::string> CSourceManager::CheckMesh(std::vector<std::vector<std::string>> parsedcode,
-                                                        std::unordered_map<std::string, std::string> &idmap,
-                                                        int i, int j,
-                                                        std::unordered_map<std::string, std::string> shapemap) {
+std::vector<std::string>
+CSourceManager::CheckMesh(std::vector<std::vector<std::string>> parsedcode,
+                          std::unordered_map<std::string, std::string>& idmap, int i, int j,
+                          std::unordered_map<std::string, std::string> shapemap)
+{
     bool first_time = true;
     std::string id;
     int global_k;
     int global_l;
     int cnt = 1;
-    for (int k = 0; k < parsedcode.size(); k++) {
-        if (first_time == true) {
+    for (int k = 0; k < parsedcode.size(); k++)
+    {
+        if (first_time == true)
+        {
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
-        for (int l = 0; l < line.size(); l++) {
-            if (first_time == true) {
+        line = parsecomments(line);
+        for (int l = 0; l < line.size(); l++)
+        {
+            if (first_time == true)
+            {
                 l = j;
                 first_time = false;
                 id = RemoveSpecials(line.at(l));
-                if ((idmap.find(id))!= idmap.end()) {
-                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + id + " is already being used." << std::endl;
-                    return {"error"};
+                if ((idmap.find(id)) != idmap.end())
+                {
+                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + id
+                            + " is already being used."
+                              << std::endl;
+                    return { "error" };
                 }
                 idmap[id] = "TRUE";
                 continue;
@@ -795,106 +1213,144 @@ std::vector<std::string> CSourceManager::CheckMesh(std::vector<std::vector<std::
             global_l = l;
             std::vector<std::string> result;
             std::string element = RemoveSpecials(line.at(l));
-            if (element == "endmesh") {
+            if (element == "")
+            {
+                continue;
+            }
+            if (element == "endmesh")
+            {
                 std::vector<std::string> ret;
-                if (l == line.size() - 1) {
-                    ret = {std::to_string(k), std::to_string(l)};
-                } else {
-                    ret = {std::to_string(k), std::to_string(l)};
+                if (l == line.size() - 1)
+                {
+                    ret = { std::to_string(k), std::to_string(l) };
                 }
-                return ret; 
-            } else if (element == "point") {
-                if (l == line.size() - 1) {
-                    result = CheckStatement(parsedcode, idmap, "endpoint", k + 1, 0, shapemap);
-                } else {
-                    result = CheckStatement(parsedcode, idmap, "endpoint", k, l + 1, shapemap);
+                else
+                {
+                    ret = { std::to_string(k), std::to_string(l) };
                 }
-                if (result[0] == "error") {
-                    return {"error"};
+                return ret;
+            }
+            else if (element == "point")
+            {
+                if (l == line.size() - 1)
+                {
+                    result = CheckPoint(parsedcode, idmap, k + 1, 0, shapemap);
                 }
-            } else if (element == "face") { 
-                if (l == line.size() - 1) {
-                    result = CheckFace(parsedcode, idmap, k + 1, 0, shapemap);
-                } else {
-                    result = CheckFace(parsedcode, idmap, k, l + 1, shapemap);
+                else
+                {
+                    result = CheckPoint(parsedcode, idmap, k, l + 1, shapemap);
                 }
-                if (result[0] == "error") {
-                    return {"error"};
+                if (result[0] == "error")
+                {
+                    return { "error" };
                 }
             }
-            else {
-                std::cout << "Error at Line " + std::to_string(k + 1) + ": Expected Point or Face" << std::endl;
-                return {"error"};
+            else if (element == "face")
+            {
+                if (l == line.size() - 1)
+                {
+                    result = CheckFace(parsedcode, idmap, k + 1, 0, shapemap);
+                }
+                else
+                {
+                    result = CheckFace(parsedcode, idmap, k, l + 1, shapemap);
+                }
+                if (result[0] == "error")
+                {
+                    return { "error" };
+                }
+            }
+            else
+            {
+                std::cout << "Error at Line " + std::to_string(k + 1) + ": Expected Point or Face"
+                          << std::endl;
+                return { "error" };
             }
             k = std::stoi(result[0]);
             l = std::stoi(result[1]);
-            std::string elemid = result[2];
-            idmap[elemid] = "TRUE";
             cnt++;
         }
     }
     std::cout << "Error at Line " + std::to_string(i + 1) + ": endmesh expected" << std::endl;
-    return {std::to_string(global_k), std::to_string(global_l)};
+    return { std::to_string(global_k), std::to_string(global_l) };
 }
 
-std::vector<std::string> CSourceManager::CheckCircle(std::vector<std::vector<std::string>> parsedcode,
-                                                        std::unordered_map<std::string, std::string> &idmap,
-                                                        int i, int j,
-                                                        std::unordered_map<std::string, std::string> shapemap) {
+std::vector<std::string>
+CSourceManager::CheckCircle(std::vector<std::vector<std::string>> parsedcode,
+                            std::unordered_map<std::string, std::string>& idmap, int i, int j,
+                            std::unordered_map<std::string, std::string> shapemap)
+{
     bool first_time = true;
     std::string id;
     int global_k;
     int global_l;
     int cnt = 1;
-    for (int k = 0; k < parsedcode.size(); k++) {
-        if (first_time == true) {
+    for (int k = 0; k < parsedcode.size(); k++)
+    {
+        if (first_time == true)
+        {
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
-        for (int l = 0; l < line.size(); l++) {
-            if (first_time == true) {
+        line = parsecomments(line);
+        for (int l = 0; l < line.size(); l++)
+        {
+            if (first_time == true)
+            {
                 l = j;
                 first_time = false;
                 id = RemoveSpecials(line.at(l));
-                if ((idmap.find(id))!= idmap.end()) {
-                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + id + " is already being used." << std::endl;
-                    return {"error"};
+                if ((idmap.find(id)) != idmap.end())
+                {
+                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + id
+                            + " is already being used."
+                              << std::endl;
+                    return { "error" };
                 }
                 idmap[id] = "TRUE";
-                cnt++; 
+                cnt++;
                 continue;
             }
             global_k = k;
             global_l = l;
             std::vector<std::string> result;
             std::string element = RemoveSpecials(line.at(l));
-            if (cnt > 4) {
-                std::cout << "Error at Line " + std::to_string(k + 1) + ": endcircle expected." << std::endl;
-                return {"error"};
+            if (cnt > 4)
+            {
+                std::cout << "Error at Line " + std::to_string(k + 1) + ": endcircle expected."
+                          << std::endl;
+                return { "error" };
             }
-            if (cnt == 2 && element.find('(') != std::string::npos) {
-<<<<<<< HEAD
-                if (!ParameterCheck(line, "circle", 2, idmap)) {
-=======
-                std::vector<std::string> res = ParameterCheck(line, "circle", 2, idmap);
+            if (cnt == 2 && element.find('(') != std::string::npos)
+            {
+                std::vector<std::string> res = ParameterCheck(
+                    line, "circle", 2, idmap, std::unordered_map<std::string, std::string> {});
                 std::string truthval = res[1];
                 int position = std::stoi(res[0]);
-                if (truthval != "true") {
->>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
-                    std::cout << "Error at Line " + std::to_string(i + 1) + ": Invalid Parameters for type circle." << std::endl;
-                    return {"error"};
+                if (truthval != "true")
+                {
+                    std::cout << "Error at Line " + std::to_string(i + 1)
+                            + ": Invalid Parameters for type circle."
+                              << std::endl;
+                    return { "error" };
                 }
-                continue; 
-
-            } else if (element == "endcircle") {
+                continue;
+            }
+            else if (element == "endcircle")
+            {
                 std::vector<std::string> ret;
-                if (l == line.size() - 1) {
-                    ret = {std::to_string(k), std::to_string(l)};
-                } else {
-                    ret = {std::to_string(k), std::to_string(l)};
+                if (l == line.size() - 1)
+                {
+                    ret = { std::to_string(k), std::to_string(l) };
+                }
+                else
+                {
+                    ret = { std::to_string(k), std::to_string(l) };
                 }
                 return ret;
-            } else {
+            }
+            else
+            {
                 continue;
             }
             k = std::stoi(result[0]);
@@ -905,205 +1361,644 @@ std::vector<std::string> CSourceManager::CheckCircle(std::vector<std::vector<std
         }
     }
     std::cout << "Error at Line " + std::to_string(i + 1) + ": endcircle expected" << std::endl;
-    return {std::to_string(global_k), std::to_string(global_l)};
+    return { std::to_string(global_k), std::to_string(global_l) };
 }
 
-std::vector<std::string> CSourceManager::CheckPoint(std::vector<std::vector<std::string>> parsedcode,
-                                                        std::unordered_map<std::string, std::string> &idmap,
-                                                        int i, int j,
-                                                        std::unordered_map<std::string, std::string> shapemap) {
+std::vector<std::string>
+CSourceManager::CheckPolyline(std::vector<std::vector<std::string>> parsedcode,
+                              std::unordered_map<std::string, std::string>& idmap, int i, int j,
+                              std::unordered_map<std::string, std::string> shapemap)
+{
     bool first_time = true;
     std::string id;
     int global_k;
     int global_l;
     int cnt = 1;
-    for (int k = 0; k < parsedcode.size(); k++) {
-        if (first_time == true) {
+    for (int k = 0; k < parsedcode.size(); k++)
+    {
+        if (first_time == true)
+        {
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
-        for (int l = 0; l < line.size(); l++) {
-            if (first_time == true) {
+        line = parsecomments(line);
+        for (int l = 0; l < line.size(); l++)
+        {
+            if (first_time == true)
+            {
                 l = j;
                 first_time = false;
                 id = RemoveSpecials(line.at(l));
-<<<<<<< HEAD
-                std::cout << "ID IS: " << id << std::endl;
-=======
->>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
-                if ((idmap.find(id))!= idmap.end()) {
-                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + id + " is already being used." << std::endl;
-                    return {"error"};
+                if ((idmap.find(id)) != idmap.end())
+                {
+                    for (int f = 0; f < line.size(); f++)
+                    {
+                        std::cout << RemoveSpecials(line.at(f)) << ' ';
+                        if (f == l - 1)
+                        {
+                            std::cout << ">>";
+                        }
+                    }
+                    std::cout << "\n";
+                    std::cout << "Error at Line " + std::to_string(i + 1) + " at Position "
+                            + std::to_string(l) + ": " + id + " is already being used."
+                              << std::endl;
+                    return { "error" };
                 }
-                idmap[id] = "Point";
-                cnt++; 
+                idmap[id] = "Polyline";
+                cnt++;
                 continue;
             }
             global_k = k;
             global_l = l;
             std::vector<std::string> result;
             std::string element = RemoveSpecials(line.at(l));
-            if (cnt > 5) {
-                std::cout << "Error at Line " + std::to_string(i + 1) + ": endpoint expected" << std::endl;
-                return {"error"};
-            }
-            if (cnt == 2 && element.find('(') != std::string::npos) {
-<<<<<<< HEAD
-                if (!ParameterCheck(line, "point", 3, idmap)) {
-=======
-                std::vector<std::string> res = ParameterCheck(line, "point", 3, idmap);
+            if (l == 2 && element.find('(') != std::string::npos)
+            {
+                std::vector<std::string> line = parsedcode.at(k);
+                line = parsecomments(line);
+                std::string linestr = "";
+                for (int l = 0; l < line.size(); l++)
+                {
+                    linestr += line.at(l);
+                }
+                if (!balancedbracket(linestr))
+                {
+                    for (int f = 0; f < line.size(); f++)
+                    {
+                        std::cout << RemoveSpecials(line.at(f)) << ' ';
+                        if (f == l - 1)
+                        {
+                            std::cout << ">>";
+                        }
+                    }
+                    std::cout << "\n";
+                    std::cout << "Error at Line " + std::to_string(i + 1) + " at Position "
+                            + std::to_string(l) + ": Mismatched Parenthesis"
+                              << std::endl;
+                    return { "error" };
+                }
+                std::vector<std::string> res = ParameterCheck(
+                    line, "polyline", -1, idmap, std::unordered_map<std::string, std::string> {});
                 std::string truthval = res[1];
                 int position = std::stoi(res[0]);
-                if (truthval != "true") {
->>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
-                    std::cout << "Error at Line " + std::to_string(i + 1) + ": Invalid Parameters for type point." << std::endl;
-                    return {"error"};
-                }
-                continue; 
+                if (truthval != "true")
+                {
+                    int splitpoint = l + position;
+                    for (int f = 0; f < line.size(); f++)
+                    {
+                        std::cout << RemoveSpecials(line.at(f)) << ' ';
+                        if (f == splitpoint - 1)
+                        {
+                            std::cout << ">>";
+                        }
+                    }
+                    std::cout << "\n";
+                    std::cout << "Error at Line " + std::to_string(i + 1) + " at Position "
+                            + std::to_string(splitpoint) + ": Invalid Parameters for type Polyline."
+                              << std::endl;
 
-            } else if (element == "endpoint") {
-                std::vector<std::string> ret;
-                if (l == line.size() - 1) {
-                    ret = {std::to_string(k), std::to_string(l)};
-                } else {
-                    ret = {std::to_string(k), std::to_string(l)};
+                    return { "error" };
                 }
-                return ret;
-            } else {
                 continue;
             }
-            k = std::stoi(result[0]);
-            l = std::stoi(result[1]);
-            std::string elemid = result[2];
-            idmap[elemid] = "TRUE";
-            cnt++;
+            else if (l == 3 && element == "closed")
+            {
+                continue;
+            }
+            else if (element == "endpolyline")
+            {
+                std::vector<std::string> ret;
+                if (l == line.size() - 1)
+                {
+                    ret = { std::to_string(k), std::to_string(l) };
+                }
+                else
+                {
+                    ret = { std::to_string(k), std::to_string(l) };
+                }
+                return ret;
+            }
+            else
+            {
+                continue;
+            }
+        }
+    }
+    std::cout << "Error at Line " + std::to_string(i + 1) + ": endpolyline expected" << std::endl;
+    return { "error" };
+}
+
+void CSourceManager::PrintLocationError(std::vector<std::string> line, int splitpoint)
+{
+    for (int f = 0; f < line.size(); f++)
+    {
+        std::cout << RemoveSpecials(line.at(f)) << ' ';
+        if (f == splitpoint - 1)
+        {
+            std::cout << ">>";
+        }
+    }
+    std::cout << "\n";
+}
+
+std::vector<std::string>
+CSourceManager::CheckSurface(std::vector<std::vector<std::string>> parsedcode,
+                             std::unordered_map<std::string, std::string>& idmap, int i, int j,
+                             std::unordered_map<std::string, std::string> shapemap)
+{
+    bool first_time = true;
+    std::string id;
+    int global_k;
+    int global_l;
+    int cnt = 1;
+    for (int k = 0; k < parsedcode.size(); k++)
+    {
+        if (first_time == true)
+        {
+            k = i;
+        }
+        std::vector<std::string> line = parsedcode.at(k);
+        line = parsecomments(line);
+        for (int l = 0; l < line.size(); l++)
+        {
+            if (first_time == true)
+            {
+                l = j;
+                first_time = false;
+                id = RemoveSpecials(line.at(l));
+                if ((idmap.find(id)) != idmap.end())
+                {
+                    for (int f = 0; f < line.size(); f++)
+                    {
+                        std::cout << RemoveSpecials(line.at(f)) << ' ';
+                        if (f == l - 1)
+                        {
+                            std::cout << ">>";
+                        }
+                    }
+                    std::cout << "\n";
+                    std::cout << "Error at Line " + std::to_string(i + 1) + " at Position "
+                            + std::to_string(l) + ": " + id + " is already being used."
+                              << std::endl;
+                    return { "error" };
+                }
+                idmap[id] = "Surface";
+                cnt++;
+                continue;
+            }
+            global_k = k;
+            global_l = l;
+            std::vector<std::string> result;
+            std::string element = RemoveSpecials(line.at(l));
+            if (cnt > 4)
+            {
+                std::cout << "Error at Line " + std::to_string(i + 1) + ": endsurface expected"
+                          << std::endl;
+                return { "error" };
+            }
+            if (cnt == 2)
+            {
+                if (element == "color")
+                {
+                    cnt++;
+                    continue;
+                }
+                else
+                {
+                    PrintLocationError(line, l);
+                    std::cout << "Error at Line " + std::to_string(i + 1) + ": Expected Color"
+                              << std::endl;
+                    return { "error" };
+                }
+            }
+            else if (cnt == 3)
+            {
+                if (element.find('(') != std::string::npos)
+                {
+                    std::vector<std::string> line = parsedcode.at(k);
+                    line = parsecomments(line);
+                    std::string linestr = "";
+                    for (int l = 0; l < line.size(); l++)
+                    {
+                        linestr += line.at(l);
+                    }
+                    if (!balancedbracket(linestr))
+                    {
+                        for (int f = 0; f < line.size(); f++)
+                        {
+                            std::cout << RemoveSpecials(line.at(f)) << ' ';
+                            if (f == l - 1)
+                            {
+                                std::cout << ">>";
+                            }
+                        }
+                        std::cout << "\n";
+                        std::cout << "Error at Line " + std::to_string(i + 1) + " at Position "
+                                + std::to_string(l) + ": Mismatched Parenthesis"
+                                  << std::endl;
+                        return { "error" };
+                    }
+                    std::vector<std::string> res = ParameterCheck(
+                        line, "surface", 3, idmap, std::unordered_map<std::string, std::string> {});
+                    std::string truthval = res[1];
+                    int position = std::stoi(res[0]);
+                    if (truthval != "true")
+                    {
+                        int splitpoint = l + position;
+                        for (int f = 0; f < line.size(); f++)
+                        {
+                            std::cout << RemoveSpecials(line.at(f)) << ' ';
+                            if (f == splitpoint - 1)
+                            {
+                                std::cout << ">>";
+                            }
+                        }
+                        std::cout << "\n";
+                        std::cout << "Error at Line " + std::to_string(i + 1) + " at Position "
+                                + std::to_string(splitpoint)
+                                + ": Invalid Parameters for type Surface."
+                                  << std::endl;
+                        return { "error" };
+                    }
+                    bool foundend = false;
+                    for (int k = l; k < line.size(); k++)
+                    {
+                        std::string element2 = RemoveSpecials(line.at(k));
+                        if (element2.find(')') != std::string::npos)
+                        {
+                            l = k;
+                            cnt++;
+                            foundend = true;
+                            break;
+                        }
+                    }
+                    if (foundend)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        std::cout << "Error at Line " + std::to_string(i + 1)
+                                + ": Expecting Close of Parenthesis."
+                                  << std::endl;
+                        return { "error" };
+                    }
+                    continue;
+                }
+                else
+                {
+                    PrintLocationError(line, l);
+                    std::cout << "Error at Line " + std::to_string(i + 1)
+                            + ": Expected Start of Parameter at Surface"
+                              << std::endl;
+                    return { "error" };
+                }
+            }
+            else if (element == "endsurface")
+            {
+                std::vector<std::string> ret;
+                if (l == line.size() - 1)
+                {
+                    ret = { std::to_string(k), std::to_string(l) };
+                }
+                else
+                {
+                    ret = { std::to_string(k), std::to_string(l) };
+                }
+                return ret;
+            }
+            else
+            {
+                cnt++;
+                continue;
+            }
+        }
+    }
+    std::cout << "Error at Line " + std::to_string(i + 1) + ": endsurface expected" << std::endl;
+    return { "error" };
+}
+std::vector<std::string>
+CSourceManager::CheckPoint(std::vector<std::vector<std::string>> parsedcode,
+                           std::unordered_map<std::string, std::string>& idmap, int i, int j,
+                           std::unordered_map<std::string, std::string> shapemap)
+{
+    bool first_time = true;
+    std::string id;
+    int global_k;
+    int global_l;
+    int cnt = 1;
+    for (int k = 0; k < parsedcode.size(); k++)
+    {
+        if (first_time == true)
+        {
+            k = i;
+        }
+        std::vector<std::string> line = parsedcode.at(k);
+        line = parsecomments(line);
+        for (int l = 0; l < line.size(); l++)
+        {
+            if (first_time == true)
+            { // ID Check
+                l = j;
+                first_time = false;
+                id = RemoveSpecials(line.at(l));
+                if ((idmap.find(id)) != idmap.end())
+                {
+                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + id
+                            + " is already being used."
+                              << std::endl;
+                    return { "error" };
+                }
+                idmap[id] = "Point";
+                cnt++;
+                continue;
+            }
+            global_k = k;
+            global_l = l;
+            std::vector<std::string> result;
+            std::string element = RemoveSpecials(line.at(l));
+            if (cnt > 3)
+            {
+                std::cout << "Error at Line " + std::to_string(i + 1) + ": endpoint expected"
+                          << std::endl;
+                return { "error" };
+            }
+            if (cnt == 2)
+            { // Parameter Position
+                if (element.find('(') != std::string::npos)
+                {
+                    std::vector<std::string> res = ParameterCheck(
+                        line, "point", 3, idmap, std::unordered_map<std::string, std::string> {});
+                    std::string truthval = res[1];
+                    int position = std::stoi(res[0]);
+                    if (truthval != "true")
+                    {
+                        std::cout << "Error at Line " + std::to_string(i + 1)
+                                + ": Invalid Parameters for type point."
+                                  << std::endl;
+                        return { "error" };
+                    }
+                    bool foundend = false;
+                    for (int k = l; k < line.size(); k++)
+                    {
+                        std::string element2 = RemoveSpecials(line.at(k));
+                        if (element2.find(')') != std::string::npos)
+                        {
+                            l = k;
+                            cnt++;
+                            foundend = true;
+                            break;
+                        }
+                    }
+                    if (foundend)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        std::cout << "Error at Line " + std::to_string(i + 1)
+                                + ": Expecting Close of Parenthesis."
+                                  << std::endl;
+                        return { "error" };
+                    }
+                }
+                else
+                {
+                    PrintLocationError(line, l);
+                    std::cout << "Error at Line " + std::to_string(i + 1)
+                            + ": Expected Start of Parameter at Point"
+                              << std::endl;
+                    return { "error" };
+                }
+            }
+            else if (element == "endpoint")
+            {
+                std::vector<std::string> ret;
+                if (l == line.size() - 1)
+                {
+                    ret = { std::to_string(k), std::to_string(l) };
+                }
+                else
+                {
+                    ret = { std::to_string(k), std::to_string(l) };
+                }
+                return ret;
+            }
+            else
+            {
+                cnt++;
+                continue;
+            }
         }
     }
     std::cout << "Error at Line " + std::to_string(i + 1) + ": endpoint expected" << std::endl;
-    return {std::to_string(global_k), std::to_string(global_l)};
+    return { std::to_string(global_k), std::to_string(global_l) };
 }
 
-std::vector<std::string> CSourceManager::CheckFace(std::vector<std::vector<std::string>> parsedcode,
-                                                        std::unordered_map<std::string, std::string> &idmap,
-                                                        int i, int j,
-                                                        std::unordered_map<std::string, std::string> shapemap) {
+std::vector<std::string>
+CSourceManager::CheckFace(std::vector<std::vector<std::string>> parsedcode,
+                          std::unordered_map<std::string, std::string>& idmap, int i, int j,
+                          std::unordered_map<std::string, std::string> shapemap)
+{
     bool first_time = true;
+    bool opt_surface = false;
     std::string id;
     int global_k;
     int global_l;
     int cnt = 1;
-    for (int k = 0; k < parsedcode.size(); k++) {
-        if (first_time == true) {
+    for (int k = 0; k < parsedcode.size(); k++)
+    {
+        if (first_time == true)
+        {
             k = i;
         }
         std::vector<std::string> line = parsedcode.at(k);
-        for (int l = 0; l < line.size(); l++) {
-            if (first_time == true) {
+        line = parsecomments(line);
+        for (int l = 0; l < line.size(); l++)
+        {
+            if (first_time == true)
+            {
                 l = j;
                 first_time = false;
                 id = RemoveSpecials(line.at(l));
-                if ((idmap.find(id))!= idmap.end()) {
-<<<<<<< HEAD
-                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + id + " is already being used." << std::endl;
-=======
-                    for (int f = 0; f < line.size(); f++) {
+                if ((idmap.find(id)) != idmap.end())
+                {
+                    for (int f = 0; f < line.size(); f++)
+                    {
                         std::cout << RemoveSpecials(line.at(f)) << ' ';
-                        if (f == l - 1) {
+                        if (f == l - 1)
+                        {
                             std::cout << ">>";
                         }
                     }
                     std::cout << "\n";
-                    std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(l) + ": " + id + " is already being used." << std::endl;
->>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
-                    return {"error"};
+                    std::cout << "Error at Line " + std::to_string(i + 1) + " at Position "
+                            + std::to_string(l) + ": " + id + " is already being used."
+                              << std::endl;
+                    return { "error" };
                 }
                 idmap[id] = "Face";
-                cnt++; 
+                cnt++;
                 continue;
             }
             global_k = k;
             global_l = l;
             std::vector<std::string> result;
             std::string element = RemoveSpecials(line.at(l));
-            if (cnt == 2 && element.find('(') != std::string::npos) {
-<<<<<<< HEAD
-                std::cout << "The element is:"  << element << std::endl;
-                if (!ParameterCheck(line, "face", -1, idmap)) {
-                    // std::cout << "Error at Line " + std::to_string(i + 1) + ": Invalid Parameters for type Face." << std::endl;
-=======
-                std::vector<std::string> line = parsedcode.at(k);
-                std::string linestr = "";
-                for (int l = 0; l < line.size(); l++) {
-                    linestr += line.at(l);
-                }
-                if (!balancedbracket(linestr)) {
-                    for (int f = 0; f < line.size(); f++) {
-                        std::cout << RemoveSpecials(line.at(f)) << ' ';
-                        if (f == l - 1) {
-                            std::cout << ">>";
+            if (!opt_surface && cnt > 3)
+            {
+                std::cout << "Error at Line " + std::to_string(i + 1) + ": endface expected"
+                          << std::endl;
+                return { "error" };
+            }
+            else if (opt_surface && cnt > 4)
+            {
+                std::cout << "Error at Line " + std::to_string(i + 1) + ": endface expected"
+                          << std::endl;
+                return { "error" };
+            }
+            if (cnt == 2)
+            {
+                if (element.find('(') != std::string::npos)
+                {
+                    std::vector<std::string> line = parsedcode.at(k);
+                    line = parsecomments(line);
+                    std::string linestr = "";
+                    for (int l = 0; l < line.size(); l++)
+                    {
+                        linestr += line.at(l);
+                    }
+                    if (!balancedbracket(linestr))
+                    {
+                        for (int f = 0; f < line.size(); f++)
+                        {
+                            std::cout << RemoveSpecials(line.at(f)) << ' ';
+                            if (f == l - 1)
+                            {
+                                std::cout << ">>";
+                            }
+                        }
+                        std::cout << "\n";
+                        std::cout << "Error at Line " + std::to_string(i + 1) + " at Position "
+                                + std::to_string(l) + ": Mismatched Parenthesis"
+                                  << std::endl;
+                        return { "error" };
+                    }
+                    std::vector<std::string> res = ParameterCheck(
+                        line, "face", -1, idmap, std::unordered_map<std::string, std::string> {});
+                    std::string truthval = res[1];
+                    int position = std::stoi(res[0]);
+                    if (truthval != "true")
+                    {
+                        PrintLocationError(line, l + position);
+                        std::cout << "Error at Line " + std::to_string(i + 1) + " at Position "
+                                + std::to_string(l + position)
+                                + ": Invalid Parameters for type Face."
+                                  << std::endl;
+                        return { "error" };
+                    }
+                    bool foundend = false;
+                    for (int k = l; k < line.size(); k++)
+                    {
+                        std::string element2 = RemoveSpecials(line.at(k));
+                        if (element2.find(')') != std::string::npos)
+                        {
+                            l = k;
+                            cnt++;
+                            foundend = true;
+                            break;
                         }
                     }
-                    std::cout << "\n";
-                    std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(l) + ": Mismatched Parenthesis" << std::endl;
-                    return {"error"};
-                }
-                std::vector<std::string> res = ParameterCheck(line, "face", -1, idmap);
-                std::string truthval = res[1];
-                int position = std::stoi(res[0]);
-                if (truthval != "true") {
-                    int splitpoint = l + position;
-                    for (int f = 0; f < line.size(); f++) {
-                        std::cout << RemoveSpecials(line.at(f)) << ' ';
-                        if (f == splitpoint - 1) {
-                            std::cout << ">>";
-                        }
+                    if (foundend)
+                    {
+                        continue;
                     }
-                    std::cout << "\n";
-                    std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(splitpoint) + ": Invalid Parameters for type Face." << std::endl;
-
-
->>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
-                    return {"error"};
+                    else
+                    {
+                        std::cout << "Error at Line " + std::to_string(i + 1)
+                                + ": Expecting Close of Parenthesis."
+                                  << std::endl;
+                        return { "error" };
+                    }
+                    continue;
                 }
-                continue; 
-
-            } else if (element == "endface") {
+                else
+                {
+                    PrintLocationError(line, l);
+                    std::cout << "Error at Line " + std::to_string(i + 1)
+                            + ": Expected Start of Parameter at Face"
+                              << std::endl;
+                    return { "error" };
+                }
+            }
+            else if (cnt == 3 && element == "surface")
+            {
+                std::string surface = RemoveSpecials(line.at(l + 1));
+                if (idmap[surface] != "Surface")
+                {
+                    PrintLocationError(line, l);
+                    std::cout << "Error at Line " + std::to_string(i + 1) + ": " + surface
+                            + "is invalid"
+                              << std::endl;
+                    return { "error" };
+                }
+                opt_surface = true;
+                l++;
+                cnt++;
+                continue;
+            }
+            else if (element == "endface")
+            {
                 std::vector<std::string> ret;
-                if (l == line.size() - 1) {
-                    ret = {std::to_string(k), std::to_string(l)};
-                } else {
-                    ret = {std::to_string(k), std::to_string(l)};
+                if (l == line.size() - 1)
+                {
+                    ret = { std::to_string(k), std::to_string(l) };
+                }
+                else
+                {
+                    ret = { std::to_string(k), std::to_string(l) };
                 }
                 return ret;
-            } else {
+            }
+            else
+            {
+                cnt++;
                 continue;
             }
         }
     }
     std::cout << "Error at Line " + std::to_string(i + 1) + ": endface expected" << std::endl;
-    return {"error"};
+    return { "error" };
 }
 
-bool CSourceManager::isNumber(std::string s) {
+bool CSourceManager::isNumber(std::string s)
+{
     for (int i = 0; i < s.length(); i++)
-        if (isdigit(s[i]) == false)
+        if (s[i] == '.')
+        {
+            continue;
+        }
+        else if (isdigit(s[i]) == false)
+        {
             return false;
- 
+        }
+
     return true;
 }
 
-int CSourceManager::checkcount(std::string str, char letter) {
+int CSourceManager::checkcount(std::string str, char letter)
+{
     int count = 0;
     for (int i = 0; i < str.size(); i++)
     {
-        if (str[i] ==  letter)
+        if (str[i] == letter)
         {
-            ++ count;
+            ++count;
         }
     }
     return count;
 }
-
 
 void CSourceManager::InsertText(size_t globalOffset, const std::string& text)
 {

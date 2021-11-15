@@ -38,6 +38,7 @@
                 <addaction name="actionOpen"/>
                 <addaction name="actionReload"/>
                 <addaction name="actionSave"/>
+                <addaction name="actionExportAsStl"/>
                 <addaction name="actionExit"/>
             </widget>
             <!--   <widget class="QMenu" name="menuAbout">
@@ -166,6 +167,12 @@
                 <string>Ctrl+S</string>
             </property>
         </action>
+
+        <action name="actionExportAsStl">
+            <property name="text">
+                <string>&amp;ExportAsStl</string>
+            </property>
+        </action>
         <action name="actionExit">
             <property name="text">
                 <string>E&amp;xit</string>
@@ -268,7 +275,6 @@
                 <bool>true</bool>
             </property>
         </action>
-
         <action name="actionToggleSharpVertexSelection">
             <property name="text">
                 <string>Enable Sharp Vertex Selection</string>
@@ -293,7 +299,6 @@
                 <bool>true</bool>
             </property>
         </action>
-
         <action name="actionTogglePolylineSelection">
             <property name="text">
                 <string>Enable Polyline Selection</string>
@@ -305,7 +310,7 @@
 
         <action name="actionToggleBackFace">
             <property name="text">
-                <string>Render BackFace</string>
+                <string>No BackFace</string>
             </property>
             <property name="checkable">
                 <bool>true</bool>
