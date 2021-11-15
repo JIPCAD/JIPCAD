@@ -73,7 +73,6 @@ bool CSourceManager::ParseMainSource()
 bool CSourceManager::balancedbracket(std::string codeline) {   
     std::stack<char> stk; 
     char x; 
-
     for (int i = 0; i < codeline.length(); i++) { 
         if (codeline[i] == '(' || codeline[i] == '[' || codeline[i] == '{') { 
             stk.push(codeline[i]); 
@@ -128,7 +127,11 @@ std::vector<std::string> removeDupWord(std::string str) {
     return parsedcode;
 }
 
+<<<<<<< HEAD
 bool CSourceManager::ParameterCheck(std::vector<std::string> code, std::string type, int numparams, std::unordered_map<std::string, std::string> idmap) {
+=======
+std::vector<std::string> CSourceManager::ParameterCheck(std::vector<std::string> code, std::string type, int numparams, std::unordered_map<std::string, std::string> idmap) {
+>>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
     int start = 0; 
     int end = 0;
     std::string concatstr = "";
@@ -149,6 +152,7 @@ bool CSourceManager::ParameterCheck(std::vector<std::string> code, std::string t
         }
     }
     if (start == 0 || end == 0) {
+<<<<<<< HEAD
         return false;
     }
     std::string parenthesiscode = concatstr.substr(start + 1, end-start - 1);
@@ -166,6 +170,16 @@ bool CSourceManager::ParameterCheck(std::vector<std::string> code, std::string t
     
     if (numparams != -1 && words.size() != numparams) {
         return false;
+=======
+        return {"0", "false"};
+    }
+    std::string parenthesiscode = concatstr.substr(start + 1, end-start - 1);
+    std::vector<std::string> words{};
+    words = removeDupWord(parenthesiscode);
+    
+    if (numparams != -1 && words.size() != numparams) {
+        return {"0", "false"};
+>>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
     }
     // for(auto elem : idmap)
     // {
@@ -180,17 +194,30 @@ bool CSourceManager::ParameterCheck(std::vector<std::string> code, std::string t
         }
     } else if (type == "face") {
         // for (int i = 0; i < words.size(); i++) {
+<<<<<<< HEAD
         //     std::cout << "The Word:" << words[i] << std::endl; 
         //     std::cout << idmap[words[i]] << std::endl; 
+=======
+        //     std::cout << "The Word: " << words[i] << std::endl; 
+        //     std::cout << "THE ID: " << idmap[words[i]] << std::endl; 
+>>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
 
         // }
         for (int i = 0; i < words.size(); i++) {
             if (idmap[words[i]] != "Point") {
+<<<<<<< HEAD
                 return false; 
             }
         }
     }
     return true; 
+=======
+                return {std::to_string(i), "false"}; 
+            }
+        }
+    }
+    return {"0", "true"}; 
+>>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
 }
 void CSourceManager::ReportErros(std::string code) {
     size_t pos = 0; 
@@ -846,7 +873,14 @@ std::vector<std::string> CSourceManager::CheckCircle(std::vector<std::vector<std
                 return {"error"};
             }
             if (cnt == 2 && element.find('(') != std::string::npos) {
+<<<<<<< HEAD
                 if (!ParameterCheck(line, "circle", 2, idmap)) {
+=======
+                std::vector<std::string> res = ParameterCheck(line, "circle", 2, idmap);
+                std::string truthval = res[1];
+                int position = std::stoi(res[0]);
+                if (truthval != "true") {
+>>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
                     std::cout << "Error at Line " + std::to_string(i + 1) + ": Invalid Parameters for type circle." << std::endl;
                     return {"error"};
                 }
@@ -893,7 +927,10 @@ std::vector<std::string> CSourceManager::CheckPoint(std::vector<std::vector<std:
                 l = j;
                 first_time = false;
                 id = RemoveSpecials(line.at(l));
+<<<<<<< HEAD
                 std::cout << "ID IS: " << id << std::endl;
+=======
+>>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
                 if ((idmap.find(id))!= idmap.end()) {
                     std::cout << "Error at Line " + std::to_string(i + 1) + ": " + id + " is already being used." << std::endl;
                     return {"error"};
@@ -911,7 +948,14 @@ std::vector<std::string> CSourceManager::CheckPoint(std::vector<std::vector<std:
                 return {"error"};
             }
             if (cnt == 2 && element.find('(') != std::string::npos) {
+<<<<<<< HEAD
                 if (!ParameterCheck(line, "point", 3, idmap)) {
+=======
+                std::vector<std::string> res = ParameterCheck(line, "point", 3, idmap);
+                std::string truthval = res[1];
+                int position = std::stoi(res[0]);
+                if (truthval != "true") {
+>>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
                     std::cout << "Error at Line " + std::to_string(i + 1) + ": Invalid Parameters for type point." << std::endl;
                     return {"error"};
                 }
@@ -959,7 +1003,18 @@ std::vector<std::string> CSourceManager::CheckFace(std::vector<std::vector<std::
                 first_time = false;
                 id = RemoveSpecials(line.at(l));
                 if ((idmap.find(id))!= idmap.end()) {
+<<<<<<< HEAD
                     std::cout << "Error at Line " + std::to_string(i + 1) + ": " + id + " is already being used." << std::endl;
+=======
+                    for (int f = 0; f < line.size(); f++) {
+                        std::cout << RemoveSpecials(line.at(f)) << ' ';
+                        if (f == l - 1) {
+                            std::cout << ">>";
+                        }
+                    }
+                    std::cout << "\n";
+                    std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(l) + ": " + id + " is already being used." << std::endl;
+>>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
                     return {"error"};
                 }
                 idmap[id] = "Face";
@@ -971,9 +1026,43 @@ std::vector<std::string> CSourceManager::CheckFace(std::vector<std::vector<std::
             std::vector<std::string> result;
             std::string element = RemoveSpecials(line.at(l));
             if (cnt == 2 && element.find('(') != std::string::npos) {
+<<<<<<< HEAD
                 std::cout << "The element is:"  << element << std::endl;
                 if (!ParameterCheck(line, "face", -1, idmap)) {
                     // std::cout << "Error at Line " + std::to_string(i + 1) + ": Invalid Parameters for type Face." << std::endl;
+=======
+                std::vector<std::string> line = parsedcode.at(k);
+                std::string linestr = "";
+                for (int l = 0; l < line.size(); l++) {
+                    linestr += line.at(l);
+                }
+                if (!balancedbracket(linestr)) {
+                    for (int f = 0; f < line.size(); f++) {
+                        std::cout << RemoveSpecials(line.at(f)) << ' ';
+                        if (f == l - 1) {
+                            std::cout << ">>";
+                        }
+                    }
+                    std::cout << "\n";
+                    std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(l) + ": Mismatched Parenthesis" << std::endl;
+                    return {"error"};
+                }
+                std::vector<std::string> res = ParameterCheck(line, "face", -1, idmap);
+                std::string truthval = res[1];
+                int position = std::stoi(res[0]);
+                if (truthval != "true") {
+                    int splitpoint = l + position;
+                    for (int f = 0; f < line.size(); f++) {
+                        std::cout << RemoveSpecials(line.at(f)) << ' ';
+                        if (f == splitpoint - 1) {
+                            std::cout << ">>";
+                        }
+                    }
+                    std::cout << "\n";
+                    std::cout << "Error at Line " + std::to_string(i + 1) + " at Position " + std::to_string(splitpoint) + ": Invalid Parameters for type Face." << std::endl;
+
+
+>>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
                     return {"error"};
                 }
                 continue; 

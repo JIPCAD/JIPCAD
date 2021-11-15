@@ -31,7 +31,11 @@ public:
     void RemoveText(size_t globalOffset, size_t length);
     void ReportErros(std::string code); 
     bool balancedbracket(std::string expr);
+<<<<<<< HEAD
     bool ParameterCheck(std::vector<std::string> code, std::string type, int numparams, std::unordered_map<std::string, std::string> idmap);
+=======
+    std::vector<std::string> ParameterCheck(std::vector<std::string> code, std::string type, int numparams, std::unordered_map<std::string, std::string> idmap);
+>>>>>>> 26c47cc6d45214e619d89dcc29787528f4db4aeb
     std::vector<std::string> CheckStatement(std::vector<std::vector<std::string>> parsedcode, std::unordered_map<std::string, std::string> idmap, std::string endstatement, int i, int j, std::unordered_map<std::string, std::string> shapemap);
     std::vector<std::string> CheckInstance(std::vector<std::vector<std::string>> parsedcode, std::unordered_map<std::string, std::string> idmap, int i, int j, std::unordered_map<std::string, std::string> shapemap);
     std::vector<std::string> CheckGroup(std::vector<std::vector<std::string>> parsedcode, std::unordered_map<std::string, std::string>& idmap, int i, int j, std::unordered_map<std::string, std::string> shapemap);

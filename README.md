@@ -1,3 +1,5 @@
+# Development has moved to https://github.com/JIPCAD/NOME3 as of 5/14/2021.
+
 # NOME3
 NOME is a CAD tool that allows users to generate complex shapes via scripts and interactively modify them in the GUI. 
 
