@@ -1,0 +1,42 @@
+version: 3.0.{build}
+image:
+  - macos-bigsur
+
+install:
+  - cd %APPVEYOR_BUILD_FOLDER%
+  - git submodule update --init --recursive
+
+  # setup envionment
+  - set PATH=$HOME/Qt/5.15.2:$PATH
+  - brew install open-mesh
+  - brew install pugixml
+  - brew install cmake
+  - brew install opensubdiv
+
+  # Download Antlr 4 jar
+  - curl -fsSL -o antlr.jar https://www.antlr.org/download/antlr-4.7.2-complete.jar
+
+build_script:
+  - cmd: >-
+      cd %APPVEYOR_BUILD_FOLDER%
+
+      cd build-appveyor
+
+      cmake .. -G "NMake Makefiles"
+      -DCMAKE_BUILD_TYPE=Release
+      -DCMAKE_INSTALL_PREFIX=%APPVEYOR_BUILD_FOLDER%/install
+      -DANTLR_EXECUTABLE=%APPVEYOR_BUILD_FOLDER%/antlr.jar
+
+      type CMakeCache.txt
+
+      cmake --build . --target install
+
+      cd ..
+
+after_build:
+  - 7z a Nome3-%APPVEYOR_BUILD_VERSION%-mac.zip install
+  - 7z rn Nome3-%APPVEYOR_BUILD_VERSION%-mac.zip install Nome3-%APPVEYOR_BUILD_VERSION%-mac
+
+artifacts:
+  - path: Nome3-%APPVEYOR_BUILD_VERSION%-mac.zip
+    name: Nome
