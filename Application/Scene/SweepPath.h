@@ -13,7 +13,6 @@ struct CSweepPathInfo
 
 class CSweepPath : public CMesh
 {
-
 public:
     DECLARE_META_CLASS(CSweepPath, CMesh);
 

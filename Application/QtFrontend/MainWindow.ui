@@ -71,10 +71,7 @@
                 <addaction name="actionAddFace"/>
                 <addaction name="actionAddPolyline"/>
                 <addaction name="actionRemoveFace"/>
-                <!-- <addaction name="actionSharpenFace"/>-->
-                <!--<addaction name="actionResetTempMesh"/>-->
                 <addaction name="actionCommitChanges"/>
-                <addaction name="actionShowFacets"/>
             </widget>
 
 
@@ -89,11 +86,12 @@
                 <addaction name="actionTogglePolylineSelection"/>
             </widget>
 
-            <widget class="QMenu" name="menuSelect">
+            <widget class="QMenu" name="menuRender">
                 <property name="title">
                     <string>&amp;Render Config</string>
                 </property>
                 <addaction name="actionToggleBackFace"/>
+                <addaction name="actionToggleWireFrame"/>
             </widget>
 
             <widget class="QMenu" name="menuModifySelected">
@@ -116,6 +114,7 @@
             <addaction name="menuEdit"/>
             <!--<addaction name="menuAbout"/>-->
             <addaction name="menuSelect"/>
+            <addaction name="menuRender"/>
             <addaction name="menuModifySelected"/>
             <addaction name="menuAddPointConfig"/>
         </widget>
@@ -141,7 +140,6 @@
             <!--<addaction name="actionResetTempMesh"/>
             <addaction name="separator"/>-->
             <addaction name="actionCommitChanges"/>
-            <!--<addaction name="actionShowFacets"/>-->
         </widget>
         <action name="actionNew">
             <property name="text">
@@ -261,11 +259,6 @@
             </property>
         </action>
 
-        <action name="actionShowFacets">
-            <property name="text">
-                <string>Show Facets</string>
-            </property>
-        </action>
 
         <action name="actionToggleVertexSelection">
             <property name="text">
@@ -311,6 +304,15 @@
         <action name="actionToggleBackFace">
             <property name="text">
                 <string>No BackFace</string>
+            </property>
+            <property name="checkable">
+                <bool>true</bool>
+            </property>
+        </action>
+
+        <action name="actionToggleWireFrame">
+            <property name="text">
+                <string>WireFrame</string>
             </property>
             <property name="checkable">
                 <bool>true</bool>

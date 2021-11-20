@@ -30,7 +30,7 @@ namespace Nome
     InstanceColor = frontColor;
     InstanceBackColor = backColor;
     UpdateTransform();
-    UpdateMaterial(false); // false = don't show facets by default
+    UpdateMaterial(); // false = don't show facets by default
     UpdateGeometry(false); // false = don't show vert boxes by default
     InitInteractions();
 }
@@ -127,7 +127,7 @@ void CInteractiveMesh::UpdateGeometry(bool showVertBox, bool showBackFace)
     }
 }
 
-void CInteractiveMesh::UpdateMaterial(bool showFacets)
+void CInteractiveMesh::UpdateMaterial()
 {
     // If the scene tree node is not within a group, then we can directly use its surface color, if it has one
     if (!SceneTreeNode->GetParent()->GetOwner()->IsGroup())

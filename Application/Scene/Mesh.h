@@ -16,6 +16,7 @@
 #include <set>
 #include <utility>
 
+
 // Randy note, we need to change this to winged edge asap. Project AddOfset
 struct CNomeTraits : public OpenMesh::DefaultTraits
 {
@@ -81,7 +82,7 @@ public:
 
     void MarkDirty() override;
     void UpdateEntity() override;
-    void Draw(IDebugDraw* draw) override;
+    void Draw(IDebugDraw* draw, bool toggle_wireframe) override;
 
     Vertex* AddVertex(const std::string& name, Vector3 pos, float sharpness = 0.0f);
 
@@ -126,6 +127,7 @@ private:
     // Randy removed all the NameToVert, VertToName, etc. data structures on 1/31/2021
 
     std::vector<std::vector<Vertex*>> LineStrips; // Randy changed this to LineStrips on 12/25
+    std::vector<std::vector<Vertex*>> WireFrames; // Randy changed this to LineStrips on 12/25
     std::map<Face* , std::string> DSFaceWithColor; // Randy added on 12/12 for face entity coloring
 };
 
@@ -173,7 +175,7 @@ public:
     std::set<std::string>& GetFacesToDelete() { return FacesToDelete; }
     const std::set<std::string>& GetFacesToDelete() const { return FacesToDelete; }
 
-    void Draw(IDebugDraw* draw) override;
+    void Draw(IDebugDraw* draw, bool toggle_wireframe) override;
 
     // Create a vertex selector with a vertex name, and a name for the resulting vertex
     CVertexSelector* CreateVertexSelector(const std::string& name, const std::string& outputName);

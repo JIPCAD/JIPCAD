@@ -1,0 +1,86 @@
+####  Star_80.nom  ##########################
+
+## Capture the geometry of Chris Ohler's birthday present
+###  CHS 2021/11/13
+
+#####################################################
+
+surface R color (1 0 0) endsurface     # Red
+surface O color (0.9 0.6 0) endsurface # Orange
+surface Y color (1 1 0) endsurface     # Yellow
+surface L color (0.6 0.8 0) endsurface # Lime
+surface G color (0 0.9 0) endsurface   # Green
+surface A color (0 0.9 0.7) endsurface # Aqua
+surface C color (0 1 1) endsurface     # Cyan
+surface U color (0 0.5 1) endsurface   # Uniform
+surface B color (0 0 1) endsurface     # Blue
+surface P color (0.6 0 1) endsurface   # Purple
+surface M color (1 0 1) endsurface     # Magenta
+surface Z color (1 0 0.5) endsurface   # Zinnober
+
+surface W color (1 1 1) endsurface       # White
+surface D color (0.2 0.2 0.2) endsurface # Dark
+
+
+point o (0 0 0) endpoint
+point x (1 0 0) endpoint
+point y (0 1 0) endpoint
+point z (0 0 1) endpoint
+
+polyline xax (o x) endpolyline
+polyline yax (o y) endpolyline
+polyline zax (o z) endpolyline
+
+group coord
+  instance ixax xax  surface R  endinstance
+  instance iyax yax  surface B  endinstance
+  instance izax zax  surface G  endinstance
+endgroup
+
+
+###############  compose everything from one "1 1 1"-triangle  #####################################
+
+mesh tria  
+  point xy  ( 1 1  0 ) endpoint
+  point yz  ( 0 1  1 ) endpoint
+  point xz  ( 1 0  1 ) endpoint
+  face t (xy yz xz)    endface
+endmesh
+
+group s7
+  instance ioo tria              endinstance
+  instance ixb tria   translate( 1 -1  0 )  endinstance
+  instance iay tria   translate(-1  1  0 )  endinstance
+  instance iyc tria   translate( 0  1 -1 )  endinstance
+  instance ibz tria   translate( 0 -1  1 )  endinstance
+  instance ibz tria   translate(-1  0  1 )  endinstance
+  instance ibz tria   translate( 1  0 -1 )  endinstance
+
+  instance ix_ tria   translate(-2  0  0 )  endinstance
+  instance iy_ tria   translate( 0 -2  0  )  endinstance
+  instance iz_ tria   translate( 0  0 -2 )  endinstance
+endgroup
+
+group st8
+  instance ito s7  surface Y          endinstance
+  instance itx s7  surface O   rotate (1 0 0)(90)   endinstance
+  instance ity s7  surface L   rotate (0 1 0)(90)   endinstance
+  instance itz s7  surface C   rotate (0 0 1)(90)   endinstance
+
+  instance itor s7  surface Y                       rotate( 1 -1 0)(180)   endinstance
+  instance itxr s7  surface C   rotate (1 0 0)(90)  rotate( 1 -1 0)(180)   endinstance
+  instance ityr s7  surface L   rotate (0 1 0)(90)  rotate( 1 -1 0)(180)   endinstance
+  instance itzr s7  surface O   rotate (0 0 1)(90)  rotate( 1 -1 0)(180)   endinstance
+endgroup
+
+
+### RENDER Assembly #####################
+
+group assembly
+#  instance icoord  coord  scale (4 4 4)  endinstance
+  instance ist8 st8           endinstance
+endgroup
+
+instance ia  assembly     scale (0.3 0.3 0.3)   endinstance
+   
+############################################################################

@@ -404,8 +404,9 @@ void CMainWindow::on_actionCommitChanges_triggered()
     this->setWindowModified(true);
 }
 
+
 // Toggle on/off Face facets/edges coloring
-void CMainWindow::on_actionShowFacets_triggered()
+void CMainWindow::on_actionToggleWireFrame_triggered()
 {
     Nome3DView->WireFrameMode = !(Nome3DView->WireFrameMode);
 

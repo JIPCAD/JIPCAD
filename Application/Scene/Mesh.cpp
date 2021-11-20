@@ -9,6 +9,27 @@
 namespace Nome::Scene
 {
 
+void DrawLines(IDebugDraw* draw, std::vector<std::vector<Vertex*>> Lines) {
+    if (!Lines.empty())
+    {
+        // Randy added below for loop on 12/27 to draw multiple line strips
+        for (auto Line : Lines)
+        {
+            std::vector<Vector3> positions;
+            for (auto vHandle : Line)
+            {
+                const auto& vPos = vHandle->position; // Mesh.point(vHandle);
+                positions.emplace_back(vPos.x, vPos.y, vPos.z);
+            }
+
+            for (size_t i = 1; i < positions.size(); i++)
+            {
+                draw->LineSegment(positions[i - 1], positions[i]);
+            }
+        }
+    }
+}
+
 DEFINE_META_OBJECT(CMesh)
 {
     // `mesh` command has no properties
@@ -83,28 +104,13 @@ void CMesh::UpdateEntity()
     SetValid(isValid);
 }
 
-void CMesh::Draw(IDebugDraw* draw)
+
+void CMesh::Draw(IDebugDraw* draw, bool toggle_wireframe)
 {
-    CEntity::Draw(draw);
-
-    if (!LineStrips.empty())
-    {
-        // Randy added below for loop on 12/27 to draw multiple line strips
-        for (auto LineStrip : LineStrips)
-        {
-            std::vector<Vector3> positions;
-            for (auto vHandle : LineStrip)
-            {
-                const auto& vPos = vHandle->position; // Mesh.point(vHandle);
-                positions.emplace_back(vPos.x, vPos.y, vPos.z);
-            }
-
-            for (size_t i = 1; i < positions.size(); i++)
-            {
-                draw->LineSegment(positions[i - 1], positions[i]);
-            }
-        }
-    }
+    CEntity::Draw(draw, false);
+    DrawLines(draw, LineStrips);
+    if (toggle_wireframe)
+        DrawLines(draw, WireFrames);
 }
 
 
@@ -138,6 +144,8 @@ void CMesh::AddFace(const std::string& name, const std::vector<std::string>& fac
         faceVertices.push_back(currMesh.nameToVert.at(pointName));
     }
     AddFace(name, faceVertices, faceSurfaceIdent, faceBackfaceIdent);
+    WireFrames.push_back(faceVertices);
+
 }
 
 void CMesh::AddFace(const std::string& name, const std::vector<Vertex*>& faceDSVerts,
@@ -158,6 +166,7 @@ void CMesh::ClearMesh()
 {
     currMesh.clear();
     LineStrips.clear();
+    WireFrames.clear();
 }
 
 // WARNING this function is not currently used and outdated. leaving here for future use
@@ -253,7 +262,7 @@ void CMeshInstance::UpdateEntity()
     SetValid(MeshGenerator->IsEntityValid());
 }
 
-void CMeshInstance::Draw(IDebugDraw* draw) { MeshGenerator->Draw(draw); }
+void CMeshInstance::Draw(IDebugDraw* draw, bool toggle_wireframe) { MeshGenerator->Draw(draw, toggle_wireframe); }
 
 CVertexSelector* CMeshInstance::CreateVertexSelector(const std::string& name,
                                                      const std::string& outputName)

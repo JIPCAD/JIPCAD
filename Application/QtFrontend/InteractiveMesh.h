@@ -19,7 +19,7 @@ public:
 
     void UpdateTransform();
     void UpdateGeometry(bool showVertBox, bool showBackFace = true);
-    void UpdateMaterial(bool showFacets);
+    void UpdateMaterial();
     void InitInteractions();
     void SetDebugDraw(const CDebugDraw* debugDraw);
 

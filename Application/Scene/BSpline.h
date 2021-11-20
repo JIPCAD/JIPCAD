@@ -42,7 +42,7 @@ public:
     std::vector<float> GetDefKnots();
     void UpdateEntity() override;
     void MarkDirty() override;
-    void Draw(IDebugDraw* draw) override;
+    void Draw(IDebugDraw* draw, bool toggle_wireframe) override;
     float NFactor(int i, int j, float t);
 
 private:

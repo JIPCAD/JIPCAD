@@ -1,5 +1,6 @@
 version: 3.0.{build}
-image: Visual Studio 2017
+image:
+  - Visual Studio 2017
 
 install:
   - cd %APPVEYOR_BUILD_FOLDER%
@@ -20,30 +21,30 @@ install:
 
 
 build_script:
-- cmd: >-
-    cd %APPVEYOR_BUILD_FOLDER%
+  - cmd: >-
+      cd %APPVEYOR_BUILD_FOLDER%
 
-    md build-appveyor
+      md build-appveyor
 
-    cd build-appveyor
+      cd build-appveyor
 
-    cmake .. -G "NMake Makefiles"
-    -DCMAKE_TOOLCHAIN_FILE=C:\Tools\vcpkg\scripts\buildsystems\vcpkg.cmake
-    -DCMAKE_BUILD_TYPE=Release
-    -DCMAKE_INSTALL_PREFIX=%APPVEYOR_BUILD_FOLDER%/install
-    -DANTLR_EXECUTABLE=%APPVEYOR_BUILD_FOLDER%/antlr.jar
+      cmake .. -G "NMake Makefiles"
+      -DCMAKE_TOOLCHAIN_FILE=C:\Tools\vcpkg\scripts\buildsystems\vcpkg.cmake
+      -DCMAKE_BUILD_TYPE=Release
+      -DCMAKE_INSTALL_PREFIX=%APPVEYOR_BUILD_FOLDER%/install
+      -DANTLR_EXECUTABLE=%APPVEYOR_BUILD_FOLDER%/antlr.jar
 
-    type CMakeCache.txt
+      type CMakeCache.txt
 
-    cmake --build . --target install
+      cmake --build . --target install
 
-    cd ..
+      cd ..
 
 after_build:
-- cmd: del /f install\opengl32sw.dll
-- cmd: 7z a Nome3-%APPVEYOR_BUILD_VERSION%-win64.zip install
-- cmd: 7z rn Nome3-%APPVEYOR_BUILD_VERSION%-win64.zip install Nome3-%APPVEYOR_BUILD_VERSION%-win64
+  - cmd: del /f install\opengl32sw.dll
+  - cmd: 7z a Nome3-%APPVEYOR_BUILD_VERSION%-win64.zip install
+  - cmd: 7z rn Nome3-%APPVEYOR_BUILD_VERSION%-win64.zip install Nome3-%APPVEYOR_BUILD_VERSION%-win64
 
 artifacts:
-- path: Nome3-%APPVEYOR_BUILD_VERSION%-win64.zip
-  name: Nome
+  - path: Nome3-%APPVEYOR_BUILD_VERSION%-win64.zip
+    name: Nome

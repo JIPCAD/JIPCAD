@@ -13,9 +13,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
-//TODO: enable multiple view ports
-#include <QViewport>
+// TODO: enable multiple view ports
 #include <QRenderSurfaceSelector>
+#include <QViewport>
 
 namespace Nome
 {
@@ -32,7 +32,7 @@ public:
         return SelectedVertices;
     }
 
-     // Randy added on 10/14 for face selection
+    // Randy added on 10/14 for face selection
     [[nodiscard]] const std::vector<std::string>& GetSelectedFaces() const { return SelectedFaces; }
 
     // Randy added on 11/5 for edge selection
@@ -47,7 +47,7 @@ public:
         return RayVertPositions;
     }
 
-    [[nodiscard]] const std::vector<tc::Vector3>&  GetInteractivePoint() const
+    [[nodiscard]] const std::vector<tc::Vector3>& GetInteractivePoint() const
     {
         return RayInteractivePoint;
     }
@@ -70,9 +70,7 @@ public:
 
     void FreeVertexSelection();
 
-
     static Qt3DCore::QEntity* MakeGridEntity(Qt3DCore::QEntity* parent);
-
 
     bool PickVertexBool = false; // Randy added on 11/5/20
     bool BackFaceBool = true;
@@ -90,15 +88,16 @@ protected:
     void mouseMoveEvent(QMouseEvent* e) override;
     void mousePressEvent(QMouseEvent* e) override;
     void mouseReleaseEvent(QMouseEvent* e) override;
-    void wheelEvent(QWheelEvent *ev) override;
-    void keyPressEvent(QKeyEvent *ev) override;
-    bool eventFilter(QObject *obj, QEvent *event) override;
+    void wheelEvent(QWheelEvent* ev) override;
+    void keyPressEvent(QKeyEvent* ev) override;
+    bool eventFilter(QObject* obj, QEvent* event) override;
 
 private:
     QVector2D GetProjectionPoint(QVector2D originalPosition);
     static QVector3D GetCrystalPoint(QVector2D originalPoint);
     void rotateRay(tc::Ray& ray);
     float InputSharpness();
+
 private:
     Qt3DCore::QEntity* Root;
     Qt3DCore::QEntity* Base;
@@ -107,12 +106,14 @@ private:
     std::unordered_map<Scene::CEntity*, CDebugDraw*> EntityDrawData;
     std::vector<std::string> SelectedVertices;
     std::vector<tc::Vector3> RayVertPositions; // Randy added on 2/26 for adding vertices via a Ray
-    std::vector<tc::Vector3> RayInteractivePoint; // Randy added on 2/26 for adding vertices via a Ray
+    std::vector<tc::Vector3>
+        RayInteractivePoint; // Randy added on 2/26 for adding vertices via a Ray
     std::vector<std::string> SelectedFaces; // Randy added on 10/10
     std::vector<std::string> SelectedEdgeVertices; // Randy added on 11/5
     // std::vector<const & std::vector<std::string>> SelectedEdgeVertPositions; // There are no edge
     // "names" right now TODO: Introduce Edge names and handles    bool vertexSelectionEnabled;
     bool vertexSelectionEnabled;
+
 
     // Xinyu added on Oct 8 for rotation
     QMatrix4x4 projection;
@@ -133,17 +134,16 @@ private:
     float objectY;
     float objectZ;
 
-
     // For the animation
-    Qt3DCore::QTransform *sphereTransform;
+    Qt3DCore::QTransform* sphereTransform;
 
-    OrbitTransformController *controller;
-    QPropertyAnimation *sphereRotateTransformAnimation;
-    Qt3DCore::QEntity *torus;
+    OrbitTransformController* controller;
+    QPropertyAnimation* sphereRotateTransformAnimation;
+    Qt3DCore::QEntity* torus;
 
-    Qt3DExtras::QPhongAlphaMaterial *material;
+    Qt3DExtras::QPhongAlphaMaterial* material;
 
-    //TODO: configure viewport
+    // TODO: configure viewport
     std::map<std::string, Qt3DRender::QCameraSelector*> camViewMap;
     std::map<std::string, Qt3DRender::QCamera*> cameraSet;
 

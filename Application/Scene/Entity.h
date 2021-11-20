@@ -109,7 +109,7 @@ public:
     bool IsEntityValid() const { return bIsValid; }
     void SetValid(bool value) { bIsValid = value; }
 
-    virtual void Draw(IDebugDraw*) {};
+    virtual void Draw(IDebugDraw*, bool) {};
     // To identify if the entity is instantiated as mesh, if not, it's rendering info
     virtual bool IsMesh() { return true; }
     // Some entities(generators) allow actual instance objects for each scene tree node

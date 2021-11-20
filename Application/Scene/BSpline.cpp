@@ -137,7 +137,7 @@ void CBSpline::UpdateEntity() {
 
 
 
-void CBSpline::Draw(IDebugDraw* draw)
+void CBSpline::Draw(IDebugDraw* draw, bool toggle_wireframe)
 {
     tc::Color c1 = tc::Color::YELLOW;
     tc::Color c2 = tc::Color::RED;

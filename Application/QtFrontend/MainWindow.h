@@ -77,7 +77,6 @@ private slots:
 
     void on_actionCommitChanges_triggered();
 
-    void on_actionShowFacets_triggered(); // Randy added this
     void on_actionToggleVertexSelection_triggered(); // Randy added this on 11/5
     void on_actionToggleSharpVertexSelection_triggered(); // Randy added this on 6/20/2021
     void on_actionToggleEdgeSelection_triggered(); // Randy added this on 11/5
@@ -85,6 +84,7 @@ private slots:
     void on_actionToggleFaceSelection_triggered(); // Randy added this on 11/5
 
     void on_actionToggleBackFace_triggered();
+    void on_actionToggleWireFrame_triggered();
 
 private:
     // Load nome files into the current window, only call one of them
