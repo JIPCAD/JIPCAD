@@ -42,9 +42,9 @@ build_script:
 
 after_build:
   - cmd: del /f install\opengl32sw.dll
-  - cmd: 7z a Nome3-%APPVEYOR_BUILD_VERSION%-win64.zip install
-  - cmd: 7z rn Nome3-%APPVEYOR_BUILD_VERSION%-win64.zip install Nome3-%APPVEYOR_BUILD_VERSION%-win64
+  - cmd: 7z a JIPCAD-%APPVEYOR_BUILD_VERSION%-win64.zip install
+  - cmd: 7z rn JIPCAD-%APPVEYOR_BUILD_VERSION%-win64.zip install JIPCAD-%APPVEYOR_BUILD_VERSION%-win64
 
 artifacts:
-  - path: Nome3-%APPVEYOR_BUILD_VERSION%-win64.zip
-    name: Nome
+  - path: JIPCAD-%APPVEYOR_BUILD_VERSION%-win64.zip
+    name: JIPCAD
