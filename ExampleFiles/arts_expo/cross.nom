@@ -1,7 +1,9 @@
 bank slider
   set num_vert 30 30 100 1
   set ratio 7 5 8 1
+  list (num_vert, ratio)
 endbank
+
 #Hello world
 funnel topfunnel ({expr $slider.num_vert} 3 {expr $slider.ratio} 30) endfunnel
 group watch
