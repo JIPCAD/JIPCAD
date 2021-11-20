@@ -447,9 +447,6 @@ void CMeshMerger::makeFacePoints(vector<Vertex*>& newVertList)
         newFacePointPosition /= counter;
         newFacePoint->position = newFacePointPosition;
         newFacePoint->ID = newVertList.size();
-        // cout<<"New Face Point: ID: "<< newFacePoint -> ID <<" Position: "<< (newFacePoint ->
-        // position)[0]<<" "<<(newFacePoint -> position)[1]<<" "<<(newFacePoint ->
-        // position)[2]<<endl;
         currFace->facePoint = newFacePoint;
         newVertList.push_back(newFacePoint);
     }

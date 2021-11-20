@@ -452,7 +452,6 @@ void CSourceManager::ReportErros(std::string code)
                 auto cast = shapemap.find(element);
                 std::string endval = cast->second;
                 std::vector<std::string> result;
-                std::cout << "Checking The Syntax of " << element << std::endl;
                 if (element == "circle")
                 {
                     if (j == line.size() - 1)

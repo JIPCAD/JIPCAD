@@ -38,8 +38,7 @@ bank p
     set		rimrad		3		2		9		0.1		# rim circle radius		
     set		rimwid		-0.2		-0.5		1		0.01		# fractional ribbon width outwards		
     set		rimhgt		0.25		-0.5		0.5		0.01		# height of cone 		
-    set		rimseg		12		3		20		1		# number of segments		
-
+    set		rimseg		12		3		20		1		# number of segments
     set		holrad		1		0.2		4		0.1		# hole circle radius		
     set		holseg		12		3		20		1		# number of segments		
     set		holwid		-0.2		-0.5		0.5		0.01		# fractional ribbon width  # not used with "circle		
@@ -47,7 +46,7 @@ bank p
     set		holery		30		-180		180		1		# slant	angle of hole
     set		holetx		0.3		-2		2		0.01		# hole x-position
     set		holetz		0.2		-2		2		0.01		# hole z-position
-  list ( rimrad rimwid rimhgt rimseg   holrad holseg holwid holhgt   holery holetx holetz )
+    list ( rimrad rimwid rimhgt rimseg   holrad holseg holwid holhgt   holery holetx holetz )
 endbank
 
 

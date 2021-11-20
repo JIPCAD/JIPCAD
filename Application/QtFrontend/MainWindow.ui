@@ -168,7 +168,7 @@
 
         <action name="actionExportAsStl">
             <property name="text">
-                <string>&amp;ExportAsStl</string>
+                <string>&amp;ExportAsStl(Merge First)</string>
             </property>
         </action>
         <action name="actionExit">

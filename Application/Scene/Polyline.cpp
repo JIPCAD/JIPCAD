@@ -32,11 +32,14 @@ void CPolyline::UpdateEntity()
     for (size_t i = 0; i < numPoints; i++)
     {
         CVertexInfo* point = Points.GetValue(i, nullptr);
-        auto vertHandle = AddVertex(point->Name, point->Position);
-        if (i == 0)
-            firstVert = vertHandle;
-        vertArray.push_back(vertHandle);
-        positions.push_back(point);
+        if (point)
+        {
+            auto vertHandle = AddVertex(point->Name, point->Position);
+            if (i == 0)
+                firstVert = vertHandle;
+            vertArray.push_back(vertHandle);
+            positions.push_back(point);
+        }
     }
     if (bClosed)
     {
