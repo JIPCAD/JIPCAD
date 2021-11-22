@@ -47,7 +47,7 @@ void CInteractiveMesh::UpdateTransform()
     Transform->setMatrix(qtf);
 }
 
-void CInteractiveMesh::UpdateGeometry(bool showVertBox, bool showBackFace)
+void CInteractiveMesh::UpdateGeometry(bool showVertBox, bool showBackFace, bool showFrontFace)
 {
 
     auto* entity = SceneTreeNode->GetInstanceEntity();
@@ -79,7 +79,7 @@ void CInteractiveMesh::UpdateGeometry(bool showVertBox, bool showBackFace)
             auto DSFaceWithColorVector = meshInstance->GetDSFaceWithColorVector();
 
             CDataStructureMeshToQGeometry DSmeshToQGeometry(meshInstance->GetDSMesh(), InstanceColor, InstanceBackColor,
-                                                            true, showBackFace); // Project SwitchDS
+                                                            true, showBackFace, showFrontFace); // Project SwitchDS
 
             // Geometry = meshToQGeometry.GetGeometry();
             Geometry = DSmeshToQGeometry.GetGeometry();

@@ -90,6 +90,7 @@
                 <property name="title">
                     <string>&amp;Render Config</string>
                 </property>
+                <addaction name="actionToggleFrontFace"/>
                 <addaction name="actionToggleBackFace"/>
                 <addaction name="actionToggleWireFrame"/>
             </widget>
@@ -295,6 +296,15 @@
         <action name="actionTogglePolylineSelection">
             <property name="text">
                 <string>Enable Polyline Selection</string>
+            </property>
+            <property name="checkable">
+                <bool>true</bool>
+            </property>
+        </action>
+
+        <action name="actionToggleFrontFace">
+            <property name="text">
+                <string>No FrontFace</string>
             </property>
             <property name="checkable">
                 <bool>true</bool>

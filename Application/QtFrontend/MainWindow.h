@@ -83,11 +83,13 @@ private slots:
     void on_actionTogglePolylineSelection_triggered(); // Randy added this on 12/22
     void on_actionToggleFaceSelection_triggered(); // Randy added this on 11/5
 
+    void on_actionToggleFrontFace_triggered();
     void on_actionToggleBackFace_triggered();
     void on_actionToggleWireFrame_triggered();
 
 private:
     // Load nome files into the current window, only call one of them
+    void mark_inst_dirty();
     void SetupUI();
     void LoadEmptyNomeFile();
     void LoadNomeFile(const std::string& filePath);

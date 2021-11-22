@@ -34,14 +34,12 @@ public:
 
     void MergeClear();
 
-
     bool offset(DSMesh& _m);
-
 
     // sd_flag can be set to sharp and plain cc to have different types of subdivision
     void Catmull();
 
-    bool subdivide(DSMesh& _m, unsigned int n) const;
+    bool subdivide(DSMesh& _m, unsigned int n);
 
     void setSubLevel(int level) {
         subdivisionLevel = level;
@@ -74,14 +72,11 @@ private:
     void makeFacePoints(std::vector<Vertex*>& newVertList);
     void ccSubdivision(int level);
 
-
     //CMeshImpl MergedMesh;
-
     unsigned int subdivisionLevel = 0;
     bool isSharp = true;
     // true == NOME_OFFSET_DEFAULT, false == NOME_OFFSET_GRID
     bool offsetFlag = true;
 };
-
 }
 

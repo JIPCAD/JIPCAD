@@ -145,7 +145,6 @@ void CMesh::AddFace(const std::string& name, const std::vector<std::string>& fac
     }
     AddFace(name, faceVertices, faceSurfaceIdent, faceBackfaceIdent);
     WireFrames.push_back(faceVertices);
-
 }
 
 void CMesh::AddFace(const std::string& name, const std::vector<Vertex*>& faceDSVerts,

@@ -478,7 +478,6 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                 merger->SetSharp(true);
             else
                 merger->SetSharp(false);
-
         }
         else
         {

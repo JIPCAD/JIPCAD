@@ -15,7 +15,6 @@
 
 namespace Nome
 {
-
 typedef OpenMesh::PolyMesh_ArrayKernelT<> CMeshImpl;
 typedef Mesh DSMesh; // Project SwitchDS
 
@@ -125,7 +124,8 @@ public:
         std::array<float, 3>& InstanceColor,
         std::array<float, 3>& InstanceBackColor,
         bool bGenPointGeometry = false,
-        bool renderBackFace = false);
+        bool renderBackFace = false,
+        bool renderFrontFace = true);
 
     ~CDataStructureMeshToQGeometry();
 

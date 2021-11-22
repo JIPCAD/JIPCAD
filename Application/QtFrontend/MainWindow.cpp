@@ -23,7 +23,6 @@
 #include <QTableWidget> // Steven's Add Point
 namespace Nome
 {
-
 static CFrontendContext AnonFrontendContext;
 CFrontendContext* GFrtCtx = &AnonFrontendContext;
 
@@ -55,6 +54,17 @@ CMainWindow::~CMainWindow()
     GFrtCtx->MainWindow = nullptr;
     UnloadNomeFile();
     delete ui;
+}
+
+void CMainWindow::mark_inst_dirty() {
+    Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
+        auto* entity = node->GetInstanceEntity();
+        if (!entity)
+            entity = node->GetOwner()->GetEntity();
+
+        if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
+            mesh->MarkDirty();
+    });
 }
 
 void CMainWindow::closeEvent(QCloseEvent* event)
@@ -169,16 +179,16 @@ void CMainWindow::on_actionExportAsStl_triggered()
 void CMainWindow::on_actionMerge_triggered()
 {
     // One shot merging, and add a new entity and its corresponding node
-
     Scene->Update();
-    tc::TAutoPtr<Scene::CMeshMerger> merger = new Scene::CMeshMerger(
-        "globalMerge"); // CmeshMerger is basically a CMesh, but with a MergeIn method. Merger will
-                        // contain ALL the merged vertices (from various meshes)
+    // CmeshMerger is basically a CMesh, but with a MergeIn method. Merger will
+    // contain ALL the merged vertices (from various meshes)
+    tc::TAutoPtr<Scene::CMeshMerger> merger = new Scene::CMeshMerger("globalMerge");
 
     Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
-        if (node->GetOwner()->GetName() == "globalMergeNode") // If the node owner is a globalMergeNode, skip as that was a
-                                  // previously merger mesh (from a previous Merge iteration). We only
-                                  // want to merge vertices from our actual (non-merged) meshes.
+        // If the node owner is a globalMergeNode, skip as that was a
+        // previously merger mesh (from a previous Merge iteration). We only
+        // want to merge vertices from our actual (non-merged) meshes.
+        if (node->GetOwner()->GetName() == "globalMergeNode")
             return;
         auto* entity = node->GetInstanceEntity(); // Else, get the instance
         if (!entity) // Check to see if the an entity is instantiable
@@ -186,9 +196,10 @@ void CMainWindow::on_actionMerge_triggered()
             entity = node->GetOwner()->GetEntity(); // If it's not instantiable, get entity instead
         } 
         if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
-        { // set "auto * mesh" to this entity. Call MergeIn to set merger's vertices based on mesh's
-          // vertices. Reminder: an instance identifier is NOT a Mesh, so only real entities get
-          // merged.
+        {
+            // set "auto * mesh" to this entity. Call MergeIn to set merger's vertices based on mesh's
+            // vertices. Reminder: an instance identifier is NOT a Mesh, so only real entities get
+            // merged.
             merger->MergeIn(*mesh);
             entity->isMerged = true;
         }
@@ -385,14 +396,7 @@ void CMainWindow::on_actionToggleRenderRay_triggered()
 {
     Nome3DView->RenderRayBool = !Nome3DView->RenderRayBool;
     // mark all mesh instances dirty. Added on 11/26
-    Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
-        auto* entity = node->GetInstanceEntity();
-        if (!entity)
-            entity = node->GetOwner()->GetEntity();
-
-        if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
-            mesh->MarkDirty();
-    });
+    mark_inst_dirty();
 }
 
 void CMainWindow::on_actionCommitChanges_triggered()
@@ -411,30 +415,24 @@ void CMainWindow::on_actionToggleWireFrame_triggered()
     Nome3DView->WireFrameMode = !(Nome3DView->WireFrameMode);
 
     // mark all mesh instances dirty
-    Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
-        auto* entity = node->GetInstanceEntity();
-        if (!entity)
-            entity = node->GetOwner()->GetEntity();
+    mark_inst_dirty();
+}
 
-        if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
-            mesh->MarkDirty();
-    });
+// Toggle on/off back face
+void CMainWindow::on_actionToggleFrontFace_triggered()
+{
+    Nome3DView->FrontFaceBool = !Nome3DView->FrontFaceBool;
+    // mark all mesh instances dirty.
+    mark_inst_dirty();
 }
 
 
-// Toggle on/off Vertex selection
+// Toggle on/off back face
 void CMainWindow::on_actionToggleBackFace_triggered()
 {
     Nome3DView->BackFaceBool = !Nome3DView->BackFaceBool;
-    // mark all mesh instances dirty. Added on 11/26
-    Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
-        auto* entity = node->GetInstanceEntity();
-        if (!entity)
-            entity = node->GetOwner()->GetEntity();
-
-        if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
-            mesh->MarkDirty();
-    });
+    // mark all mesh instances dirty.
+    mark_inst_dirty();
 }
 
 // Toggle on/off Vertex selection
@@ -443,14 +441,7 @@ void CMainWindow::on_actionToggleVertexSelection_triggered()
     Nome3DView->PickVertexBool = !Nome3DView->PickVertexBool;
     Nome3DView->VertexSharpnessBool = false; // ensure vertex sharpness is not on
     // mark all mesh instances dirty. Added on 11/26
-    Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
-        auto* entity = node->GetInstanceEntity();
-        if (!entity)
-            entity = node->GetOwner()->GetEntity();
-
-        if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
-            mesh->MarkDirty();
-    });
+    mark_inst_dirty();
 }
 
 // Toggle on/off Vertex selection
@@ -459,14 +450,7 @@ void CMainWindow::on_actionToggleSharpVertexSelection_triggered()
     Nome3DView->PickVertexBool = !Nome3DView->PickVertexBool;
     Nome3DView->VertexSharpnessBool = !Nome3DView->VertexSharpnessBool; // ensure vertex sharpness is not on
     // mark all mesh instances dirty. Added on 11/26
-    Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
-        auto* entity = node->GetInstanceEntity();
-        if (!entity)
-            entity = node->GetOwner()->GetEntity();
-
-        if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
-            mesh->MarkDirty();
-    });
+    mark_inst_dirty();
 }
 
 
@@ -487,14 +471,7 @@ void CMainWindow::on_actionToggleFaceSelection_triggered()
 {
     Nome3DView->PickFaceBool = !Nome3DView->PickFaceBool;
     // mark all mesh instances dirty. Added on 11/26
-    Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
-        auto* entity = node->GetInstanceEntity();
-        if (!entity)
-            entity = node->GetOwner()->GetEntity();
-
-        if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
-            mesh->MarkDirty();
-    });
+    mark_inst_dirty();
 }
 
 void CMainWindow::SetupUI()

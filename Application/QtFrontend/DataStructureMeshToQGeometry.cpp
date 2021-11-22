@@ -12,7 +12,7 @@ CDataStructureMeshToQGeometry::CDataStructureMeshToQGeometry(
     const DSMesh& fromMesh,
     std::array<float, 3>& InstanceColor,
     std::array<float, 3>& InstanceBackColor,
-    bool bGenPointGeometry, bool renderBackFace)
+    bool bGenPointGeometry, bool renderBackFace, bool renderFrontFace)
 {
     // Per face normal, thus no shared vertices between faces
     struct CVertexData
@@ -44,15 +44,10 @@ CDataStructureMeshToQGeometry::CDataStructureMeshToQGeometry(
     builder.AddAttribute(&attrNor);
     builder.AddAttribute(&attrfaceColor);
 
-    //CMeshImpl::FaceIter fIter, fEnd = fromMesh.faces_end();
-
-
     for (auto fIt = fromMesh.faceList.begin(); fIt < fromMesh.faceList.end(); fIt++)
     {
         CVertexData v0{}, vPrev{}, vCurr{};
         int faceVCount = 0;
-        //CMeshImpl::FaceVertexIter fvIter = CMeshImpl::FaceVertexIter(fromMesh, *fIter);
-
         std::array<float, 3> potentialFaceColor = InstanceColor;
         std::array<float, 3> backFaceColor = InstanceBackColor;
         std::array<float, 3> SelectedFaceColor {.7, .7, .7};
@@ -132,9 +127,12 @@ CDataStructureMeshToQGeometry::CDataStructureMeshToQGeometry(
                     vCurr.faceColor = SelectedFaceColor;
                 else
                     vCurr.faceColor = potentialFaceColor;
-                v0.SendToBuilder(builder);
-                vPrev.SendToBuilder(builder);
-                vCurr.SendToBuilder(builder);
+                if (renderFrontFace)
+                {
+                    v0.SendToBuilder(builder);
+                    vPrev.SendToBuilder(builder);
+                    vCurr.SendToBuilder(builder);
+                }
                 if (renderBackFace)
                 {
                     auto temp = v0.faceColor;

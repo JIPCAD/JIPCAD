@@ -102,7 +102,7 @@ void CMeshMerger::Catmull()
     {
         return;
     }
-
+    WireFrames.clear();
     // OpenMesh::Subdivider::Uniform::CatmullClarkT<CMeshImpl> catmull; //
     // https://www.graphics.rwth-aachen.de/media/openmesh_static/Documentations/OpenMesh-4.0-Documentation/a00020.html
     // Execute 2 subdivision steps
@@ -120,7 +120,6 @@ void CMeshMerger::Catmull()
         offset(otherMesh);
         std::cout << "Apply offset, may take some time..." << std::endl;
     }
-
     currMesh = otherMesh.newMakeCopy();
     subdivide(currMesh, subdivisionLevel);
     // ccSubdivision(3);
@@ -139,6 +138,7 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance)
     // allows us to traverse the mesh's vertices/faces
     auto meshClass =
         meshInstance.GetSceneTreeNode()->GetOwner()->GetEntity()->GetMetaObject().ClassName();
+
     if (meshClass == "CPolyline")
     {
         std::cout << "found Polyline entity" << std::endl;
@@ -204,10 +204,15 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance)
     }
 
 
-    for (auto edge : otherMesh.edges()) //Iterate through all the faces in the mesh (that is, the non-merger mesh, aka the one you're trying to copy faces from)
+    for (auto edge : otherMesh.edges()) //Iterate through all the edges in the mesh
     {
-
         auto* mergedEdge = MergedMesh.findEdge(vertMap[edge->v0()], vertMap[edge->v1()], false);
+
+        std::vector<Vertex*> MergedEdgeVertices;
+        MergedEdgeVertices.push_back(vertMap[edge->v0()]);
+        MergedEdgeVertices.push_back(vertMap[edge->v1()]);
+        WireFrames.push_back(MergedEdgeVertices);
+
         try
         {
             mergedEdge->sharpness =
@@ -222,7 +227,6 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance)
     MergedMesh.buildBoundary();
     MergedMesh.computeNormals();
     currMesh = MergedMesh.newMakeCopy();
-
 }
 
 
@@ -294,7 +298,7 @@ void CMeshMerger::MergeClear() {
 }
 
 
-bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n) const
+bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
 {
     // Instantiate a Far::TopologyRefiner from the descriptor
     Far::TopologyRefiner * refiner = GetRefiner(_m, isSharp);
@@ -323,27 +327,18 @@ bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n) const
     { // Output OBJ of the highest level refined -----------
         /// to debug
         Far::TopologyLevel const & refLastLevel = refiner->GetLevel(n);
-        for (int i = 0; i <= n; ++i)
-        {
-            printf("level:%d has %d vertices\n", i, refiner->GetLevel(i).GetNumVertices());
-        }
-        printf("total number of %d vertices\n", refiner->GetNumVerticesTotal());
-
         int nverts = refLastLevel.GetNumVertices();
         int nfaces = refLastLevel.GetNumFaces();
 
         // Print vertex positions
         int firstOfLastVerts = refiner->GetNumVerticesTotal() - nverts;
 
-        printf("============ output vertices======\n");
         for (int vert = 0; vert < nverts; ++vert) {
             float const * pos = verts[vert + firstOfLastVerts].GetPosition();
             _m.addVertex(pos[0], pos[1], pos[2]);
-            printf("v %f %f %f\n", pos[0], pos[1], pos[2]);
         }
 
         // Print faces
-        printf("============ output faces======\n");
         for (int face = 0; face < nfaces; ++face) {
             Far::ConstIndexArray fverts = refLastLevel.GetFaceVertices(face);
 
@@ -355,12 +350,7 @@ bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n) const
                 vertices.push_back(_m.vertList.at(fverts[i]));
             }
             _m.addFace(vertices);
-
-            printf("f ");
-            for (int vert=0; vert<fverts.size(); ++vert) {
-                printf("%d ", fverts[vert]+1); // OBJ uses 1-based arrays...
-            }
-            printf("\n");
+            WireFrames.push_back(vertices);
         }
     }
     return true;

@@ -314,7 +314,7 @@ void CNome3DView::PostSceneUpdate()
                             {
                                 // WireFrameMode
                                 mesh->UpdateMaterial();
-                                mesh->UpdateGeometry(PickVertexBool, BackFaceBool);
+                                mesh->UpdateGeometry(PickVertexBool, BackFaceBool, FrontFaceBool);
                                 node->SetEntityUpdated(false);
                             }
                         }

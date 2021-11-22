@@ -46,7 +46,6 @@ private:
     std::vector<int> vertexEdges; // records initial vert count
     std::vector<std::unordered_map<int, OffsetVerticesInfo>> newFaceVertices;
     std::vector<OffsetVerticesInfo> newVertices;
-    // CMeshImpl Mesh; Project AddOffset
     DSMesh currMesh; // Randy added this
     bool flag;
 
