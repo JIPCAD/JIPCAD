@@ -215,7 +215,7 @@ void CSweep::UpdateEntity()
         if (!bMintorsion && i > 0)
         {
             Ns.push_back(Math.getDefaultN(points[i] - points[i - 1]));
-            angles.push_back(twist);
+            angles.push_back(0);
         }
         else if (i > 1)
         {
@@ -235,7 +235,7 @@ void CSweep::UpdateEntity()
                 else
                     N = Math.getPerpendicularVector(Ns[i - 2], prevVector);
 
-                angles.push_back(twist);
+                angles.push_back(0);
                 Ns.push_back(N);
             }
             else
@@ -269,14 +269,14 @@ void CSweep::UpdateEntity()
         if (!bMintorsion)
         {
             Ns.push_back(Math.getDefaultN(prevVector));
-            angles.push_back(twist);
+            angles.push_back(0);
         }
         // Three points in a single line.
         else if (Math.isAtSameLine(prevVector, curVector))
         {
             Vector3 N = Math.getPerpendicularVector(Ns[numPoints - 2], prevVector);
 
-            angles.push_back(twist);
+            angles.push_back(0);
             Ns.push_back(N);
         }
         else
@@ -292,13 +292,13 @@ void CSweep::UpdateEntity()
             angles[0] += Math.calculateRotateAngle(curPerpendicular, Ns[0], prevVector);
         }
     }
-    angles.push_back(twist);
-    angles.push_back(twist);
+    angles.push_back(0);
+    angles.push_back(0);
 
     // get the result rotation angles
     for (size_t i = numPoints - 2; i >= 1; i--) { angles[i - 1] += angles[i]; }
     //add twist to angles
-    for (size_t i = 1; i < numPoints; i++) { angles[i] += (i - 1) * twist; }
+    for (size_t i = 0; i < numPoints; i++) { angles[i] += i * twist; }
     // add rotation
     for (size_t i = 0; i < numPoints; i++)
     {
@@ -340,7 +340,7 @@ void CSweep::UpdateEntity()
         N = Ns[0];
 
         // generate points in a circle perpendicular to the curve at the current point
-        drawCrossSection(crossSections[0], points[0], T, N, angles[0] - twist, 0,
+        drawCrossSection(crossSections[0], points[0], T, N, angles[0], 0,
                          controlScales[0], ++segmentCount, shouldFlip);
     }
     else
@@ -362,7 +362,7 @@ void CSweep::UpdateEntity()
             angle = Math.getAngle(prevVector, curVector);
         }
 
-        drawCrossSection(crossSections[0], points[0], T, N, angles[0] - twist, angle,
+        drawCrossSection(crossSections[0], points[0], T, N, angles[0], angle,
                          controlScales[0], ++segmentCount, shouldFlip);
     }
 
@@ -392,15 +392,14 @@ void CSweep::UpdateEntity()
 
                 // 0 is perfect.
                 drawCrossSection(crossSections[i], points[i], T, N,
-                                 angles[i] - twist, angle, controlScales[i],
+                                 angles[i], angle, controlScales[i],
                                  ++segmentCount, shouldFlip);
             }
             else
             {
                 T = points[i] - points[i - 1];
-                // add twist
                 drawCrossSection(crossSections[i], points[i], T, Ns[i - 1],
-                                 angles[i],0, controlScales[i],
+                                 angles[i], 0, controlScales[i],
                                  ++segmentCount, shouldFlip);
             }
         }
