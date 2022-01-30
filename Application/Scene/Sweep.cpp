@@ -17,6 +17,8 @@ DEFINE_META_OBJECT(CSweep)
     BindNamedArgument(&CSweep::bEndCap, "endcap", 0);
     BindNamedArgument(&CSweep::bReverse, "reverse", 0);
     BindNamedArgument(&CSweep::bMintorsion, "mintorsion", 0);
+    BindNamedArgument(&CSweep::bCutBegin, "cutbegin", 0);
+    BindNamedArgument(&CSweep::bCutEnd, "cutend", 0);
 }
 
 // do cross product with vectorA and vectorB
@@ -175,8 +177,12 @@ void CSweep::UpdateEntity()
     // detect if is a closed polyline
     bool isClosed = pathInfo->IsClosed;
     size_t numPoints = pathInfo->Positions.size();
+    size_t numCutPoints = 0;
+    if (bCutBegin) { numCutPoints++; }
+    if (bCutEnd) { numCutPoints++; }
+
     // if the number of points cannot build a model, exit
-    if ((!isClosed && numPoints < 2) || (isClosed && numPoints < 3) ||
+    if ((!isClosed && numPoints - numCutPoints < 2) || (isClosed && numPoints - numCutPoints < 3) ||
         crossSectionInfo->Positions.size() < 2) { return; }
 
     std::vector<Vector3> points;
@@ -327,6 +333,31 @@ void CSweep::UpdateEntity()
             }
         }
     }
+
+
+
+    // adjust vectors and numPoints accordingly for cutbegin and cutend
+    if (bCutBegin) 
+    { 
+        points.erase(points.begin());
+        Ns.erase(Ns.begin());
+        crossSections.erase(crossSections.begin());
+        angles.erase(angles.begin());
+        controlScales.erase(controlScales.begin());
+        controlReverses.erase(controlReverses.begin());
+    }
+
+    if (bCutEnd) 
+    { 
+        points.pop_back();
+        Ns.pop_back();
+        crossSections.pop_back();
+        angles.pop_back();
+        controlScales.pop_back();
+        controlReverses.pop_back();
+    }
+
+    numPoints = numPoints - numCutPoints;
 
     // the count of drawing segments
     int segmentCount = 0;

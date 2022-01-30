@@ -48,6 +48,8 @@ private:
     bool bEndCap = false;
     bool bMintorsion = false;
     bool bReverse = false;
+    bool bCutBegin = false;
+    bool bCutEnd = false;
 };
 
 }

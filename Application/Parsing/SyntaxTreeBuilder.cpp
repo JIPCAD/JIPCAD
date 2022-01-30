@@ -78,6 +78,18 @@ antlrcpp::Any CFileBuilder::visitArgEndCap(NomParser::ArgEndCapContext* context)
     return arg;
 }
 
+antlrcpp::Any CFileBuilder::visitArgCutBegin(NomParser::ArgCutBeginContext* context)
+{
+
+    AST::ANamedArgument* arg = new AST::ANamedArgument(ConvertToken(context->getStart()));
+    return arg;
+}
+
+antlrcpp::Any CFileBuilder::visitArgCutEnd(NomParser::ArgCutEndContext* context)
+{
+    AST::ANamedArgument* arg = new AST::ANamedArgument(ConvertToken(context->getStart()));
+    return arg;
+}
 
 antlrcpp::Any CFileBuilder::visitArgHidden(NomParser::ArgHiddenContext* context)
 {
