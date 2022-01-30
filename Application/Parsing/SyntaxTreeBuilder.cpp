@@ -570,6 +570,10 @@ antlrcpp::Any CFileBuilder::visitCmdSweep(NomParser::CmdSweepContext* context)
         cmd->AddNamedArgument(visit(arg));
     for (auto* arg : context->argReverse())
         cmd->AddNamedArgument(visit(arg));
+    for (auto* arg : context->argCutBegin())
+        cmd->AddNamedArgument(visit(arg));
+    for (auto* arg : context->argCutEnd())
+        cmd->AddNamedArgument(visit(arg));
 
     return cmd;
 }
