@@ -48,7 +48,7 @@ bool CSourceManager::ParseMainSource()
 
     MainSourceBuffer = CStringBuffer(content);
     PieceTable.emplace_back(OrigBuf, 0, content.length());
-    ReportErros(content);
+    //ReportErros(content);
 
     ANTLRInputStream input(content);
     NomLexer lexer(&input);
@@ -59,15 +59,13 @@ bool CSourceManager::ParseMainSource()
     parser.addErrorListener(&errorListener);
     auto* tree = parser.file();
 
+    if (errorListener.bDidErrorHappen) return false;
+
     CFileBuilder builder(MainSourceBuffer);
     ASTRoot = builder.visitFile(tree);
     ASTContext.SetAstRoot(ASTRoot);
 
-    // std::cout << "====== Debug Print AST ======" << std::endl;
-    //  std::cout << *ASTRoot;
-    //  std::cout << "====== End Debug Print AST ======" << std::endl;
-
-    return !errorListener.bDidErrorHappen;
+    return true;
 }
 std::vector<std::string> CSourceManager::parsecomments(std::vector<std::string> input)
 {
@@ -322,338 +320,338 @@ CSourceManager::ParameterCheck(std::vector<std::string> code, std::string type, 
     }
     return { "0", "true" };
 }
-void CSourceManager::ReportErros(std::string code)
-{
-    size_t pos = 0;
-    std::string delimiter = "\n";
-    std::string token;
-    std::vector<std::vector<std::string>> parsedcode;
-    std::string delimiter2 = " ";
-    std::string token2;
-    std::unordered_map<std::string, std::string> shapemap;
-    std::unordered_map<std::string, std::string> idmap;
-    std::unordered_map<std::string, std::string> referencemap;
-    std::string thepath = CResourceMgr::Get().Find("DebugDrawLine.xml");
-    std::string find = "/Resources/DebugDrawLine.xml";
-    size_t found = thepath.find(find);
-    std::string basepath = thepath.substr(0, found + 1);
-    std::ifstream file(basepath + "Parsing/Nom.g4");
-
-    if (file.is_open())
-    {
-        std::string line;
-        while (std::getline(file, line))
-        {
-            std::vector<std::string> spaces;
-            std::string str = line.c_str();
-            spaces = split(str);
-            for (int i = 0; i < spaces.size(); i++)
-            {
-                std::string keyword;
-                std::string endword;
-                if (spaces[i].find("open=") != std::string::npos)
-                {
-                    int start = 0;
-                    int end = 0;
-                    for (int k = 0; k < spaces[i].size(); k++)
-                    {
-                        if (start == 0 && spaces[i][k] == '\'')
-                        {
-                            start = k;
-                        }
-                        else if (start > 0 && spaces[i][k] == '\'')
-                        {
-                            end = k;
-                        }
-                    }
-                    end--;
-                    keyword = spaces[i].substr(start + 1, end - start);
-                    if (keyword == "set")
-                    {
-                        continue;
-                    }
-                    for (int j = i; j < spaces.size(); j++)
-                    {
-                        if (spaces[j].find("end=") != std::string::npos)
-                        {
-                            int start = 0;
-                            int end = 0;
-                            for (int k = 0; k < spaces[j].size(); k++)
-                            {
-                                if (start == 0 && spaces[j][k] == '\'')
-                                {
-                                    start = k;
-                                }
-                                else if (start > 0 && spaces[j][k] == '\'')
-                                {
-                                    end = k;
-                                }
-                            }
-                            endword = spaces[j].substr(start + 1, end - start - 1);
-                            break;
-                        }
-                        i = j;
-                    }
-                    shapemap[keyword] = endword;
-                }
-            }
-        }
-        file.close();
-    }
-    while ((pos = code.find(delimiter)) != std::string::npos)
-    {
-        token = code.substr(0, pos);
-        std::vector<std::string> spaces;
-        size_t pos2 = 0;
-        while ((pos2 = token.find(delimiter2)) != std::string::npos)
-        {
-            token2 = token.substr(0, pos2);
-            if (token2.find_first_not_of(' ') != std::string::npos)
-            {
-                spaces.push_back(token2);
-            }
-            token.erase(0, pos2 + delimiter2.length());
-        }
-        spaces.push_back(token);
-        parsedcode.push_back(spaces);
-        code.erase(0, pos + delimiter.length());
-    }
-    std::vector<std::string> spaces;
-    size_t pos2 = 0;
-    while ((pos2 = code.find(delimiter2)) != std::string::npos)
-    {
-        token2 = code.substr(0, pos2);
-        if (token2.find_first_not_of(' ') != std::string::npos)
-        {
-            spaces.push_back(token2);
-        }
-        code.erase(0, pos2 + delimiter2.length());
-    }
-    spaces.push_back(code);
-    parsedcode.push_back(spaces);
-    for (int i = 0; i < parsedcode.size(); i++)
-    {
-        std::vector<std::string> line = parsedcode.at(i);
-        for (int j = 0; j < line.size(); j++)
-        {
-            std::string element = RemoveSpecials(line.at(j));
-            if (element.find("#") != std::string::npos && element.at(0) == '#')
-            { // Comment Detection
-                j = line.size();
-                continue;
-            }
-            if (element.empty())
-            {
-                j = line.size();
-                continue;
-            }
-            if (element == "group" || (shapemap.find(element)) != shapemap.end())
-            { // check for keywords here.
-                auto cast = shapemap.find(element);
-                std::string endval = cast->second;
-                std::vector<std::string> result;
-                if (element == "circle")
-                {
-                    if (j == line.size() - 1)
-                    {
-                        result = CheckCircle(parsedcode, idmap, i + 1, 0, shapemap);
-                    }
-                    else
-                    {
-                        result = CheckCircle(parsedcode, idmap, i, j + 1, shapemap);
-                    }
-                    if (result[0] == "error")
-                    {
-                        return;
-                    }
-                    i = std::stoi(result[0]);
-                    j = std::stoi(result[1]);
-                }
-                else if (element == "surface")
-                {
-                    if (j == line.size() - 1)
-                    {
-                        result = CheckSurface(parsedcode, idmap, i + 1, 0, shapemap);
-                    }
-                    else
-                    {
-                        result = CheckSurface(parsedcode, idmap, i, j + 1, shapemap);
-                    }
-                    if (result[0] == "error")
-                    {
-                        return;
-                    }
-                    i = std::stoi(result[0]);
-                    j = std::stoi(result[1]);
-                }
-                else if (element == "instance")
-                {
-                    if (j == line.size() - 1)
-                    {
-                        result = CheckInstance(parsedcode, idmap, i + 1, 0, shapemap);
-                    }
-                    else
-                    {
-                        result = CheckInstance(parsedcode, idmap, i, j + 1, shapemap);
-                    }
-                    if (result[0] == "error")
-                    {
-                        return;
-                    }
-                    i = std::stoi(result[0]);
-                    j = std::stoi(result[1]);
-                }
-                else if (element == "polyline")
-                {
-                    if (j == line.size() - 1)
-                    {
-                        result = CheckPolyline(parsedcode, idmap, i + 1, 0, shapemap);
-                    }
-                    else
-                    {
-                        result = CheckPolyline(parsedcode, idmap, i, j + 1, shapemap);
-                    }
-                    if (result[0] == "error")
-                    {
-                        return;
-                    }
-                    i = std::stoi(result[0]);
-                    j = std::stoi(result[1]);
-                }
-                else if (element == "point")
-                {
-                    if (j == line.size() - 1)
-                    {
-                        result = CheckPoint(parsedcode, idmap, i + 1, 0, shapemap);
-                    }
-                    else
-                    {
-                        result = CheckPoint(parsedcode, idmap, i, j + 1, shapemap);
-                    }
-                    if (result[0] == "error")
-                    {
-                        return;
-                    }
-                    i = std::stoi(result[0]);
-                    j = std::stoi(result[1]);
-                }
-                else if (element == "group")
-                {
-                    if (j == line.size() - 1)
-                    {
-                        result = CheckGroup(parsedcode, idmap, i + 1, 0, shapemap);
-                    }
-                    else
-                    {
-                        result = CheckGroup(parsedcode, idmap, i, j + 1, shapemap);
-                    }
-                    if (result[0] == "error")
-                    {
-                        return;
-                    }
-                    i = std::stoi(result[0]);
-                    j = std::stoi(result[1]);
-                }
-                else if (element == "bank")
-                {
-                    if (j == line.size() - 1)
-                    {
-                        result = CheckBank(parsedcode, referencemap, idmap, i + 1, 0, shapemap);
-                    }
-                    else
-                    {
-                        result = CheckBank(parsedcode, referencemap, idmap, i, j + 1, shapemap);
-                    }
-                    if (result[0] == "error")
-                    {
-                        return;
-                    }
-                    i = std::stoi(result[0]);
-                    j = std::stoi(result[1]);
-                }
-                else if (element == "subdivision")
-                {
-                    if (j == line.size() - 1)
-                    {
-                        result = CheckSubdivision(parsedcode, idmap, i + 1, 0, shapemap);
-                    }
-                    else
-                    {
-                        result = CheckSubdivision(parsedcode, idmap, i, j + 1, shapemap);
-                    }
-                    if (result[0] == "error")
-                    {
-                        return;
-                    }
-                    i = std::stoi(result[0]);
-                    j = std::stoi(result[1]);
-                }
-                else if (element == "mesh")
-                {
-                    if (j == line.size() - 1)
-                    {
-                        result = CheckMesh(parsedcode, idmap, i + 1, 0, shapemap);
-                    }
-                    else
-                    {
-                        result = CheckMesh(parsedcode, idmap, i, j + 1, shapemap);
-                    }
-                    if (result[0] == "error")
-                    {
-                        return;
-                    }
-                    i = std::stoi(result[0]);
-                    j = std::stoi(result[1]);
-                }
-                else if (element == "face")
-                {
-                    if (j == line.size() - 1)
-                    {
-                        result = CheckFace(parsedcode, idmap, i + 1, 0, shapemap);
-                    }
-                    else
-                    {
-                        result = CheckFace(parsedcode, idmap, i, j + 1, shapemap);
-                    }
-                    if (result[0] == "error")
-                    {
-                        return;
-                    }
-                    i = std::stoi(result[0]);
-                    j = std::stoi(result[1]);
-                }
-                else
-                {
-                    if (j == line.size() - 1)
-                    {
-                        result = CheckStatement(parsedcode, idmap, endval, i + 1, 0, shapemap);
-                    }
-                    else
-                    {
-                        result = CheckStatement(parsedcode, idmap, endval, i, j + 1, shapemap);
-                    }
-                    if (result[0] == "error")
-                    {
-                        return;
-                    }
-                    i = std::stoi(result[0]);
-                    j = std::stoi(result[1]);
-                    std::string elemid = result[2];
-                    idmap[elemid] = "TRUE";
-                }
-                line = parsedcode.at(i);
-                element = line.at(j);
-            }
-            else
-            {
-                std::cout << "Error at Line " + std::to_string(i + 1) + ": " + element
-                        + " is not a valid function."
-                          << std::endl;
-                return;
-            }
-        }
-    }
-}
+//void CSourceManager::ReportErros(std::string code)
+//{
+//    size_t pos = 0;
+//    std::string delimiter = "\n";
+//    std::string token;
+//    std::vector<std::vector<std::string>> parsedcode;
+//    std::string delimiter2 = " ";
+//    std::string token2;
+//    std::unordered_map<std::string, std::string> shapemap;
+//    std::unordered_map<std::string, std::string> idmap;
+//    std::unordered_map<std::string, std::string> referencemap;
+//    std::string thepath = CResourceMgr::Get().Find("DebugDrawLine.xml");
+//    std::string find = "/Resources/DebugDrawLine.xml";
+//    size_t found = thepath.find(find);
+//    std::string basepath = thepath.substr(0, found + 1);
+//    std::ifstream file(basepath + "Parsing/Nom.g4");
+//
+//    if (file.is_open())
+//    {
+//        std::string line;
+//        while (std::getline(file, line))
+//        {
+//            std::vector<std::string> spaces;
+//            std::string str = line.c_str();
+//            spaces = split(str);
+//            for (int i = 0; i < spaces.size(); i++)
+//            {
+//                std::string keyword;
+//                std::string endword;
+//                if (spaces[i].find("open=") != std::string::npos)
+//                {
+//                    int start = 0;
+//                    int end = 0;
+//                    for (int k = 0; k < spaces[i].size(); k++)
+//                    {
+//                        if (start == 0 && spaces[i][k] == '\'')
+//                        {
+//                            start = k;
+//                        }
+//                        else if (start > 0 && spaces[i][k] == '\'')
+//                        {
+//                            end = k;
+//                        }
+//                    }
+//                    end--;
+//                    keyword = spaces[i].substr(start + 1, end - start);
+//                    if (keyword == "set")
+//                    {
+//                        continue;
+//                    }
+//                    for (int j = i; j < spaces.size(); j++)
+//                    {
+//                        if (spaces[j].find("end=") != std::string::npos)
+//                        {
+//                            int start = 0;
+//                            int end = 0;
+//                            for (int k = 0; k < spaces[j].size(); k++)
+//                            {
+//                                if (start == 0 && spaces[j][k] == '\'')
+//                                {
+//                                    start = k;
+//                                }
+//                                else if (start > 0 && spaces[j][k] == '\'')
+//                                {
+//                                    end = k;
+//                                }
+//                            }
+//                            endword = spaces[j].substr(start + 1, end - start - 1);
+//                            break;
+//                        }
+//                        i = j;
+//                    }
+//                    shapemap[keyword] = endword;
+//                }
+//            }
+//        }
+//        file.close();
+//    }
+//    while ((pos = code.find(delimiter)) != std::string::npos)
+//    {
+//        token = code.substr(0, pos);
+//        std::vector<std::string> spaces;
+//        size_t pos2 = 0;
+//        while ((pos2 = token.find(delimiter2)) != std::string::npos)
+//        {
+//            token2 = token.substr(0, pos2);
+//            if (token2.find_first_not_of(' ') != std::string::npos)
+//            {
+//                spaces.push_back(token2);
+//            }
+//            token.erase(0, pos2 + delimiter2.length());
+//        }
+//        spaces.push_back(token);
+//        parsedcode.push_back(spaces);
+//        code.erase(0, pos + delimiter.length());
+//    }
+//    std::vector<std::string> spaces;
+//    size_t pos2 = 0;
+//    while ((pos2 = code.find(delimiter2)) != std::string::npos)
+//    {
+//        token2 = code.substr(0, pos2);
+//        if (token2.find_first_not_of(' ') != std::string::npos)
+//        {
+//            spaces.push_back(token2);
+//        }
+//        code.erase(0, pos2 + delimiter2.length());
+//    }
+//    spaces.push_back(code);
+//    parsedcode.push_back(spaces);
+//    for (int i = 0; i < parsedcode.size(); i++)
+//    {
+//        std::vector<std::string> line = parsedcode.at(i);
+//        for (int j = 0; j < line.size(); j++)
+//        {
+//            std::string element = RemoveSpecials(line.at(j));
+//            if (element.find("#") != std::string::npos && element.at(0) == '#')
+//            { // Comment Detection
+//                j = line.size();
+//                continue;
+//            }
+//            if (element.empty())
+//            {
+//                j = line.size();
+//                continue;
+//            }
+//            if (element == "group" || (shapemap.find(element)) != shapemap.end())
+//            { // check for keywords here.
+//                auto cast = shapemap.find(element);
+//                std::string endval = cast->second;
+//                std::vector<std::string> result;
+//                if (element == "circle")
+//                {
+//                    if (j == line.size() - 1)
+//                    {
+//                        result = CheckCircle(parsedcode, idmap, i + 1, 0, shapemap);
+//                    }
+//                    else
+//                    {
+//                        result = CheckCircle(parsedcode, idmap, i, j + 1, shapemap);
+//                    }
+//                    if (result[0] == "error")
+//                    {
+//                        return;
+//                    }
+//                    i = std::stoi(result[0]);
+//                    j = std::stoi(result[1]);
+//                }
+//                else if (element == "surface")
+//                {
+//                    if (j == line.size() - 1)
+//                    {
+//                        result = CheckSurface(parsedcode, idmap, i + 1, 0, shapemap);
+//                    }
+//                    else
+//                    {
+//                        result = CheckSurface(parsedcode, idmap, i, j + 1, shapemap);
+//                    }
+//                    if (result[0] == "error")
+//                    {
+//                        return;
+//                    }
+//                    i = std::stoi(result[0]);
+//                    j = std::stoi(result[1]);
+//                }
+//                else if (element == "instance")
+//                {
+//                    if (j == line.size() - 1)
+//                    {
+//                        result = CheckInstance(parsedcode, idmap, i + 1, 0, shapemap);
+//                    }
+//                    else
+//                    {
+//                        result = CheckInstance(parsedcode, idmap, i, j + 1, shapemap);
+//                    }
+//                    if (result[0] == "error")
+//                    {
+//                        return;
+//                    }
+//                    i = std::stoi(result[0]);
+//                    j = std::stoi(result[1]);
+//                }
+//                else if (element == "polyline")
+//                {
+//                    if (j == line.size() - 1)
+//                    {
+//                        result = CheckPolyline(parsedcode, idmap, i + 1, 0, shapemap);
+//                    }
+//                    else
+//                    {
+//                        result = CheckPolyline(parsedcode, idmap, i, j + 1, shapemap);
+//                    }
+//                    if (result[0] == "error")
+//                    {
+//                        return;
+//                    }
+//                    i = std::stoi(result[0]);
+//                    j = std::stoi(result[1]);
+//                }
+//                else if (element == "point")
+//                {
+//                    if (j == line.size() - 1)
+//                    {
+//                        result = CheckPoint(parsedcode, idmap, i + 1, 0, shapemap);
+//                    }
+//                    else
+//                    {
+//                        result = CheckPoint(parsedcode, idmap, i, j + 1, shapemap);
+//                    }
+//                    if (result[0] == "error")
+//                    {
+//                        return;
+//                    }
+//                    i = std::stoi(result[0]);
+//                    j = std::stoi(result[1]);
+//                }
+//                else if (element == "group")
+//                {
+//                    if (j == line.size() - 1)
+//                    {
+//                        result = CheckGroup(parsedcode, idmap, i + 1, 0, shapemap);
+//                    }
+//                    else
+//                    {
+//                        result = CheckGroup(parsedcode, idmap, i, j + 1, shapemap);
+//                    }
+//                    if (result[0] == "error")
+//                    {
+//                        return;
+//                    }
+//                    i = std::stoi(result[0]);
+//                    j = std::stoi(result[1]);
+//                }
+//                else if (element == "bank")
+//                {
+//                    if (j == line.size() - 1)
+//                    {
+//                        result = CheckBank(parsedcode, referencemap, idmap, i + 1, 0, shapemap);
+//                    }
+//                    else
+//                    {
+//                        result = CheckBank(parsedcode, referencemap, idmap, i, j + 1, shapemap);
+//                    }
+//                    if (result[0] == "error")
+//                    {
+//                        return;
+//                    }
+//                    i = std::stoi(result[0]);
+//                    j = std::stoi(result[1]);
+//                }
+//                else if (element == "subdivision")
+//                {
+//                    if (j == line.size() - 1)
+//                    {
+//                        result = CheckSubdivision(parsedcode, idmap, i + 1, 0, shapemap);
+//                    }
+//                    else
+//                    {
+//                        result = CheckSubdivision(parsedcode, idmap, i, j + 1, shapemap);
+//                    }
+//                    if (result[0] == "error")
+//                    {
+//                        return;
+//                    }
+//                    i = std::stoi(result[0]);
+//                    j = std::stoi(result[1]);
+//                }
+//                else if (element == "mesh")
+//                {
+//                    if (j == line.size() - 1)
+//                    {
+//                        result = CheckMesh(parsedcode, idmap, i + 1, 0, shapemap);
+//                    }
+//                    else
+//                    {
+//                        result = CheckMesh(parsedcode, idmap, i, j + 1, shapemap);
+//                    }
+//                    if (result[0] == "error")
+//                    {
+//                        return;
+//                    }
+//                    i = std::stoi(result[0]);
+//                    j = std::stoi(result[1]);
+//                }
+//                else if (element == "face")
+//                {
+//                    if (j == line.size() - 1)
+//                    {
+//                        result = CheckFace(parsedcode, idmap, i + 1, 0, shapemap);
+//                    }
+//                    else
+//                    {
+//                        result = CheckFace(parsedcode, idmap, i, j + 1, shapemap);
+//                    }
+//                    if (result[0] == "error")
+//                    {
+//                        return;
+//                    }
+//                    i = std::stoi(result[0]);
+//                    j = std::stoi(result[1]);
+//                }
+//                else
+//                {
+//                    if (j == line.size() - 1)
+//                    {
+//                        result = CheckStatement(parsedcode, idmap, endval, i + 1, 0, shapemap);
+//                    }
+//                    else
+//                    {
+//                        result = CheckStatement(parsedcode, idmap, endval, i, j + 1, shapemap);
+//                    }
+//                    if (result[0] == "error")
+//                    {
+//                        return;
+//                    }
+//                    i = std::stoi(result[0]);
+//                    j = std::stoi(result[1]);
+//                    std::string elemid = result[2];
+//                    idmap[elemid] = "TRUE";
+//                }
+//                line = parsedcode.at(i);
+//                element = line.at(j);
+//            }
+//            else
+//            {
+//                std::cout << "Error at Line " + std::to_string(i + 1) + ": " + element
+//                        + " is not a valid function."
+//                          << std::endl;
+//                return;
+//            }
+//        }
+//    }
+//}
 
 std::string CSourceManager::RemoveSpecials(std::string str)
 {
