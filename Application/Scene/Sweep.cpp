@@ -358,7 +358,7 @@ void CSweep::UpdateEntity()
         }
         else
         {
-            Vector3 prevVector = (points[1] - points[0]).Normalized());
+            Vector3 prevVector = (points[1] - points[0]).Normalized();
             Vector3 curVector = (points[0] - points[numPoints - 2]).Normalized();
             float angle;
 
