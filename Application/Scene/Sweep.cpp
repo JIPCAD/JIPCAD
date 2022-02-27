@@ -407,9 +407,10 @@ void CSweep::UpdateEntity()
                         N = prevVector - curVector;
                         T = prevVector + curVector;
                     }
-               
-                    lastB = Math.crossProduct(T, N);
-                    
+                    Vector3 prevVectorLast = (points[i] - points[i - 1]).Normalized();
+                    Vector3 curVectorLast = (points[i - 1] - points[i - 2]).Normalized();
+
+                    lastB = Math.crossProduct(prevVectorLast, curVectorLast);
                     float binormalAngle = Math.getAngle(lastB, firstB);
 
                     // 0 is perfect.
