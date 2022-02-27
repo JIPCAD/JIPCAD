@@ -1212,12 +1212,12 @@ void CNome3DView::wheelEvent(QWheelEvent* ev)
 
         if (!numPixels.isNull())
         {
-            objectZ += numPixels.y() * 0.15;
+            objectZ += numPixels.y() * 0.45;
         }
         else if (!numDegrees.isNull())
         {
-            QPoint numSteps = numDegrees / 15.0;
-            objectZ += numSteps.y() * 0.15;
+            QPoint numSteps = numDegrees / 45.0;
+            objectZ += numSteps.y() * 0.45;
         }
         if (objectZ > 30)
             objectZ = 30;
