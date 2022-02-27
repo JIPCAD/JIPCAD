@@ -341,6 +341,9 @@ void CSweep::UpdateEntity()
     Vector3 T, N;
     bool shouldFlip = controlReverses[0];
 
+    Vector3 firstB = Vecctor3(0,0,0));
+    Vector3 lastB = Vector3(0,0,0);
+
     // first point
     if (!bCutBegin)
     {
@@ -373,7 +376,7 @@ void CSweep::UpdateEntity()
             }
             //
             //
-            Vector3 firstB = Math.crossProduct(T,N);
+            firstB = Math.crossProduct(T, N);
 
             drawCrossSection(crossSections[0], points[0], T, N, angles[0], angle, controlScales[0],
                              ++segmentCount, shouldFlip);
@@ -409,7 +412,7 @@ void CSweep::UpdateEntity()
                     //
                     //
 
-                    Vector3 lastB = Math.crossProduct(T,N);
+                    lastB = Math.crossProduct(T, N);
                     float binormalAngle = Math.getAngle(firstB, lastB);
 
                     // 0 is perfect.
