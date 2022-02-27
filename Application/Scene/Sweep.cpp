@@ -408,7 +408,7 @@ void CSweep::UpdateEntity()
                         T = prevVector + curVector;
                     }
 
-                    lastB = Math.crossProduct(curVector, Ns[i - 1]);
+                    lastB = Math.crossProduct(curVector, Ns[i]);
                     float binormalAngle = Math.getAngle(lastB, firstB);
 
                     // 0 is perfect.
