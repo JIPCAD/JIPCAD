@@ -412,7 +412,7 @@ void CSweep::UpdateEntity()
                     float binormalAngle = Math.getAngle(lastB, firstB);
 
                     // 0 is perfect.
-                    drawCrossSection(crossSections[i], points[i], T, N, angles[i] + binormalAngle, angle,
+                    drawCrossSection(crossSections[i], points[i], T, N, angles[i] - binormalAngle, angle,
                                      controlScales[i], ++segmentCount, shouldFlip);
                 }
                 else
