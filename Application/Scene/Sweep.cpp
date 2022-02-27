@@ -205,7 +205,7 @@ void CSweep::UpdateEntity()
     float twist =  Twist.GetValue(0) * (float)tc::M_PI / 180 / (numPoints - 1);
     float azimuth = Azimuth.GetValue(0) * (float)tc::M_PI / 180;
     // join symmetry
-    int join = Join.GetValue(0);
+    float join = Join.GetValue(0);
 
     for (size_t i = 0; i < crossSectionInfo->Positions.size(); i++)
     {
