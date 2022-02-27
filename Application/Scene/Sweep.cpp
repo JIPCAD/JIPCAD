@@ -19,6 +19,7 @@ DEFINE_META_OBJECT(CSweep)
     BindNamedArgument(&CSweep::bMintorsion, "mintorsion", 0);
     BindNamedArgument(&CSweep::bCutBegin, "cutbegin", 0);
     BindNamedArgument(&CSweep::bCutEnd, "cutend", 0);
+    BindNamedArgument(&CSweep::Join, "join", 0);
 }
 
 // do cross product with vectorA and vectorB
@@ -341,8 +342,6 @@ void CSweep::UpdateEntity()
     Vector3 T, N;
     bool shouldFlip = controlReverses[0];
 
-    Vector3 firstB = Vector3(0,0,0);
-    Vector3 lastB = Vector3(0,0,0);
 
     // first point
     if (!bCutBegin)
@@ -374,7 +373,6 @@ void CSweep::UpdateEntity()
                 T = prevVector + curVector;
                 angle = Math.getAngle(prevVector, curVector);
             }
-            firstB = Math.crossProduct(prevVector, Ns[0]);
 
             drawCrossSection(crossSections[0], points[0], T, N, angles[0], angle, controlScales[0],
                              ++segmentCount, shouldFlip);
@@ -407,9 +405,6 @@ void CSweep::UpdateEntity()
                         N = prevVector - curVector;
                         T = prevVector + curVector;
                     }
-
-                    lastB = Math.crossProduct(curVector, Ns[i]);
-                    float binormalAngle = Math.getAngle(lastB, firstB);
 
                     // 0 is perfect.
                     drawCrossSection(crossSections[i], points[i], T, N, angles[0], angle,
@@ -445,6 +440,11 @@ void CSweep::UpdateEntity()
                              controlScales[i], ++segmentCount, shouldFlip);
         }
     }
+
+
+
+
+
 
     // Create faces
     for (int k = 0; k < segmentCount - 1; k++)
