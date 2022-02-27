@@ -201,9 +201,11 @@ void CSweep::UpdateEntity()
 
     std::string name = GetName();
 
-    // Polygon's sides;
+    // Polygon's sides
     float twist =  Twist.GetValue(0) * (float)tc::M_PI / 180 / (numPoints - 1);
     float azimuth = Azimuth.GetValue(0) * (float)tc::M_PI / 180;
+    // join symmetry
+    int join = Join.GetValue(0);
 
     for (size_t i = 0; i < crossSectionInfo->Positions.size(); i++)
     {
@@ -305,7 +307,7 @@ void CSweep::UpdateEntity()
     // get the result rotation angles
     for (size_t i = numPoints - 2; i >= 1; i--) { angles[i - 1] += angles[i]; }
     //add join twist to angles
-    for (size_t i = 0; i < numPoints; i++) { angles[i] += 1/Join * i * (angles[0] - angles[numPoints - 1]) / (numPoints - 1); }
+    for (size_t i = 0; i < numPoints; i++) { angles[i] += 1 / static_cast<float> (Join+1) * i * (angles[0] - angles[numPoints - 1]) / (numPoints - 1); }
     //add twist to angles
     for (size_t i = 0; i < numPoints; i++) { angles[i] += i * twist; }
     // add rotation
