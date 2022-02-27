@@ -341,7 +341,7 @@ void CSweep::UpdateEntity()
     Vector3 T, N;
     bool shouldFlip = controlReverses[0];
 
-    Vector3 firstB = Vecctor3(0,0,0));
+    Vector3 firstB = Vector3(0,0,0);
     Vector3 lastB = Vector3(0,0,0);
 
     // first point
