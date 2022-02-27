@@ -371,6 +371,9 @@ void CSweep::UpdateEntity()
                 T = prevVector + curVector;
                 angle = Math.getAngle(prevVector, curVector);
             }
+            //
+            //
+            float firstB = Math.crossProduct(T,N);
 
             drawCrossSection(crossSections[0], points[0], T, N, angles[0], angle, controlScales[0],
                              ++segmentCount, shouldFlip);
@@ -403,9 +406,14 @@ void CSweep::UpdateEntity()
                         N = prevVector - curVector;
                         T = prevVector + curVector;
                     }
+                    //
+                    //
+
+                    float lastB = Math.crossProduct(T,N);
+                    float binormalAngle = Math.getAngle(firstB, lastB);
 
                     // 0 is perfect.
-                    drawCrossSection(crossSections[i], points[i], T, N, angles[i], angle,
+                    drawCrossSection(crossSections[i], points[i], T, N, angles[i] + binormalAngle, angle,
                                      controlScales[i], ++segmentCount, shouldFlip);
                 }
                 else
