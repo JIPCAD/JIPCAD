@@ -25,6 +25,7 @@ class CSweep : public CMesh
     DEFINE_INPUT(CSweepPathInfo *, CrossSection) { MarkDirty(); }
     DEFINE_INPUT(float, Azimuth) { MarkDirty(); }
     DEFINE_INPUT(float, Twist) { MarkDirty(); }
+    DEFINE_INPUT(int, Join) { MarkDirty(); }
 
 public:
     DECLARE_META_CLASS(CSweep, CMesh);
@@ -50,6 +51,7 @@ private:
     bool bReverse = false;
     bool bCutBegin = false;
     bool bCutEnd = false;
+
 };
 
 }

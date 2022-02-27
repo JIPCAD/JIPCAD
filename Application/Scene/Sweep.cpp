@@ -304,6 +304,8 @@ void CSweep::UpdateEntity()
 
     // get the result rotation angles
     for (size_t i = numPoints - 2; i >= 1; i--) { angles[i - 1] += angles[i]; }
+    //add join twist to angles
+    for (size_t i = 0; i < numPoints; i++) { angles[i] += join * i * (angles[0] - angles[numPoints - 1]) / (numPoints - 1); }
     //add twist to angles
     for (size_t i = 0; i < numPoints; i++) { angles[i] += i * twist; }
     // add rotation
@@ -440,11 +442,6 @@ void CSweep::UpdateEntity()
                              controlScales[i], ++segmentCount, shouldFlip);
         }
     }
-
-
-
-
-
 
     // Create faces
     for (int k = 0; k < segmentCount - 1; k++)

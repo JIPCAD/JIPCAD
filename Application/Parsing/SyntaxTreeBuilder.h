@@ -21,6 +21,7 @@ public:
     antlrcpp::Any visitArgEndCap(NomParser::ArgEndCapContext* context) override;
     antlrcpp::Any visitArgCutBegin(NomParser::ArgCutBeginContext* context) override;
     antlrcpp::Any visitArgCutEnd(NomParser::ArgCutEndContext* context) override;
+    antlrcpp::Any visitArgJoin(NomParser::ArgJoinContext* context) override;
     antlrcpp::Any visitArgHidden(NomParser::ArgHiddenContext* context) override;
     antlrcpp::Any visitArgSurface(NomParser::ArgSurfaceContext* context) override;
     antlrcpp::Any visitArgBackface(NomParser::ArgBackfaceContext* context) override;
