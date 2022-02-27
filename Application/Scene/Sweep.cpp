@@ -374,7 +374,7 @@ void CSweep::UpdateEntity()
                 T = prevVector + curVector;
                 angle = Math.getAngle(prevVector, curVector);
             }
-            firstB = Math.crossProduct(prev, Ns[0]);
+            firstB = Math.crossProduct(prevVector, Ns[0]);
 
             drawCrossSection(crossSections[0], points[0], T, N, angles[0], angle, controlScales[0],
                              ++segmentCount, shouldFlip);
