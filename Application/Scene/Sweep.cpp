@@ -374,7 +374,7 @@ void CSweep::UpdateEntity()
                 T = prevVector + curVector;
                 angle = Math.getAngle(prevVector, curVector);
             }
-            firstB = Math.crossProduct(T, N);
+            firstB = Math.crossProduct(points[1] - points[0], Ns[0]);
 
             drawCrossSection(crossSections[0], points[0], T, N, angles[0], angle, controlScales[0],
                              ++segmentCount, shouldFlip);
@@ -407,10 +407,8 @@ void CSweep::UpdateEntity()
                         N = prevVector - curVector;
                         T = prevVector + curVector;
                     }
-                    Vector3 prevVectorLast = (points[i] - points[i - 1]).Normalized();
-                    Vector3 curVectorLast = (points[i - 1] - points[i - 2]).Normalized();
 
-                    lastB = Math.crossProduct(prevVectorLast, curVectorLast);
+                    lastB = Math.crossProduct(curVector, Ns[i - 1]);
                     float binormalAngle = Math.getAngle(lastB, firstB);
 
                     // 0 is perfect.
