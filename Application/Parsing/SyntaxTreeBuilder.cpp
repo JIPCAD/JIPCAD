@@ -95,6 +95,7 @@ antlrcpp::Any CFileBuilder::visitArgJoin(NomParser::ArgJoinContext* context)
 {
 
     AST::ANamedArgument* arg = new AST::ANamedArgument(ConvertToken(context->getStart()));
+    arg->AddChild(visit(context->expression()).as<AST::AExpr*>());
     return arg;
 }
 
