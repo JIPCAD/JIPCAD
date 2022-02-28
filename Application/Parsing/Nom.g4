@@ -78,7 +78,7 @@ argBotCap : 'botcap' ;
 argTopCap : 'topcap' ;
 argCutBegin : 'cutbegin' ;
 argCutEnd : 'cutend' ;
-argJoin : 'join' expression;
+argJoin : 'join' expression ;
 command
    : open='point' name=ident LPAREN expression expression expression RPAREN end='endpoint' # CmdExprListOne
    | open='polyline' name=ident idList argClosed* end='endpolyline' # CmdIdListOne
