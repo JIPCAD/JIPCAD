@@ -207,9 +207,7 @@ void CSweep::UpdateEntity()
     // join symmetry
     float join = Join.GetValue(0);
     float joined = 0;
-    if (join > 0) {
-        joined = 1;
-    }
+    if (join > 0) { joined = 1;}
 
 
     for (size_t i = 0; i < crossSectionInfo->Positions.size(); i++)
