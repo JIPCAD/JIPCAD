@@ -206,6 +206,11 @@ void CSweep::UpdateEntity()
     float azimuth = Azimuth.GetValue(0) * (float)tc::M_PI / 180;
     // join symmetry
     float join = Join.GetValue(0);
+    float joined = 0;
+    if (join > 0) {
+        joined = 1;
+    }
+
 
     for (size_t i = 0; i < crossSectionInfo->Positions.size(); i++)
     {
@@ -305,9 +310,10 @@ void CSweep::UpdateEntity()
     angles.push_back(0);
 
     // get the result rotation angles
+
     for (size_t i = numPoints - 2; i >= 1; i--) { angles[i - 1] += angles[i]; }
     //add join twist to angles
-    for (size_t i = 0; i < numPoints; i++) { angles[i] += 1 / (join + 1) * i * (angles[0] - angles[numPoints - 1]) / (numPoints - 1); }
+    for (size_t i = 0; i < numPoints; i++) { angles[i] += joined * 1 / (join + 1) * i * (angles[0] - angles[numPoints - 1]) / (numPoints - 1); }
     //add twist to angles
     for (size_t i = 0; i < numPoints; i++) { angles[i] += i * twist; }
     // add rotation
