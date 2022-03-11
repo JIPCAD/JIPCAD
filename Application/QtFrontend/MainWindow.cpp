@@ -539,7 +539,7 @@ void CMainWindow::LoadEmptyNomeFile()
 
 void CMainWindow::LoadNomeFile(const std::string& filePath)
 {
-    system("CLS");
+    //system("CLS");
     printf("Loading file: %s \n\n", filePath.c_str());
     setWindowFilePath(QString::fromStdString(filePath));
     bIsBlankFile = false;
