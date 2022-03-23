@@ -27,7 +27,9 @@ void CSweepMorphVisualizer::UpdateEntity()
     // Check that the path and index are valid
     CSweepPathInfo *pathInfo = sweepInfo->Path.GetValue(nullptr);
     if (pathInfo == nullptr) { return; }
-    if (index < 0 || index >= pathInfo->Positions.size()) { return; }
+    int numCutBegin = sweepInfo->bCutBegin ? 1 : 0;
+    int numCutEnd = sweepInfo->bCutEnd ? 1 : 0;
+    if (index < numCutBegin || index >= pathInfo->Positions.size() - numCutEnd) { return; }
 
     std::vector<Vertex*> vertices;
     // Control scale at index'th point

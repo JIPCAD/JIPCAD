@@ -45,6 +45,8 @@ public:
     std::vector<std::vector<Vector3>> crossSections;
     // Scales from control points
     std::vector<Vector3> controlScales;
+    bool bCutBegin = false;
+    bool bCutEnd = false;
 
 private:
     void drawCrossSection(std::vector<Vector3> crossSection, Vector3 center,
@@ -57,8 +59,6 @@ private:
     bool bEndCap = false;
     bool bMintorsion = false;
     bool bReverse = false;
-    bool bCutBegin = false;
-    bool bCutEnd = false;
 };
 
 }
