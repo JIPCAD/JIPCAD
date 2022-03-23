@@ -16,6 +16,8 @@ DEFINE_META_OBJECT(CSweepMorph)
     BindNamedArgument(&CSweepMorph::bEndCap, "endcap", 0);
     BindNamedArgument(&CSweepMorph::bReverse, "reverse", 0);
     BindNamedArgument(&CSweepMorph::bMintorsion, "mintorsion", 0);
+    BindNamedArgument(&CSweepMorph::bCutBegin, "cutbegin", 0);
+    BindNamedArgument(&CSweepMorph::bCutEnd, "cutend", 0);
 }
 
 void CSweepMorph::MarkDirty()
