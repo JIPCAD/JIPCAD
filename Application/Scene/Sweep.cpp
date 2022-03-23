@@ -17,6 +17,8 @@ DEFINE_META_OBJECT(CSweep)
     BindNamedArgument(&CSweep::bEndCap, "endcap", 0);
     BindNamedArgument(&CSweep::bReverse, "reverse", 0);
     BindNamedArgument(&CSweep::bMintorsion, "mintorsion", 0);
+    BindNamedArgument(&CSweep::bCutBegin, "cutbegin", 0);
+    BindNamedArgument(&CSweep::bCutEnd, "cutend", 0);
 }
 
 // do cross product with vectorA and vectorB
@@ -181,8 +183,12 @@ void CSweep::UpdateEntity()
     // detect if is a closed polyline
     bool isClosed = pathInfo->IsClosed;
     size_t numPoints = pathInfo->Positions.size();
+    size_t numCutPoints = 0;
+    if (bCutBegin) { numCutPoints++; }
+    if (bCutEnd) { numCutPoints++; }
+
     // if the number of points cannot build a model, exit
-    if ((!isClosed && numPoints < 2) || (isClosed && numPoints < 3) ||
+    if ((!isClosed && numPoints - numCutPoints < 2) || (isClosed && numPoints - numCutPoints < 3) ||
         crossSectionInfo->Positions.size() < 2) { return; }
 
     std::vector<Vector3> points;
@@ -334,42 +340,47 @@ void CSweep::UpdateEntity()
         }
     }
 
+
     // the count of drawing segments
     int segmentCount = 0;
 
     Vector3 T, N;
     bool shouldFlip = controlReverses[0];
 
-    if (!isClosed)
+    // first point
+    if (!bCutBegin)
     {
-        T = points[1] - points[0];
-        N = Ns[0];
-
-        // generate points in a circle perpendicular to the curve at the current point
-        drawCrossSection(crossSections[0], points[0], T, N, angles[0], 0,
-                         controlScales[0], ++segmentCount, shouldFlip);
-    }
-    else
-    {
-        Vector3 prevVector = (points[1] - points[0]).Normalized();
-        Vector3 curVector = (points[0] - points[numPoints - 2]).Normalized();
-        float angle;
-
-        if (Math.isAtSameLine(prevVector, curVector))
+        if (!isClosed)
         {
-            N = Ns[Ns.size() - 1];
-            T = curVector;
-            angle = 0;
+            T = points[1] - points[0];
+            N = Ns[0];
+
+            // generate points in a circle perpendicular to the curve at the current point
+            drawCrossSection(crossSections[0], points[0], T, N, angles[0], 0, controlScales[0],
+                             ++segmentCount, shouldFlip);
         }
         else
         {
-            N = prevVector - curVector;
-            T = prevVector + curVector;
-            angle = Math.getAngle(prevVector, curVector);
-        }
+            Vector3 prevVector = (points[1] - points[0]).Normalized();
+            Vector3 curVector = (points[0] - points[numPoints - 2]).Normalized();
+            float angle;
 
-        drawCrossSection(crossSections[0], points[0], T, N, angles[0], angle,
-                         controlScales[0], ++segmentCount, shouldFlip);
+            if (Math.isAtSameLine(prevVector, curVector))
+            {
+                N = Ns[Ns.size() - 1];
+                T = curVector;
+                angle = 0;
+            }
+            else
+            {
+                N = prevVector - curVector;
+                T = prevVector + curVector;
+                angle = Math.getAngle(prevVector, curVector);
+            }
+
+            drawCrossSection(crossSections[0], points[0], T, N, angles[0], angle, controlScales[0],
+                             ++segmentCount, shouldFlip);
+        }
     }
 
     for (size_t i = 1; i < numPoints; i++)
@@ -378,35 +389,37 @@ void CSweep::UpdateEntity()
         // last point
         if (i == numPoints - 1)
         {
-            if (isClosed)
+            if (!bCutEnd)
             {
-                Vector3 prevVector = (points[1] - points[0]).Normalized();
-                Vector3 curVector = (points[0] - points[numPoints - 2]).Normalized();
-                float angle = (Math.isAtSameLine(prevVector, curVector)) ?
-                    0 : Math.getAngle(prevVector, curVector);
-
-                if (Math.isAtSameLine(prevVector, curVector))
+                if (isClosed)
                 {
-                    N = Ns[i - 1];
-                    T = curVector;
+                    Vector3 prevVector = (points[1] - points[0]).Normalized();
+                    Vector3 curVector = (points[0] - points[numPoints - 2]).Normalized();
+                    float angle = (Math.isAtSameLine(prevVector, curVector))
+                        ? 0
+                        : Math.getAngle(prevVector, curVector);
+
+                    if (Math.isAtSameLine(prevVector, curVector))
+                    {
+                        N = Ns[i - 1];
+                        T = curVector;
+                    }
+                    else
+                    {
+                        N = prevVector - curVector;
+                        T = prevVector + curVector;
+                    }
+
+                    // 0 is perfect.
+                    drawCrossSection(crossSections[i], points[i], T, N, angles[i], angle,
+                                     controlScales[i], ++segmentCount, shouldFlip);
                 }
                 else
                 {
-                    N = prevVector - curVector;
-                    T = prevVector + curVector;
+                    T = points[i] - points[i - 1];
+                    drawCrossSection(crossSections[i], points[i], T, Ns[i - 1], angles[i], 0,
+                                     controlScales[i], ++segmentCount, shouldFlip);
                 }
-
-                // 0 is perfect.
-                drawCrossSection(crossSections[i], points[i], T, N,
-                                 angles[i], angle, controlScales[i],
-                                 ++segmentCount, shouldFlip);
-            }
-            else
-            {
-                T = points[i] - points[i - 1];
-                drawCrossSection(crossSections[i], points[i], T, Ns[i - 1],
-                                 angles[i], 0, controlScales[i],
-                                 ++segmentCount, shouldFlip);
             }
         }
         else
@@ -478,7 +491,7 @@ void CSweep::UpdateEntity()
     if (bBeginCap) { drawCap(crossSections[0], 1, segmentCount++ - 1, true); }
     if (bEndCap)
     {
-        int index = crossSections.size() - 1;
+        int index = crossSections.size() - numCutPoints - 1;
         drawCap(crossSections[index], index + 1, segmentCount++ - 1, false);
     }
 
