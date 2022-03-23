@@ -43,7 +43,7 @@ argBeginCap : 'begincap' ;
 argEndCap : 'endcap' ;
 argSurface : 'surface' ident ;
 argBackface : 'backface' ident ;
-argCross : 'cross' ident ;
+argCross : 'crosssection' ident ;
 argSegs : 'segs' expression ;
 argOrder : 'order' expression ;
 argLightType : 'type' ident;
@@ -76,11 +76,14 @@ argFuncY : 'funcY' ident ;
 argFuncZ : 'funcZ' ident ;
 argBotCap : 'botcap' ;
 argTopCap : 'topcap' ;
+argMorphIndex : 'index' expression ;
 
 command
    : open='point' name=ident LPAREN expression expression expression RPAREN end='endpoint' # CmdExprListOne
    | open='polyline' name=ident idList argClosed* end='endpolyline' # CmdIdListOne
    | open='sweep' name=ident 'crosssection' crossId=ident (argBeginCap | argEndCap | argReverse)* 'endcrosssection' 'path' pathId=ident (argAzimuth | argTwist | argMintorsion)* 'endpath'  end='endsweep' # CmdSweep
+   | open='sweepmorph' name=ident (argBeginCap | argEndCap | argReverse)* 'path' pathId=ident (argAzimuth | argTwist | argMintorsion)* 'endpath'  end='endsweepmorph' # CmdSweepMorph
+   | open='morphvisualizer' name=ident 'sweep' morphId=ident argMorphIndex end='endmorphvisualizer' # CmdMorphVisualizer
    | open='face' name=ident idList argSurface* argBackface* end='endface' # CmdIdListOne
    | open='controlpoint' name=ident argPoint (argControlScale | argControlRotate | argCross | argReverse)* end='endcontrolpoint' # CmdNamedArgs
    | open='object' name=ident idList end='endobject' # CmdIdListOne

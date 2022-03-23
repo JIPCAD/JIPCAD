@@ -8,9 +8,12 @@ namespace Nome::Scene
 struct CSweepControlPointInfo : public CVertexInfo
 {
     Vector3 Scale = Vector3(1.0f, 1.0f, 1.0f);
-    Vector3 Rotate;
-    bool Reverse;
-    CSweepPathInfo *CrossSection;
+    Vector3 Rotate = Vector3(0.0f, 0.0f, 0.0f);
+    bool Reverse = false;
+    CSweepPathInfo *CrossSection = nullptr;
+
+    CSweepControlPointInfo() = default;
+    CSweepControlPointInfo(CVertexInfo *vertex) : CVertexInfo(vertex) {}
 };
 
 class CSweepControlPoint : public CEntity {

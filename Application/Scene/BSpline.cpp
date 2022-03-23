@@ -111,6 +111,54 @@ void CBSpline::UpdateEntity() {
         SampleRotates.emplace_back(retRotate.x, retRotate.y, retRotate.z);
     }
 
+    // Specify cross-section information
+    std::vector<CSweepPathInfo*> SampleCrossSections(n + 1, NULL);
+    int numCurves = howMany - order + 1;
+    float segsPerCurve = n / numCurves;
+
+    // Assign the closest cross section preceding the sweep to the first sample point
+    for (float i = 0; i < float(order) / 2 - 1; i++)
+    {
+        // If a cross-section at a control point exists, assign it to the first sample point
+        if (dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr)) &&
+            dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr))->CrossSection)
+        {
+            SampleCrossSections[0] =
+                dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr))->CrossSection;
+        }
+    }
+    // Assign the closest cross section succeeding the sweep to the last sample point
+    for (float i = howMany - 1; i > (howMany - 1) - (float(order) / 2 - 1); i--)
+    {
+        // If a cross-section at a control point exists, assign it to the last sample point
+        if (dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr)) &&
+            dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr))->CrossSection)
+        {
+            SampleCrossSections[n - 1] =
+                dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr))->CrossSection;
+        }
+    }
+    // Assign cross-sections to the sample points at the beginning/end points of the piecewise curves
+    for (float steps = 0; steps <= n; steps += segsPerCurve)
+    {
+        // Control point i
+        int i = steps / segsPerCurve + 1;
+
+        // Sample point t
+        int t = round(steps);
+        if (order % 2 == 1) { t = round(steps + segsPerCurve / 2); }
+
+        if (t > n) { break; }
+
+        // If a cross-section at a control point exists, assign it to the correct sample point
+        if (dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr)) &&
+            dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr))->CrossSection)
+        {
+            SampleCrossSections[t] =
+                dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr))->CrossSection;
+        }
+    }
+
     std::vector<Vertex*> handles;
     handles.reserve(n + 1);
 
@@ -122,6 +170,7 @@ void CBSpline::UpdateEntity() {
         point->Position = SamplePositions[i];
         point->Scale = SampleScales[i];
         point->Rotate = SampleRotates[i];
+        point->CrossSection = SampleCrossSections[i];
         positions.push_back(point);
     }
 

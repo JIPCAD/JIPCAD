@@ -78,6 +78,12 @@ antlrcpp::Any CFileBuilder::visitArgEndCap(NomParser::ArgEndCapContext* context)
     return arg;
 }
 
+antlrcpp::Any CFileBuilder::visitArgMorphIndex(NomParser::ArgMorphIndexContext* context)
+{
+    AST::ANamedArgument* arg = new AST::ANamedArgument(ConvertToken(context->getStart()));
+    arg->AddChild(visit(context->expression()).as<AST::AExpr*>());
+    return arg;
+}
 
 antlrcpp::Any CFileBuilder::visitArgHidden(NomParser::ArgHiddenContext* context)
 {
@@ -558,6 +564,40 @@ antlrcpp::Any CFileBuilder::visitCmdSweep(NomParser::CmdSweepContext* context)
         cmd->AddNamedArgument(visit(arg));
     for (auto* arg : context->argReverse())
         cmd->AddNamedArgument(visit(arg));
+
+    return cmd;
+}
+
+antlrcpp::Any CFileBuilder::visitCmdSweepMorph(NomParser::CmdSweepMorphContext* context)
+{
+    auto* cmd = new AST::ACommand(ConvertToken(context->open), ConvertToken(context->end));
+    cmd->PushPositionalArgument(visit(context->name));
+
+    for (auto* arg : context->argBeginCap())
+        cmd->AddNamedArgument(visit(arg));
+    for (auto* arg : context->argEndCap())
+        cmd->AddNamedArgument(visit(arg));
+
+    cmd->PushPositionalArgument(visit(context->pathId));
+    for (auto* arg : context->argAzimuth())
+        cmd->AddNamedArgument(visit(arg));
+    for (auto* arg : context->argTwist())
+        cmd->AddNamedArgument(visit(arg));
+    for (auto* arg : context->argMintorsion())
+        cmd->AddNamedArgument(visit(arg));
+    for (auto* arg : context->argReverse())
+        cmd->AddNamedArgument(visit(arg));
+
+    return cmd;
+}
+
+antlrcpp::Any CFileBuilder::visitCmdMorphVisualizer(NomParser::CmdMorphVisualizerContext* context)
+{
+    auto* cmd = new AST::ACommand(ConvertToken(context->open), ConvertToken(context->end));
+    cmd->PushPositionalArgument(visit(context->name));
+
+    cmd->PushPositionalArgument(visit(context->morphId));
+    cmd->AddNamedArgument(visit(context->argMorphIndex()));
 
     return cmd;
 }

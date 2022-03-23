@@ -14,7 +14,7 @@ DEFINE_META_OBJECT(CSweepControlPoint)
     BindNamedArgument(&CSweepControlPoint::RotateY, "rotate", 0, 1);
     BindNamedArgument(&CSweepControlPoint::RotateZ, "rotate", 0, 2);
     BindNamedArgument(&CSweepControlPoint::Position, "point", 0);
-    BindNamedArgument(&CSweepControlPoint::CrossSection, "cross", 0);
+    BindNamedArgument(&CSweepControlPoint::CrossSection, "crosssection", 0);
     BindNamedArgument(&CSweepControlPoint::bReverse, "reverse", 0);
 }
 

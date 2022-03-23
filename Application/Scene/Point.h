@@ -12,7 +12,9 @@ struct CVertexInfo
     float sharpness = 0;
     virtual ~CVertexInfo() = default;
 
-
+    CVertexInfo() = default;
+    CVertexInfo(CVertexInfo *vertex)
+        : Position(vertex->Position), Name(vertex->Name), sharpness(vertex->sharpness) {}
 };
 
 class CPoint : public CEntity

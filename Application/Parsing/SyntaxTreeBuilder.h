@@ -37,6 +37,7 @@ public:
     antlrcpp::Any visitArgTwist(NomParser::ArgTwistContext* context) override;
     antlrcpp::Any visitArgReverse(NomParser::ArgReverseContext* context) override;
     antlrcpp::Any visitArgMintorsion(NomParser::ArgMintorsionContext* context) override;
+    antlrcpp::Any visitArgMorphIndex(NomParser::ArgMorphIndexContext* context) override;
     antlrcpp::Any visitArgSdLevel(NomParser::ArgSdLevelContext* ctx) override;
     antlrcpp::Any visitArgSdFlag(NomParser::ArgSdFlagContext* ctx) override;
     antlrcpp::Any visitArgLightType(NomParser::ArgLightTypeContext* ctx) override;
@@ -67,6 +68,8 @@ public:
     antlrcpp::Any visitCmdBank(NomParser::CmdBankContext* context) override;
     antlrcpp::Any visitCmdDelete(NomParser::CmdDeleteContext* context) override;
     antlrcpp::Any visitCmdSweep(NomParser::CmdSweepContext* context) override;
+    antlrcpp::Any visitCmdSweepMorph(NomParser::CmdSweepMorphContext* context) override;
+    antlrcpp::Any visitCmdMorphVisualizer(NomParser::CmdMorphVisualizerContext* context) override;
     antlrcpp::Any visitCmdCamera(NomParser::CmdCameraContext* context) override;
     antlrcpp::Any visitCmdWindow(NomParser::CmdWindowContext* context) override;
     antlrcpp::Any visitCmdViewport(NomParser::CmdViewportContext* context) override;

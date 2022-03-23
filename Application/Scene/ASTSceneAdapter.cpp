@@ -25,6 +25,8 @@
 #include "Surface.h"
 #include "Backface.h"
 #include "Sweep.h"
+#include "SweepMorph.h"
+#include "SweepMorphVisualizer.h"
 #include "SweepControlPoint.h"
 #include "Torus.h"
 #include "TorusKnot.h"
@@ -52,6 +54,8 @@ static const std::unordered_map<std::string, ECommandKind> CommandInfoMap = {
     { "point", ECommandKind::Entity },
     { "polyline", ECommandKind::Entity },
     { "sweep", ECommandKind::Entity },
+    { "sweepmorph", ECommandKind::Entity },
+    { "morphvisualizer", ECommandKind::Entity },
     { "controlpoint", ECommandKind::Entity },
     { "face", ECommandKind::Entity },
     { "object", ECommandKind::Entity },
@@ -135,6 +139,10 @@ CEntity* CASTSceneAdapter::MakeEntity(const std::string& cmd, const std::string&
         return new CSphere(name);
     else if (cmd == "sweep")
         return new CSweep(name);
+    else if (cmd == "sweepmorph")
+        return new CSweepMorph(name);
+    else if (cmd == "morphvisualizer")
+        return new CSweepMorphVisualizer(name);
     else if (cmd == "controlpoint")
         return new CSweepControlPoint(name);
     else if (cmd == "surface")

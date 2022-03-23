@@ -26,6 +26,8 @@ class CSweep : public CMesh
     DEFINE_INPUT(float, Azimuth) { MarkDirty(); }
     DEFINE_INPUT(float, Twist) { MarkDirty(); }
 
+    DEFINE_OUTPUT_WITH_UPDATE(CSweep *, Sweep) { UpdateEntity(); }
+
 public:
     DECLARE_META_CLASS(CSweep, CMesh);
 
@@ -35,7 +37,14 @@ public:
     {
     }
 
+    void MarkDirty() override;
     void UpdateEntity() override;
+
+    // Information to be used in SweepMorphVisualizer
+    // Cross sections
+    std::vector<std::vector<Vector3>> crossSections;
+    // Scales from control points
+    std::vector<Vector3> controlScales;
 
 private:
     void drawCrossSection(std::vector<Vector3> crossSection, Vector3 center,

@@ -9,6 +9,7 @@
 #include "TorusKnot.h" // Randy added
 #include "Polyline.h" // Randy added on 12/29
 #include "SweepControlPoint.h"
+#include "SweepMorph.h"
 #include <Flow/FlowNode.h>
 #include <Flow/FlowNodeArray.h>
 #include <Parsing/SyntaxTree.h>
@@ -342,6 +343,35 @@ bool TBindingTranslator<Flow::TInput<CSweepPathInfo*>>::FromASTToValue(
         throw AST::CSemanticError(tc::StringPrintf("Entity %s is not a sweep path", identVal.c_str()),
                                   ident);
     }
+    return true;
+}
+
+template <>
+bool TBindingTranslator<Flow::TInput<CSweep*>>::FromASTToValue(
+    AST::ACommand* command, const CCommandSubpart& subpart, Flow::TInput<CSweep *>& value)
+{
+    auto* ident = subpart.GetExpr(command);
+    if (ident == NULL) { return false; }
+
+    if (ident->GetKind() != AST::EKind::Ident)
+        throw AST::CSemanticError("TInput<CSweep*> is not matched with a Ident", command);
+
+    std::string identVal = static_cast<const AST::AIdent*>(ident)->ToString();
+    TAutoPtr<CEntity> entity = GEnv.Scene->FindEntity(identVal);
+    if (!entity)
+    {
+        throw AST::CSemanticError(tc::StringPrintf("Cannot find entity %s", identVal.c_str()),
+                                  ident);
+    }
+    CSweep* sweep = dynamic_cast<CSweep*>(entity.Get());
+    if (!sweep)
+    {
+        throw AST::CSemanticError(tc::StringPrintf("Entity %s is not a sweep", identVal.c_str()),
+                                  ident);
+    }
+
+    value.Connect(sweep->Sweep);
+
     return true;
 }
 

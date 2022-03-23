@@ -50,7 +50,7 @@ macro(config_playground2 target)
     target_link_libraries(${target} PRIVATE ${OPENSUBDIV_LIBRARIES})
 endmacro()
 
-add_executable(Nome3 ${PG2_SOURCES} Scene/Backface.h Scene/Backface.cpp)
+add_executable(Nome3 ${PG2_SOURCES} Scene/Backface.h Scene/Backface.cpp Scene/SweepMorph.cpp Scene/SweepMorph.h Scene/SweepMorphVisualizer.cpp Scene/SweepMorphVisualizer.h)
 # Xinyu add on Oct 8 for mac users
 
 if (APPLE)

@@ -159,6 +159,12 @@ void CSweep::drawCap(std::vector<Vector3> crossSection, int crossIndex,
     AddFace("f" + std::to_string(faceIndex), capFace);
 }
 
+void CSweep::MarkDirty()
+{
+    Super::MarkDirty();
+    Sweep.MarkDirty();
+}
+
 void CSweep::UpdateEntity()
 {
     if (!IsDirty())
@@ -186,9 +192,9 @@ void CSweep::UpdateEntity()
     std::vector<float> angles;
     // Cross sections
     std::vector<Vector3> crossSection;
-    std::vector<std::vector<Vector3>> crossSections;
+    crossSections.clear();
     // Scales from control points
-    std::vector<Vector3> controlScales;
+    controlScales.clear();
     // Reverse from control points
     std::vector<bool> controlReverses;
 
@@ -465,7 +471,10 @@ void CSweep::UpdateEntity()
 
     // Create caps
     // Cannot create caps when the path is closed
-    if (isClosed) { return; }
+    if (isClosed) {
+        Sweep.UpdateValue(this);
+        return;
+    }
     if (bBeginCap) { drawCap(crossSections[0], 1, segmentCount++ - 1, true); }
     if (bEndCap)
     {
@@ -473,6 +482,7 @@ void CSweep::UpdateEntity()
         drawCap(crossSections[index], index + 1, segmentCount++ - 1, false);
     }
 
+    Sweep.UpdateValue(this);
 }
 
 }

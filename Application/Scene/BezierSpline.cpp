@@ -1,5 +1,6 @@
 #include "BezierSpline.h"
 #include "SweepControlPoint.h"
+#include "math.h"
 
 namespace Nome::Scene
 {
@@ -87,6 +88,23 @@ void CBezierSpline::UpdateEntity()
     std::vector<Vector3> scales = Math.CalcValues(Math.Scales);
     std::vector<Vector3> rotates = Math.CalcValues(Math.Rotates);
     assert(positions.size() == n + 1);
+    assert(scales.size() == n + 1);
+    assert(rotates.size() == n + 1);
+
+    // Specify cross-section information
+    std::vector<CSweepPathInfo*> crosssections(n + 1, NULL);
+    for (size_t i = 0; i < cpn; i++)
+    {
+        // if a cross-section at a control point exists, assign it to the correct sample point
+        if (dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr)) &&
+            dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr))->CrossSection)
+        {
+            // t is the value at which the control point has greatest influence
+            int t = round(n * float(i) / (cpn - 1));
+
+            crosssections[t] = dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr))->CrossSection;
+        }
+    }
 
     std::vector<Vertex*> handles;
     std::vector<CVertexInfo *> Positions;
@@ -97,6 +115,7 @@ void CBezierSpline::UpdateEntity()
         point->Position = positions[i];
         point->Scale = scales[i];
         point->Rotate = rotates[i];
+        point->CrossSection = crosssections[i];
         Positions.push_back(point);
     }
 
