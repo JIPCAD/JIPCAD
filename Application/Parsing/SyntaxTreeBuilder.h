@@ -98,6 +98,7 @@ public:
 
 
 private:
+    AST::CToken* ConvertToken(NomParser::IdentContext* ident);
     AST::CToken* ConvertToken(antlr4::Token* token);
     AST::CToken* ConvertToken(antlr4::tree::TerminalNode* token);
 
