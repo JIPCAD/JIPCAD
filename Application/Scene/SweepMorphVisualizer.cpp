@@ -27,17 +27,17 @@ void CSweepMorphVisualizer::UpdateEntity()
     // Check that the path and index are valid
     CSweepPathInfo *pathInfo = sweepInfo->Path.GetValue(nullptr);
     if (pathInfo == nullptr) { return; }
-    int numCutBegin = sweepInfo->bCutBegin ? 1 : 0;
-    int numCutEnd = sweepInfo->bCutEnd ? 1 : 0;
+    int numCutBegin = sweepInfo->get_bCutBegin() ? 1 : 0;
+    int numCutEnd = sweepInfo->get_bCutEnd() ? 1 : 0;
     if (index < numCutBegin || index >= pathInfo->Positions.size() - numCutEnd) { return; }
 
     std::vector<Vertex*> vertices;
     // Control scale at index'th point
-    Vector3 controlScale = sweepInfo->controlScales[index];
+    Vector3 controlScale = sweepInfo->get_controlScales()[index];
 
-    for (size_t i = 0; i < sweepInfo->crossSections[index].size(); i++)
+    for (size_t i = 0; i < sweepInfo->get_crossSections()[index].size(); i++)
     {
-        Vector3 point = sweepInfo->crossSections[index][i];
+        Vector3 point = sweepInfo->get_crossSections()[index][i];
         float x = point.x * controlScale.x;
         float y = point.y * controlScale.y;
 

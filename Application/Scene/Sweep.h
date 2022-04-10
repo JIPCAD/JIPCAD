@@ -41,12 +41,10 @@ public:
     void UpdateEntity() override;
 
     // Information to be used in SweepMorphVisualizer
-    // Cross sections
-    std::vector<std::vector<Vector3>> crossSections;
-    // Scales from control points
-    std::vector<Vector3> controlScales;
-    bool bCutBegin = false;
-    bool bCutEnd = false;
+    std::vector<std::vector<Vector3>> get_crossSections();
+    std::vector<Vector3> get_controlScales();
+    bool get_bCutBegin();
+    bool get_bCutEnd();
 
 private:
     void drawCrossSection(std::vector<Vector3> crossSection, Vector3 center,
@@ -55,10 +53,14 @@ private:
     void drawCap(std::vector<Vector3> crossSection, int crossIndex,
                  int faceIndex, bool shouldFlip);
     CSweepMath Math = CSweepMath();
+    std::vector<std::vector<Vector3>> crossSections;
+    std::vector<Vector3> controlScales;
     bool bBeginCap = false;
     bool bEndCap = false;
     bool bMintorsion = false;
     bool bReverse = false;
+    bool bCutBegin = false;
+    bool bCutEnd = false;
 };
 
 }

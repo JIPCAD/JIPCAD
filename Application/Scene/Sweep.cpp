@@ -161,6 +161,25 @@ void CSweep::drawCap(std::vector<Vector3> crossSection, int crossIndex,
     AddFace("f" + std::to_string(faceIndex), capFace);
 }
 
+std::vector<std::vector<Vector3>> CSweep::get_crossSections()
+{
+    return crossSections;
+}
+
+std::vector<Vector3> CSweep::get_controlScales()
+{
+    return controlScales;
+}
+bool CSweep::get_bCutBegin()
+{
+    return bCutBegin;
+}
+
+bool CSweep::get_bCutEnd()
+{
+    return bCutEnd;
+}
+
 void CSweep::MarkDirty()
 {
     Super::MarkDirty();
