@@ -1,9 +1,11 @@
-# Development has moved to https://github.com/JIPCAD/NOME3 as of 5/14/2021.
+# Development has moved to https://github.com/JIPCAD/JIPCAD as of 5/14/2021.
 
-# NOME3
-NOME is a CAD tool that allows users to generate complex shapes via scripts and interactively modify them in the GUI. 
+# JIPCAD
+JIPCAD (previously known as NOME) is a CAD tool that allows users to generate complex shapes via scripts and interactively modify them in the GUI. 
 
-We have introduced multiple unique language constructs, such as "group" and "mesh", that allow users to piece together shapes and reuse them easily. We also have implemented advanced shape generators (e.g. torus knot) that may make certain modelling tasks easier. Please view our full language reference here: https://docs.google.com/document/d/15c1VIXpGUxIL3daA3pI-iYW4K5ebd3snveDFWXRpa70/edit?ts=5fcb20ad#
+We have introduced multiple unique language constructs, such as "group" and "mesh", that allow users to piece together shapes and reuse them easily. We also have implemented advanced shape generators (e.g. torus knot) that may make certain modelling tasks easier. Please view our website for more information and for the language reference: https://jipcad.github.io/
+
+Previous language reference document: https://docs.google.com/document/d/15c1VIXpGUxIL3daA3pI-iYW4K5ebd3snveDFWXRpa70/edit?ts=5fcb20ad#
 
 # Compilation Preparation
 
