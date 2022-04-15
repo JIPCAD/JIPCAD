@@ -29,26 +29,7 @@ class CSourceManager
 
         void InsertText(size_t globalOffset, const std::string& text);
         void RemoveText(size_t globalOffset, size_t length);
-        void ReportErros(std::string code);
-        bool balancedbracket(std::string expr);
-        void PrintLocationError(std::vector<std::string> line, int splitpoint);
-        std::vector<std::string> split(std::string const &input);
-        std::vector<std::string> parsecomments(std::vector<std::string> input);
-        std::vector<std::string> ParameterCheck(std::vector<std::string> code, std::string type, int numparams, std::unordered_map<std::string, std::string> idmap, std::unordered_map<std::string, std::string> referencemap);
-        std::vector<std::string> CheckStatement(std::vector<std::vector<std::string>> parsedcode, std::unordered_map<std::string, std::string> idmap, std::string endstatement, int i, int j, std::unordered_map<std::string, std::string> shapemap);
-        std::vector<std::string> CheckInstance(std::vector<std::vector<std::string>> parsedcode, std::unordered_map<std::string, std::string> idmap, int i, int j, std::unordered_map<std::string, std::string> shapemap);
-        std::vector<std::string> CheckGroup(std::vector<std::vector<std::string>> parsedcode, std::unordered_map<std::string, std::string>& idmap, int i, int j, std::unordered_map<std::string, std::string> shapemap);
-        std::vector<std::string> CheckBank(std::vector<std::vector<std::string>> parsedcode, std::unordered_map<std::string, std::string> &referencemap, std::unordered_map<std::string, std::string> &idmap, int i, int j, std::unordered_map<std::string, std::string> shapemap);
-        std::vector<std::string> CheckSubdivision(std::vector<std::vector<std::string>> parsedcode, std::unordered_map<std::string, std::string> &idmap, int i, int j, std::unordered_map<std::string, std::string> shapemap);
-        std::vector<std::string> CheckMesh(std::vector<std::vector<std::string>> parsedcode, std::unordered_map<std::string, std::string> &idmap, int i, int j, std::unordered_map<std::string, std::string> shapemap);
-        std::vector<std::string> CheckCircle(std::vector<std::vector<std::string>> parsedcode, std::unordered_map<std::string, std::string> &idmap, int i, int j, std::unordered_map<std::string, std::string> shapemap);
-        std::vector<std::string> CheckPoint(std::vector<std::vector<std::string>> parsedcode, std::unordered_map<std::string, std::string> &idmap, int i, int j, std::unordered_map<std::string, std::string> shapemap);
-        std::vector<std::string> CheckFace(std::vector<std::vector<std::string>> parsedcode, std::unordered_map<std::string, std::string> &idmap, int i, int j, std::unordered_map<std::string, std::string> shapemap);
-        std::vector<std::string> CheckPolyline(std::vector<std::vector<std::string>> parsedcode, std::unordered_map<std::string, std::string> &idmap, int i, int j, std::unordered_map<std::string, std::string> shapemap);
-        std::vector<std::string> CheckSurface(std::vector<std::vector<std::string>> parsedcode, std::unordered_map<std::string, std::string> &idmap, int i, int j, std::unordered_map<std::string, std::string> shapemap);
-        std::string RemoveSpecials(std::string str);
-        bool isNumber(std::string s);
-        int checkcount(std::string str, char letter);
+
         [[nodiscard]] std::string CollectText() const;
         [[nodiscard]] std::pair<size_t, size_t> FindPieceIndexAndOffset(size_t globalOffset) const;
 

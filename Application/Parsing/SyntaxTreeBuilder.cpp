@@ -636,7 +636,7 @@ antlrcpp::Any CFileBuilder::visitCall(NomParser::CallContext* context)
     auto* argList =
         new AST::AVector(ConvertToken(context->LPAREN()), ConvertToken(context->RPAREN()));
     argList->AddChild(visit(context->expression()).as<AST::AExpr*>());
-    auto* funcToken = ConvertToken(context->ident()->IDENT());
+    auto* funcToken = ConvertToken(context->ident());
     return static_cast<AST::AExpr*>(new AST::ACall(funcToken, argList));
 }
 
@@ -677,7 +677,7 @@ antlrcpp::Any CFileBuilder::visitScientific(NomParser::ScientificContext* contex
 
 antlrcpp::Any CFileBuilder::visitIdent(NomParser::IdentContext* context)
 {
-    return static_cast<AST::AExpr*>(new AST::AIdent(ConvertToken(context->IDENT())));
+    return static_cast<AST::AExpr*>(new AST::AIdent(ConvertToken(context)));
 }
 
 // Randy added this on 12/1 to include files
@@ -691,6 +691,12 @@ antlrcpp::Any CFileBuilder::visitCmdInclude(NomParser::CmdIncludeContext* contex
 antlrcpp::Any CFileBuilder::visitAtomExpr(NomParser::AtomExprContext* context)
 {
     return visit(context->atom());
+}
+
+AST::CToken* CFileBuilder::ConvertToken(NomParser::IdentContext* ident)
+{
+    auto node = (antlr4::tree::TerminalNode*)ident->id()->children[0]; // do we need to check that this exists and is the only child?
+    return ConvertToken(node);
 }
 
 AST::CToken* CFileBuilder::ConvertToken(antlr4::Token* token)

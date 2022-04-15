@@ -539,25 +539,44 @@ void CMainWindow::LoadEmptyNomeFile()
 
 void CMainWindow::LoadNomeFile(const std::string& filePath)
 {
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)                     \
+    || defined(__WINDOWS__) || defined(_WIN64)
+    system("CLS");
+#else
+    system("clear");
+#endif
+ 
+    printf("Loading file: %s \n\n", filePath.c_str());
     setWindowFilePath(QString::fromStdString(filePath));
     bIsBlankFile = false;
     SourceMgr = std::make_shared<CSourceManager>(filePath);
 
     bool parseSuccess = SourceMgr->ParseMainSource(); // AST is created with this function call. If
                                                       // want to add #include, must combine files
-    if (!parseSuccess)
-    {
-        auto resp = QMessageBox::question(
-            this, "Parser error",
-            "The file did not completely successfully parse, do you still want "
-            "to continue anyway? (See console for more information!)");
+    //if (!parseSuccess)
+    //{
+    //    auto resp = QMessageBox::question(
+    //        this, "Parser error",
+    //        "The file did not completely successfully parse, do you still want "
+    //        "to continue anyway? (See console for more information!)");
 
-        if (resp != QMessageBox::Yes)
-        {
-            // Does not continue
-            LoadEmptyNomeFile();
-            return;
-        }
+    //    if (resp != QMessageBox::Yes)
+    //    {
+    //        // Does not continue
+    //        LoadEmptyNomeFile();
+    //        return;
+    //    }
+    //}
+    if (!parseSuccess) 
+    {
+        //TODO: Focus on console!
+        printf("\nLoading file failed! Errors printed above. \n");
+        LoadEmptyNomeFile();
+        return;
+    }
+    else
+    {
+        printf("File parsed successfully. \n");
     }
     Scene = new Scene::CScene();
     Scene::GEnv.Scene = Scene.Get();
@@ -583,7 +602,7 @@ void CMainWindow::LoadNomeFile(const std::string& filePath)
     }
     catch (const AST::CSemanticError& e)
     {
-        printf("Error encountered during scene generation:\n%s\n", e.what());
+        /*printf("Error encountered during scene generation:\n%s\n", e.what());
         auto resp = QMessageBox::question(
             this, "Scene Generation Error",
             "See console for details. Do you want to keep what you already have?");
@@ -591,8 +610,13 @@ void CMainWindow::LoadNomeFile(const std::string& filePath)
         {
             LoadEmptyNomeFile();
             return;
-        }
+        }*/
+
+        printf("Error encountered during scene generation:\n%s\n", e.what());
+        LoadEmptyNomeFile();
+        return;
     }
+    printf("Scene loaded successfully. \n");
     PostloadSetup();
 }
 
