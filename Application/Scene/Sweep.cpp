@@ -503,7 +503,7 @@ void CSweep::UpdateEntity()
 
     // Create caps
     // Cannot create caps when the path is closed
-    if (isClosed) {
+    if (isClosed || crossSectionInfo->Positions.size() < 3) {
         Sweep.UpdateValue(this);
         return;
     }
