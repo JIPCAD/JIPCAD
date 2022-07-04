@@ -55,6 +55,7 @@ private:
     CSweepMath Math = CSweepMath();
     std::vector<std::vector<Vector3>> crossSections;
     std::vector<Vector3> controlScales;
+    std::vector<Vertex *> singlePointLineStrip; // used to display sweep with single point cross-section
     bool bBeginCap = false;
     bool bEndCap = false;
     bool bMintorsion = false;

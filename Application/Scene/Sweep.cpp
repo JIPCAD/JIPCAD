@@ -130,10 +130,15 @@ void CSweep::drawCrossSection(std::vector<Vector3> crossSection, Vector3 center,
         Vector3 curVertex = center + transformVector;
 
 
-        AddVertex(
+        Vertex *vert = AddVertex(
             "v" + std::to_string(index) + "_" + std::to_string(i),
             { curVertex.x, curVertex.y, curVertex.z }
         );
+
+        if (crossSection.size() == 1)
+        {
+            singlePointLineStrip.push_back(vert);
+        }
     }
 }
 
@@ -208,7 +213,7 @@ void CSweep::UpdateEntity()
 
     // if the number of points cannot build a model, exit
     if ((!isClosed && numPoints - numCutPoints < 2) || (isClosed && numPoints - numCutPoints < 3) ||
-        crossSectionInfo->Positions.size() < 2) { return; }
+        crossSectionInfo->Positions.size() < 1) { return; }
 
     std::vector<Vector3> points;
     // Normal vectors of each paths
@@ -222,6 +227,8 @@ void CSweep::UpdateEntity()
     controlScales.clear();
     // Reverse from control points
     std::vector<bool> controlReverses;
+    // Path for single-point crossSection
+    singlePointLineStrip.clear();
 
     std::string name = GetName();
 
@@ -464,56 +471,66 @@ void CSweep::UpdateEntity()
         }
     }
 
-    // Create faces
-    for (int k = 0; k < segmentCount - 1; k++)
+    // Create line curve for single-point crossSection
+    if (crossSectionInfo->Positions.size() == 1)
     {
-        for (size_t i = 0; i < crossSection.size() - 1; i++)
+        AddLineStrip("sweep", singlePointLineStrip);
+    }
+    else
+    {
+        // Create faces
+        for (int k = 0; k < segmentCount - 1; k++)
         {
-            // CCW winding
-            // v1_next v1_i
-            // v2_next v2_i
-            std::vector<std::string> upperFace;
-
-            int next_k = (k + 1) % segmentCount;
-            int next = (i + 1) % crossSection.size();
-            if (k == 0 && isClosed && shouldFlip)
+            for (size_t i = 0; i < crossSection.size() - 1; i++)
             {
-                int reverse_i = (2 * crossSection.size() - i - 1) % crossSection.size();
-                int reverse_next = (2 *crossSection.size() - next - 1) % crossSection.size();
-                upperFace = {
-                    "v" + std::to_string(next_k + 1) + "_" + std::to_string(reverse_i),
-                    "v" + std::to_string(next_k + 1) + "_" + std::to_string(reverse_next),
-                    "v" + std::to_string(k + 1) + "_" + std::to_string(next),
-                    "v" + std::to_string(k + 1) + "_" + std::to_string(i),
-                };
+                // CCW winding
+                // v1_next v1_i
+                // v2_next v2_i
+                std::vector<std::string> upperFace;
 
+                int next_k = (k + 1) % segmentCount;
+                int next = (i + 1) % crossSection.size();
+                if (k == 0 && isClosed && shouldFlip)
+                {
+                    int reverse_i = (2 * crossSection.size() - i - 1) % crossSection.size();
+                    int reverse_next = (2 * crossSection.size() - next - 1) % crossSection.size();
+                    upperFace = {
+                        "v" + std::to_string(next_k + 1) + "_" + std::to_string(reverse_i),
+                        "v" + std::to_string(next_k + 1) + "_" + std::to_string(reverse_next),
+                        "v" + std::to_string(k + 1) + "_" + std::to_string(next),
+                        "v" + std::to_string(k + 1) + "_" + std::to_string(i),
+                    };
+                }
+                else
+                {
+                    upperFace = {
+                        "v" + std::to_string(next_k + 1) + "_" + std::to_string(next),
+                        "v" + std::to_string(next_k + 1) + "_" + std::to_string(i),
+                        "v" + std::to_string(k + 1) + "_" + std::to_string(i),
+                        "v" + std::to_string(k + 1) + "_" + std::to_string(next),
+                    };
+                }
+                AddFace("f" + std::to_string(k) + "_" + std::to_string(i), upperFace);
             }
-            else
-            {
-                upperFace = {
-                    "v" + std::to_string(next_k + 1) + "_" + std::to_string(next),
-                    "v" + std::to_string(next_k + 1) + "_" + std::to_string(i),
-                    "v" + std::to_string(k + 1) + "_" + std::to_string(i),
-                    "v" + std::to_string(k + 1) + "_" + std::to_string(next),
-                };
-            }
-            AddFace("f" + std::to_string(k) + "_" + std::to_string(i), upperFace);
+        }
+
+        // Create caps
+        // Cannot create caps when the path is closed
+        if (isClosed || crossSectionInfo->Positions.size() < 3)
+        {
+            Sweep.UpdateValue(this);
+            return;
+        }
+        if (bBeginCap)
+        {
+            drawCap(crossSections[0], 1, segmentCount++ - 1, true);
+        }
+        if (bEndCap)
+        {
+            int index = crossSections.size() - numCutPoints - 1;
+            drawCap(crossSections[index], index + 1, segmentCount++ - 1, false);
         }
     }
-
-    // Create caps
-    // Cannot create caps when the path is closed
-    if (isClosed || crossSectionInfo->Positions.size() < 3) {
-        Sweep.UpdateValue(this);
-        return;
-    }
-    if (bBeginCap) { drawCap(crossSections[0], 1, segmentCount++ - 1, true); }
-    if (bEndCap)
-    {
-        int index = crossSections.size() - numCutPoints - 1;
-        drawCap(crossSections[index], index + 1, segmentCount++ - 1, false);
-    }
-
     Sweep.UpdateValue(this);
 }
 
