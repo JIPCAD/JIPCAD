@@ -111,7 +111,9 @@ void CBSpline::UpdateEntity() {
         SampleRotates.emplace_back(retRotate.x, retRotate.y, retRotate.z);
     }
 
+    // Existence of points with cross-section information => path is for a sweep morph
     // Specify cross-section information
+    std::vector<size_t> csIndices; // Indices of the points that have cross section info
     std::vector<CSweepPathInfo*> SampleCrossSections(n + 1, NULL);
     int numCurves = howMany - order + 1;
     float segsPerCurve = n / numCurves;
@@ -125,19 +127,10 @@ void CBSpline::UpdateEntity() {
         {
             SampleCrossSections[0] =
                 dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr))->CrossSection;
+            csIndices.push_back(i);
         }
     }
-    // Assign the closest cross section succeeding the sweep to the last sample point
-    for (float i = howMany - 1; i > (howMany - 1) - (float(order) / 2 - 1); i--)
-    {
-        // If a cross-section at a control point exists, assign it to the last sample point
-        if (dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr)) &&
-            dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr))->CrossSection)
-        {
-            SampleCrossSections[n - 1] =
-                dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr))->CrossSection;
-        }
-    }
+
     // Assign cross-sections to the sample points at the beginning/end points of the piecewise curves
     for (float steps = 0; steps <= n; steps += segsPerCurve)
     {
@@ -156,6 +149,20 @@ void CBSpline::UpdateEntity() {
         {
             SampleCrossSections[t] =
                 dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr))->CrossSection;
+            csIndices.push_back(t);
+        }
+    }
+
+    // Assign the closest cross section succeeding the sweep to the last sample point
+    for (float i = howMany - 1; i > (howMany - 1) - (float(order) / 2 - 1); i--)
+    {
+        // If a cross-section at a control point exists, assign it to the last sample point
+        if (dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr)) &&
+            dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr))->CrossSection)
+        {
+            SampleCrossSections[n - 1] =
+                dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr))->CrossSection;
+            csIndices.push_back(n - 1);
         }
     }
 
@@ -178,6 +185,11 @@ void CBSpline::UpdateEntity() {
     SI.Positions = positions;
     SI.Name = GetName();
     SI.IsClosed = bClosed;
+    // Initialize or update CrossSectionIndices:
+    // Changing the number of segments will change the actual indices but not the number of indices,
+    // so the new csIndices and the old cross-section indices (SI.CrossSectionIndices) should be the same size
+    if (SI.CrossSectionIndices.empty() || SI.CrossSectionIndices.size() == csIndices.size())
+        SI.CrossSectionIndices = csIndices;
     BSpline.UpdateValue(&SI);
     SetValid(true);
 

@@ -7,6 +7,7 @@ namespace Nome::Scene
 struct CSweepPathInfo
 {
     std::vector<CVertexInfo *> Positions;
+    std::vector<size_t> CrossSectionIndices;
     bool IsClosed;
     std::string Name;
 };

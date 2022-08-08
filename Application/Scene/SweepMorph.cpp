@@ -41,29 +41,25 @@ void CSweepMorph::UpdateEntity()
     // Dummy cross-section to pass into Sweep generator
     CSweepPathInfo *firstCrossSection;
 
-    // Find the points with cross-section information
-    std::vector<size_t> csPositions;
+    // Get indices of the points with cross section information
+    std::vector<size_t> csIndices = pathInfo->CrossSectionIndices;
+
+    // Make sure all points are CSweepControlPointInfo type
+    // so that an interpolated cross-section can be assigned to the point's CrossSection field
     for (size_t i = 0; i < n; i++)
     {
-        if (dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[i]))
-        {
-            if (dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[i])->CrossSection)
-                csPositions.push_back(i);
-        }
-        else
-        {
+        if (!dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[i]))
             pathInfo->Positions[i] = new CSweepControlPointInfo(pathInfo->Positions[i]);
-        }
     }
 
     // Number of points with cross-section information
-    size_t csn = csPositions.size();
+    size_t csn = csIndices.size();
 
     // Only one point with cross-section info is defined
     if (csn == 1)
     {
         // Assign this cross-section to all points
-        size_t t = csPositions[0];
+        size_t t = csIndices[0];
         CSweepPathInfo *sectionInfo = dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[t])->CrossSection;
         for (size_t i = 0; i < n; i++)
         {
@@ -75,29 +71,37 @@ void CSweepMorph::UpdateEntity()
     else
     {
         // Assign first cross-section to points at the beginning of the sweep
-        size_t first_t = csPositions[0];
+        size_t first_t = csIndices[0];
         CSweepPathInfo *firstSectionInfo = dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[first_t])->CrossSection;
+        Vector3 firstScale = dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[first_t])->Scale;
         for (size_t t = 0; t < first_t; t++)
         {
             dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[t])->CrossSection = firstSectionInfo;
+            dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[t])->Scale = firstScale;
         }
         firstCrossSection = firstSectionInfo;
 
         // Assign last cross-section to points at the end of the sweep
-        size_t last_t = csPositions[csn - 1];
+        size_t last_t = csIndices[csn - 1];
         CSweepPathInfo *lastSectionInfo = dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[last_t])->CrossSection;
+        Vector3 lastScale = dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[last_t])->Scale;
         for (size_t t = last_t + 1; t < n; t++)
         {
             dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[t])->CrossSection = lastSectionInfo;
+            dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[t])->Scale = lastScale;
         }
 
         // Linearly interpolate cross-sections
         for (size_t i = 0; i < csn - 1; i++)
         {
-            size_t a = csPositions[i];
-            size_t b = csPositions[i + 1];
+            size_t a = csIndices[i];
+            size_t b = csIndices[i + 1];
             CSweepPathInfo *sectionInfoA = dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[a])->CrossSection;
             CSweepPathInfo *sectionInfoB = dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[b])->CrossSection;
+
+            Vector3 scaleA = dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[a])->Scale;
+            Vector3 scaleB = dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[b])->Scale;
+
             for (size_t t = 1; t < (b - a); t++)
             {
                 float_t weight = float(t) / (b - a);
@@ -111,6 +115,7 @@ void CSweepMorph::UpdateEntity()
                     section->Positions.push_back(point);
                 }
                 dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[a + t])->CrossSection = section;
+                dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[a + t])->Scale = (1 - weight) * scaleA + weight * scaleB;
             }
         }
     }

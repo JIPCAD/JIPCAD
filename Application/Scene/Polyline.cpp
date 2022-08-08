@@ -1,4 +1,5 @@
 #include "Polyline.h"
+#include "SweepControlPoint.h"
 
 namespace Nome::Scene
 {
@@ -26,6 +27,8 @@ void CPolyline::UpdateEntity()
 
     std::vector<Vertex*> vertArray;
     std::vector<CVertexInfo *> positions;
+    // Existence of points with cross-section information => path is for a sweep morph
+    std::vector<size_t> csIndices; // Indices of the points that have cross-section info
 
     auto numPoints = Points.GetSize();
     Vertex* firstVert;
@@ -39,7 +42,12 @@ void CPolyline::UpdateEntity()
                 firstVert = vertHandle;
             vertArray.push_back(vertHandle);
             positions.push_back(point);
+
+            if (dynamic_cast<CSweepControlPointInfo*>(point) &&
+                dynamic_cast<CSweepControlPointInfo*>(point)->CrossSection)
+                csIndices.push_back(i);
         }
+
     }
     if (bClosed)
     {
@@ -51,6 +59,8 @@ void CPolyline::UpdateEntity()
     SI.Positions = positions;
     SI.Name = GetName();
     SI.IsClosed = bClosed;
+    if (SI.CrossSectionIndices.empty()) // May not have been initialized yet
+        SI.CrossSectionIndices = csIndices;
     Polyline.UpdateValue(&SI);
     SetValid(true);
 }

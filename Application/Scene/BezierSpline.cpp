@@ -91,8 +91,10 @@ void CBezierSpline::UpdateEntity()
     assert(scales.size() == n + 1);
     assert(rotates.size() == n + 1);
 
+    // Existence of points with cross-section information => path is for a sweep morph
     // Specify cross-section information
     std::vector<CSweepPathInfo*> crosssections(n + 1, NULL);
+    std::vector<size_t> csIndices;  // Indices of the points that have cross section info
     for (size_t i = 0; i < cpn; i++)
     {
         // if a cross-section at a control point exists, assign it to the correct sample point
@@ -103,6 +105,7 @@ void CBezierSpline::UpdateEntity()
             int t = round(n * float(i) / (cpn - 1));
 
             crosssections[t] = dynamic_cast<CSweepControlPointInfo*>(ControlPoints.GetValue(i, nullptr))->CrossSection;
+            csIndices.push_back(t);
         }
     }
 
@@ -122,6 +125,12 @@ void CBezierSpline::UpdateEntity()
     // Sweep path info
     SI.Positions = Positions;
     SI.Name = GetName();
+    // Initialize or update CrossSectionIndices:
+    // Changing the number of segments will change the actual indices but not the number of indices,
+    // so the new csIndices and the old cross-section indices (SI.CrossSectionIndices) should be the same size
+    if (SI.CrossSectionIndices.empty() ||   // May not have been initialized yet
+        SI.CrossSectionIndices.size() == csIndices.size()) // Number of segments may have changed
+        SI.CrossSectionIndices = csIndices;
     BezierSpline.UpdateValue(&SI);
     SetValid(true);
 
