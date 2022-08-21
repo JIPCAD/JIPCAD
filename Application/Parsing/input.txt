@@ -1,0 +1,33 @@
+bank b
+	set s_twist 0 0.1 360 1
+	set s_azimuth 0 0.1 360 1
+	list (s_twist s_azimuth)
+endbank
+
+
+# Path
+point point1_1 (0 0 0) endpoint
+point point1_2 (10 0 0) endpoint
+point point1_3 (10 10 0) endpoint
+point closed (0 10 0) endpoint
+
+
+polyline path1 (point1_1 point1_2 point1_3 closed) closed endpolyline
+
+# Cross Section
+point point2_1 (2 1 0) endpoint
+point point2_2 (-2 1 0) endpoint
+point point2_3 (-2 -1 0) endpoint
+point point2_4 (2 -1 0) endpoint
+
+polyline crossSection (point2_1 point2_2 point2_3 point2_4) closed endpolyline
+
+# Sweep
+
+
+sweep s1
+    crosssection crossSection endcrosssection
+    path path1 mintorsion azimuth {expr $b.s_azimuth} twist {expr $b.s_twist} endpath
+endsweep
+
+instance sweepinst s1 endinstance

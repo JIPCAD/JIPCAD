@@ -270,7 +270,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
 {
     CmdTraverseStack.push_back(cmd);
     auto kind = ClassifyCommand(cmd->GetCommand());
-    printf("%s: %d\n", cmd->GetCommand().c_str(), kind);
+    //printf("%s: %d\n", cmd->GetCommand().c_str(), kind);
     if (kind == ECommandKind::Dummy)
     {
         printf("Warning: %s command unrecognized.\n", cmd->GetCommand().c_str());
