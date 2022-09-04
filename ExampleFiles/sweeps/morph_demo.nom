@@ -1,0 +1,246 @@
+### Adapted from morph12.nom
+##  cross-sections with 12 vertices for morphing experiments.
+## CHS 2021/12/23
+## MT 2022/3/22
+
+####################################################################################################
+
+##############  SURFACE COLORS   ###########################
+
+surface M  color  (0.9 0.1 1  ) endsurface   # Magenta
+surface Z  color  (1   0   0.6) endsurface   # Zinnober
+surface R  color  (1   0.1 0  ) endsurface   # Red
+surface O  color  (1   0.6 0  ) endsurface   # Orange
+surface Y  color  (1   1   0  ) endsurface   # Yellow
+surface L  color  (0.6 0.9 0  ) endsurface   # Lime
+surface G  color  (0.1 0.9 0  ) endsurface   # Green
+surface A  color  (0   0.9 0.6) endsurface   # Aqua
+surface C  color  (0   0.9 1  ) endsurface   # Cyan
+surface U  color  (0   0.6 1  ) endsurface   # Uniform
+surface B  color  (0   0.3 1  ) endsurface   # Blue
+surface V  color  (0.4 0.1 1  ) endsurface   # Violet
+surface P  color  (0.6 0   1  ) endsurface   # Purple
+
+surface W  color  (1   1   1  ) endsurface   # White
+surface S  color  (0.7 0.7 0.7) endsurface   # Snow
+surface D  color  (0.4 0.4 0.4) endsurface   # Dark
+surface K  color  (0   0   0  ) endsurface   # blacK
+
+
+bank p
+    set azimuth_slider  0     -180    180     1
+    set twist_slider    0     -180    180     1
+
+    set rli             0.3     0.1     1     0.1
+    set rlm             1.3     0.1     2     0.1
+    set rlo             2.6     0.1     3     0.1
+    set sli             1.5     0.1     3     0.1
+    set slm             0.7     0.1     1     0.1
+    set slo             2.0     0.1     3     0.1
+
+    set bezseg          30      10      90     10
+    set bspseg          30      10      90     10
+
+    set morph_cs        0       0       29      1
+
+    set cs_scale        0.5     0       1     0.1
+    set cs_scaleX_1     1       0       3     0.1
+    set cs_scaleY_1     1       0       3     0.1
+
+
+    list ( bezseg  bspseg  rli rlm rlo  sli slm slo  cs_scale  cs_scaleX_1  cs_scaleY_1  morph_cs )
+endbank
+
+################  cross-sections  ##############################
+
+# cross
+point cr1   ( 1.5   0.5   0 )   endpoint
+point cr2   ( 0.5   0.5   0 )   endpoint
+point cr3   ( 0.5   1.5   0 )   endpoint
+point cr4   (-0.5   1.5   0 )   endpoint
+point cr5   (-0.5   0.5   0 )   endpoint
+point cr6   (-1.5   0.5   0 )   endpoint
+point cr7   (-1.5  -0.5   0 )   endpoint
+point cr8   (-0.5  -0.5   0 )   endpoint
+point cr9   (-0.5  -1.5   0 )   endpoint
+point cr10  ( 0.5  -1.5   0 )   endpoint
+point cr11  ( 0.5  -0.5   0 )   endpoint
+point cr12  ( 1.5  -0.5   0 )   endpoint
+polyline cross  (cr2 cr3 cr4 cr5 cr6 cr7 cr8 cr9 cr10 cr11 cr12 cr1 cr2) endpolyline
+
+
+# circle
+point ci1   ( 1.932  0.518   0 )   endpoint
+point ci2   ( 1.414  1.414   0 )   endpoint
+point ci3   ( 0.518  1.932   0 )   endpoint
+point ci4   (-0.518  1.932   0 )   endpoint
+point ci5   (-1.414  1.414   0 )   endpoint
+point ci6   (-1.932  0.518   0 )   endpoint
+point ci7   (-1.932 -0.518   0 )   endpoint
+point ci8   (-1.414 -1.414   0 )   endpoint
+point ci9   (-0.518 -1.932   0 )   endpoint
+point ci10  ( 0.518 -1.932   0 )   endpoint
+point ci11  ( 1.414 -1.414   0 )   endpoint
+point ci12  ( 1.932 -0.518   0 )   endpoint
+polyline circ  (ci1 ci2 ci3 ci4 ci5 ci6 ci7 ci8 ci9 ci10 ci11 ci12 ci1) endpolyline
+
+
+# fish
+point fi1   ( 2.0   1.0   0 )   endpoint
+point fi2   ( 1.3   0.2   0 )   endpoint
+point fi3   ( 0.4   1.0   0 )   endpoint
+point fi4   (-0.4   1.0   0 )   endpoint
+point fi5   (-1.0   1.1   0 )   endpoint
+point fi6   (-1.5   0.2   0 )   endpoint
+point fi7   (-0.8  -0.1   0 )   endpoint
+point fi8   (-1.4  -0.2   0 )   endpoint
+point fi9   (-0.6  -1.0   0 )   endpoint
+point fi10  ( 0.6  -1.0   0 )   endpoint
+point fi11  ( 1.3  -0.2   0 )   endpoint
+point fi12  ( 2.0  -1.0   0 )   endpoint
+polyline fish  (fi1 fi2 fi3 fi4 fi5 fi6 fi7 fi8 fi9 fi10 fi11 fi12 fi1) endpolyline
+
+
+## additional, parameterized cross sections;
+
+# leaf
+point le1   ( {expr $p.rli*cos(0.01745* 30)} {expr $p.rli*sin(0.01745* 30)}   0 )   endpoint
+point le2   ( {expr $p.rlm*cos(0.01745* 60)} {expr $p.rlm*sin(0.01745* 60)}   0 )   endpoint
+point le3   ( {expr $p.rlo*cos(0.01745* 90)} {expr $p.rlo*sin(0.01745* 90)}   0 )   endpoint
+point le4   ( {expr $p.rlm*cos(0.01745*120)} {expr $p.rlm*sin(0.01745*120)}   0 )   endpoint
+point le5   ( {expr $p.rli*cos(0.01745*150)} {expr $p.rli*sin(0.01745*150)}   0 )   endpoint
+point le6   ( {expr $p.rlm*cos(0.01745*180)} {expr $p.rlm*sin(0.01745*180)}   0 )   endpoint
+point le7   ( {expr $p.rlo*cos(0.01745*210)} {expr $p.rlo*sin(0.01745*210)}   0 )   endpoint
+point le8   ( {expr $p.rlm*cos(0.01745*240)} {expr $p.rlm*sin(0.01745*240)}   0 )   endpoint
+point le9   ( {expr $p.rli*cos(0.01745*270)} {expr $p.rli*sin(0.01745*270)}   0 )   endpoint
+point le10  ( {expr $p.rlm*cos(0.01745*300)} {expr $p.rlm*sin(0.01745*300)}   0 )   endpoint
+point le11  ( {expr $p.rlo*cos(0.01745*330)} {expr $p.rlo*sin(0.01745*330)}   0 )   endpoint
+point le12  ( {expr $p.rlm*cos(0.01745*360)} {expr $p.rlm*sin(0.01745*360)}   0 )   endpoint
+polyline leaf  (le1 le2 le3 le4 le5 le6 le7 le8 le9 le10 le11 le12 le1) endpolyline
+
+# star
+point st1   ( {expr $p.sli*cos(0.01745* 30)} {expr $p.sli*sin(0.01745* 30)}   0 )   endpoint
+point st2   ( {expr $p.slm*cos(0.01745* 60)} {expr $p.slm*sin(0.01745* 60)}   0 )   endpoint
+point st3   ( {expr $p.slo*cos(0.01745* 90)} {expr $p.slo*sin(0.01745* 90)}   0 )   endpoint
+point st4   ( {expr $p.slm*cos(0.01745*120)} {expr $p.slm*sin(0.01745*120)}   0 )   endpoint
+point st5   ( {expr $p.sli*cos(0.01745*150)} {expr $p.sli*sin(0.01745*150)}   0 )   endpoint
+point st6   ( {expr $p.slm*cos(0.01745*180)} {expr $p.slm*sin(0.01745*180)}   0 )   endpoint
+point st7   ( {expr $p.slo*cos(0.01745*210)} {expr $p.slo*sin(0.01745*210)}   0 )   endpoint
+point st8   ( {expr $p.slm*cos(0.01745*240)} {expr $p.slm*sin(0.01745*240)}   0 )   endpoint
+point st9   ( {expr $p.sli*cos(0.01745*270)} {expr $p.sli*sin(0.01745*270)}   0 )   endpoint
+point st10  ( {expr $p.slm*cos(0.01745*300)} {expr $p.slm*sin(0.01745*300)}   0 )   endpoint
+point st11  ( {expr $p.slo*cos(0.01745*330)} {expr $p.slo*sin(0.01745*330)}   0 )   endpoint
+point st12  ( {expr $p.slm*cos(0.01745*360)} {expr $p.slm*sin(0.01745*360)}   0 )   endpoint
+polyline star  (st2 st3 st4 st5 st6 st7 st8 st9 st10 st11 st12 st1 st2) endpolyline
+
+
+#############  SWEEP PATH POINTS  &  CONTROLPOINTS  ################################
+
+point p_10 (-20   0   0 )   endpoint
+point p_9  (-18  -1   0 )   endpoint
+point p_8  (-16  -1   0 )   endpoint
+point p_7  (-14   0   0 )   endpoint
+point p_6  (-12   1   0 )   endpoint
+point p_5  (-10   1   0 )   endpoint
+point p_4  ( -8   0   0 )   endpoint
+point p_3  ( -6  -1   0 )   endpoint
+point p_2  ( -4  -2   0 )   endpoint
+point p_1  ( -2   2   0 )   endpoint
+point p0   (  0   2   0 )   endpoint
+point p1   (  2   -2   0 )   endpoint
+point p2   (  4   1   0 )   endpoint
+point p3   (  6   2   0 )   endpoint
+point p4   (  8   0   0 )   endpoint
+point p5   ( 10  -1   0 )   endpoint
+point p6   ( 12  -1   0 )   endpoint
+point p7   ( 14   0   0 )   endpoint
+point p8   ( 16   1   0 )   endpoint
+point p9   ( 18   1   0 )   endpoint
+point p10  ( 20   0   0 )   endpoint
+
+##  a simple sweep path:
+polyline linpath_simple  ( p_10 p_9 p_8 p_7 p_6 p_5 p_4 p_3 p_2 p_1 p0 p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 ) endpolyline
+
+
+## a simple bspline path:
+bspline bsppath_simple  order 4 ( p_10 p_9 p_8 p_7 p_6 p_5 p_4 p_3 p_2 p_1 p0 p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 ) segs {expr $p.bspseg} endbspline
+
+
+###  a possible irregular assignment of cross-sections to control points  ...
+
+###  CONTROLPOINTS  provide additional control over the rotation and non-uniform scaling of the cross sections:
+
+
+controlpoint  CP_6  point p_6   scale ($p.cs_scale      $p.cs_scale     0)  crosssection leaf   endcontrolpoint
+controlpoint  CP_5  point p_5   scale ($p.cs_scale      $p.cs_scale     0)                      endcontrolpoint
+controlpoint  CP_4  point p_4   scale ($p.cs_scale      $p.cs_scale     0)                      endcontrolpoint
+controlpoint  CP_3  point p_3   scale ($p.cs_scale      $p.cs_scale     0)  crosssection star   endcontrolpoint
+controlpoint  CP_2  point p_2   scale ($p.cs_scale      $p.cs_scale     0)                      endcontrolpoint
+controlpoint  CP_1  point p_1   scale ({expr $p.cs_scale * $p.cs_scaleX_1}
+                                       {expr $p.cs_scale * $p.cs_scaleY_1}
+                                        0 )                                 crosssection circ  endcontrolpoint
+controlpoint  CP0   point p0    scale ($p.cs_scale      $p.cs_scale     0)                      endcontrolpoint
+controlpoint  CP1   point p1    scale ($p.cs_scale      $p.cs_scale     0)                      endcontrolpoint
+controlpoint  CP2   point p2    scale ($p.cs_scale      $p.cs_scale     0)  crosssection fish   endcontrolpoint
+controlpoint  CP3   point p3    scale ($p.cs_scale      $p.cs_scale     0)                      endcontrolpoint
+controlpoint  CP4   point p4    scale ($p.cs_scale      $p.cs_scale     0)                      endcontrolpoint
+controlpoint  CP5   point p5    scale ($p.cs_scale      $p.cs_scale     0)                      endcontrolpoint
+controlpoint  CP6   point p6    scale ($p.cs_scale      $p.cs_scale     0)  crosssection cross   endcontrolpoint
+
+
+polyline linpath  (  CP_6 CP_5 CP_4 CP_3 CP_2 CP_1 CP0 CP1 CP2 CP3 CP4 CP5 CP6 ) endpolyline
+
+beziercurve bezpath
+    ( CP_6 CP_5 CP_4 CP_3 CP_2 CP_1 CP0 CP1 CP2 CP3 CP4 CP5 CP6 )
+    segs {expr $p.bezseg}
+endbeziercurve
+
+bspline  bsppath   order 4
+ ( CP_6 CP_5 CP_4 CP_3 CP_2 CP_1 CP0 CP1 CP2 CP3 CP4 CP5 CP6 )
+ segs {expr $p.bspseg}
+endbspline
+
+
+
+########################  DISPLAY ASSEMBLY  ################
+
+group assembly
+  instance  icrosss  cross  surface R   endinstance
+  instance  icirc   circ   surface W   endinstance
+  instance  ileaf   leaf   surface G   endinstance
+  instance  istar   star   surface Y   endinstance
+  instance  ifish   fish   surface C   endinstance
+
+  instance  ilinpath linpath  surface B   endinstance
+  instance  ibezpath bezpath  surface P   endinstance
+  instance  ibsppath bsppath  surface P   endinstance
+endgroup
+
+
+sweepmorph morph
+    begincap endcap
+
+    #path linpath   mintorsion  azimuth ($p.azimuth_slider)   twist ($p.twist_slider)  endpath
+    #path bezpath   mintorsion  azimuth ($p.azimuth_slider)   twist ($p.twist_slider)  endpath
+    path bsppath   mintorsion  azimuth ($p.azimuth_slider)   twist ($p.twist_slider)  endpath
+endsweepmorph
+
+
+morphvisualizer morph_vis
+    sweep morph
+    index ($p.morph_cs)
+endmorphvisualizer
+
+
+#################  RENDERING  #############################
+
+#instance ia  assembly  scale( 0.4  0.4  0.4 )  endinstance
+
+instance imorph morph endinstance
+instance imorph_vis morph_vis translate (0 -3 0) endinstance
+
+instance ibsppath bsppath translate (0 0 -2) endinstance
+instance ilinpath linpath translate (0 0 -2) endinstance
+
+
+###########################################################
