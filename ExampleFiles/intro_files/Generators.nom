@@ -1,0 +1,161 @@
+
+# Generators.nom
+# testing many of them.
+# 2022/9/4
+
+##  Surface Colors
+surface R color (1 0 0) endsurface     # Red
+surface O color (0.9 0.6 0) endsurface # Orange
+surface Y color (1 1 0) endsurface     # Yellow
+surface L color (0.6 0.8 0) endsurface # Lime
+surface G color (0 0.9 0) endsurface   # Green
+surface A color (0 0.9 0.7) endsurface # Aqua
+surface C color (0 1 1) endsurface     # Cyan
+surface U color (0 0.5 1) endsurface   # Uniform
+surface B color (0 0 1) endsurface     # Blue
+surface P color (0.6 0 1) endsurface   # Purple
+surface M color (1 0 1) endsurface     # Magenta
+surface Z color (1 0 0.5) endsurface   # Zinnober
+surface W color (1 1 1) endsurface     # White
+
+###################################################
+
+## Points
+point pa (0 0 0) endpoint
+point pb (0 0 1) endpoint
+point pc (1 1 2) endpoint
+point pd (-1 4 -1) endpoint
+
+
+## Polyline
+polyline testpolyline ( pa pb pc pd ) endpolyline
+instance tp1 testpolyline  surface W  translate (-1 3 0 ) endinstance
+
+
+## Bezier Curve
+point p0b (0 0 0) endpoint
+point p1b (0 0 1) endpoint
+point p2b (1 0 2) endpoint
+point p3b (1 1 3) endpoint
+ 
+polyline bezctrl  (p0b p1b p2b p3b ) endpolyline
+beziercurve bezi  (p0b p1b p2b p3b ) endbeziercurve
+group bezDemo
+    instance bzctr  bezctrl   surface W   endinstance
+    instance bezi1   bezi     surface G   endinstance
+endgroup
+instance ibezD  bezDemo    translate ( 6  3  0) endinstance
+
+
+## BSpline
+point p0a (0 0 0) endpoint
+point p1a (0 0 1) endpoint
+point p2a (1 0 2) endpoint
+point p3a (1 1 3) endpoint
+point p4a (0 1 4) endpoint
+point p5a (-1 0 5) endpoint
+
+polyline  bspctrl  (p0a p1a p2a p3a p4a p5a )  endpolyline
+bspline bspl  order 4   (p0a p1a p2a p3a p4a p5a )  segs  9  endbspline
+group bspDemo
+    instance bctr  bspctrl  surface W   endinstance
+    instance bs11   bspl     surface C   endinstance
+endgroup 
+instance ibspD  bspDemo    translate( 5 -3 1)  endinstance
+
+
+## Circle
+circle testcircle (3 20) endcircle
+instance circle1 testcircle   surface L   translate (0 0 0) endinstance
+
+
+## Face
+point p1 (1 1 1) endpoint
+point p2 (1 -1 1) endpoint
+point p3 (-1 -1 1) endpoint
+point p4 (-1 1 1) endpoint
+face f1 (p1 p2 p3 p4) endface
+
+## Object
+mesh one_face
+    face f1 (p4 p3 p2 p1) endface
+endmesh
+
+group cube
+  instance front one_face endinstance
+  instance back one_face rotate (0 1 0) (180) endinstance
+  instance left one_face rotate (0 1 0) (-90) endinstance
+  instance right one_face rotate (0 1 0) (90) endinstance
+  instance top one_face rotate (1 0 0) (90) endinstance
+  instance bottom one_face rotate (1 0 0) (-90) endinstance
+endgroup
+instance cube1 cube  surface C  translate ( 6 0 0) endinstance
+
+
+## Mesh
+point pa (-1 0 1) endpoint
+point pb (-0.5 0.86602540378 1) endpoint
+point pc (0.5 0.86602540378 1) endpoint
+point pd (1 0 1) endpoint
+point pe (0.5 -0.86602540378 1) endpoint
+point pf (-0.5 -0.86602540378 1) endpoint
+
+mesh tophexagon
+    face f1 (pf pe pd pc pb pa) endface
+endmesh
+
+point pa2 (-0.866 -0.500 -1.000) endpoint
+point pb2 (-0.866 0.500 -1.000) endpoint
+point pc2 (0 1 -1) endpoint
+point pd2 ( 0.866 0.500 -1.000) endpoint
+point pe2 ( 0.866 -0.500 -1.000) endpoint
+point pf2 (0 -1 -1) endpoint
+
+mesh lowhexagon
+    face f1 (pa2 pb2 pc2 pd2 pe2 pf2) endface
+endmesh
+
+mesh middle
+    face f1 (pa pb pb2) endface
+    face f3 (pb pc pc2) endface
+    face f5 (pc pd pd2) endface
+    face f7 (pd pe pe2) endface
+    face f9 (pe pf pf2) endface
+    face f11 (pf pa pa2) endface
+endmesh
+
+mesh middle2
+    face f2 (pa2 pa pb2) endface
+    face f4 (pb2 pb pc2) endface
+    face f6 (pc2 pc pd2) endface
+    face f8 (pd2 pd pe2) endface
+    face f10 (pe2 pe pf2) endface
+    face f12 (pf2 pf pa2) endface
+endmesh
+
+instance hexagon0 tophexagon  surface R  endinstance
+instance hexagon1 lowhexagon  surface M  endinstance
+instance middle0 middle   surface Y endinstance
+instance middle1 middle2  surface L endinstance
+
+
+## Funnel   (radius ratio height segs)
+funnel testfunnel (1 0.8 1 22) endfunnel
+instance if1 testfunnel     surface U     rotate(1 0 0 )(180)  translate (3 4 0) endinstance
+
+## Tunnel   (radius ratio height segs)
+tunnel testtunnel (1 0.7 1 17) endtunnel
+instance it1 testtunnel   surface G   translate ( 3 -4 0) endinstance
+
+
+## Torus    ((rad_maj rad_min  theta_max  phi_min  phi_max  segs_theta  segs_phi))
+torus testtorus (2 0.5   270   0 240  9 15 ) endtorus 
+instance it1  testtorus  surface O   translate (-5 4 0)    endinstance
+
+
+## Torus Knot    (symm turns   rad_maj rad_min   rad_tube   segs_circ  segs_sweep)
+torusknot testtorusknot (2 3   2  0.5  0.1   20 50) endtorusknot 
+instance itk1  testtorusknot   surface C   translate(-5 -3 0)   endinstance
+
+###############   end   ##################
+
