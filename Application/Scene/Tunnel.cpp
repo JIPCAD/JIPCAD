@@ -8,10 +8,10 @@ namespace Nome::Scene
 
 DEFINE_META_OBJECT(CTunnel)
 {
-    BindPositionalArgument(&CTunnel::VerticesPerRing, 1, 0);
-    BindPositionalArgument(&CTunnel::Radius, 1, 1);
-    BindPositionalArgument(&CTunnel::Ratio, 1, 2);
-    BindPositionalArgument(&CTunnel::Height, 1, 3);
+    BindPositionalArgument(&CTunnel::Radius, 1, 0);
+    BindPositionalArgument(&CTunnel::Ratio, 1, 1);
+    BindPositionalArgument(&CTunnel::Height, 1, 2);
+    BindPositionalArgument(&CTunnel::VerticesPerRing, 1, 3);
 }
 
 void CTunnel::UpdateEntity()
