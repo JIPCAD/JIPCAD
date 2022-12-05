@@ -129,7 +129,7 @@ void CMeshMerger::Catmull()
 }
 
 
-void CMeshMerger::MergeIn(CMeshInstance& meshInstance)
+void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
 {
     auto tf = meshInstance.GetSceneTreeNode()->L2WTransform.GetValue(
         tc::Matrix3x4::IDENTITY); // The transformation matrix is the identity matrix by default
@@ -162,7 +162,7 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance)
 
         // to prevent adding two merger vertices in the same location!
 
-        if (distance < Epsilon)
+        if (distance < Epsilon && shouldMergePoints)
         { // this is to check for cases where there is an overlap (two vertices lie in the exact
             // same world space coordinate). We only want to create one merger vertex at this
             // location!
