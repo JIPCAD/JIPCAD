@@ -526,9 +526,12 @@ void CNome3DView::PickFaceWorldRay(tc::Ray& ray)
         });
 
     std::sort(hits.begin(), hits.end());
-    // if (!hits.empty()) {
-    //    hits.resize(1); // Force there to be only one face selected. This is more user-friendly.
-    //}
+
+    //Aaron uncommented the bottom three lines as this is more user friendly, selecting the face of any spherical shape could lead to thousands of 
+    //calls to the InputSharpness method, i.e. creating the input sharpness window
+    if (!hits.empty()) {
+        hits.resize(1); // Force there to be only one face selected. This is more user-friendly.
+    }
     if (hits.size() == 1)
     {
         const auto& [dist, meshInst, faceName] = hits[0];
