@@ -191,6 +191,7 @@ void CMainWindow::on_actionMerge_triggered()
         if (node->GetOwner()->GetName() == "globalMergeNode")
             return;
         auto* entity = node->GetInstanceEntity(); // Else, get the instance
+
         if (!entity) // Check to see if the an entity is instantiable
         {
             entity = node->GetOwner()->GetEntity(); // If it's not instantiable, get entity instead

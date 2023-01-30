@@ -745,15 +745,16 @@ AST::CToken* CFileBuilder::ConvertToken(NomParser::IdentContext* ident)
 
 AST::CToken* CFileBuilder::ConvertToken(antlr4::Token* token)
 {
-    if (token == NULL)
+    if (token)
     {
-        std::cout << "ERROR: Token name is one of the restricted entity names."
-                  << std::endl;
+        auto start = token->getStartIndex();
+        auto len = token->getStopIndex() - start + 1;
+        return new AST::CToken(token->getText(), 0, start);
     }
-
-    auto start = token->getStartIndex();
-    auto len = token->getStopIndex() - start + 1;
-    return new AST::CToken(token->getText(), 0, start);
+    else
+    {
+        std::cout << "ERROR: Token name is one of the restricted entity names." << std::endl;
+    }
 }
 
 AST::CToken* CFileBuilder::ConvertToken(antlr4::tree::TerminalNode* token)

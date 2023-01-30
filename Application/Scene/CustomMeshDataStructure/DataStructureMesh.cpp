@@ -147,7 +147,7 @@ Face* Mesh::addFace(std::vector<Vertex*> vertices, bool reverseOrder)
     std::vector<Vertex*>::iterator vIt;
     std::vector<Edge*> edgesInFace;
     std::vector<Edge*>::iterator eIt;
-    Edge* currEdge;
+    Edge* currEdge = NULL;
 
     if (!reverseOrder)
     {
@@ -155,11 +155,20 @@ Face* Mesh::addFace(std::vector<Vertex*> vertices, bool reverseOrder)
         {
             if (vIt != vertices.end() - 1)
             {
+                //Aaron's edit: there are a bunch of edges that have two equal vertices. 
+                if (*vIt == *(vIt + 1))
+                {
+                    continue;
+                }
                 currEdge = createEdge(*vIt, *(vIt + 1));
                 edgesInFace.push_back(currEdge);
             }
             else
             {
+                if (*vIt == *(vertices.begin()))
+                {
+                    continue;
+                }
                 currEdge = createEdge(*vIt, *(vertices.begin()));
                 edgesInFace.push_back(currEdge);
             }
@@ -212,6 +221,10 @@ Face* Mesh::addFace(std::vector<Vertex*> vertices, bool reverseOrder)
                // exit(0); // TODO: This is being triggered
             }
         }
+    }
+    if (currEdge==NULL)
+    {
+        return NULL;
     }
     newFace->oneEdge = currEdge;
     for (eIt = edgesInFace.begin(); eIt < edgesInFace.end(); eIt++)
@@ -438,7 +451,7 @@ void Mesh::computeNormals(bool isPolyline)
     {
         for (vIt = vertList.begin(); vIt != vertList.end(); vIt++)
         {
-            // cout<<"Now calculating vertex with ID: "<< vIt -> first <<endl;
+            std::cout <<"Now calculating vertex with ID: "<< *vIt <<std::endl;
             getVertexNormal(*vIt);
         }
     }
@@ -508,6 +521,7 @@ void Mesh::clearAndDelete()
 
 
 // test function
+//what this does is define a Mesh class function outside of the Mesh class
 Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
 {
     // cout<<"Creating a copy of the current map.\n";
@@ -541,30 +555,120 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
         Edge* currEdge = firstEdge;
         Edge* nextEdge;
         Vertex* tempv;
+        // This code is basically trying to gauge whether the 
+        // face is made up of either 3 or 4 vertices
+        //I.e., whether the face is a triangle or not.
+        // If the face is a triangle, then by definition
+        //we can put the face straight into the 
+        //newmesh. However, if the face is a 4 sided shape
+        //then we know that the vertices of the face must be ordered
+        // in some way, and the way we figure that out is by using the 
+        // loop below. 
+
+        Edge* prevEdge;
+        int c=0;
         vertices.clear();
-        do
+        int isTriangle = 0;
+        std::vector<Vertex*>::iterator vIt;
+        int mvId[5], mvP=0, i;
+
+        for (vIt = tempFace->vertices.begin(); vIt < tempFace->vertices.end(); vIt++)
         {
-            if (tempFace == currEdge->fa)
+            Vertex* vt = *vIt;
+            int newData = 1;
+            for (i = 0; i < mvP && i < 5; i++)
             {
-                tempv = currEdge->vb;
-                nextEdge = currEdge->nextVbFa;
+                if (mvId[i] == vt->ID)
+                {
+                    isTriangle = 1;
+                    newData = 0;
+                }
             }
-            else
+            if (newData)
             {
-                if (currEdge->mobius)
+                vertices.push_back(newMesh.vertList[vt->ID]);
+                mvId[mvP++] = vt->ID;
+            }
+        }
+
+        if (!isTriangle)
+        {
+            vertices.clear();
+
+            do
+            {
+                
+                if (tempFace == currEdge->fa)
                 {
                     tempv = currEdge->vb;
-                    nextEdge = currEdge->nextVbFb;
+                    nextEdge = currEdge->nextVbFa;
+                    c = 1;
                 }
                 else
-                {
-                    tempv = currEdge->va;
-                    nextEdge = currEdge->nextVaFb;
+                { 
+                    assert(tempFace==currEdge->fb);
+                    if (currEdge->mobius)
+                    {
+                        tempv = currEdge->vb;
+                        nextEdge = currEdge->nextVbFb;
+                        c = 2;
+                    }
+                    else
+                    {
+                        tempv = currEdge->va;
+                        nextEdge = currEdge->nextVaFb;
+                        c = 3;
+                    }
                 }
-            }
-            vertices.push_back(newMesh.vertList[tempv->ID]);
-            currEdge = nextEdge;
-        } while (currEdge != firstEdge);
+                vertices.push_back(newMesh.vertList[tempv->ID]);
+#if 0
+                if (currEdge == nextEdge)
+                {
+                    /*if (prevEdge)
+                    {
+                        switch (c)
+                        {
+                            case 1:
+                                prevEdge->setNextEdge(tempv, currEdge->fa, nextEdge);
+                            case 2:
+                                prevEdge->setNextEdge(tempv, currEdge->fb, nextEdge);
+                            case 3:
+                                prevEdge->setNextEdge(tempv, currEdge->fb, nextEdge);
+                            default:
+                                prevEdge->setNextEdge(tempv, currEdge->fa, nextEdge);
+                        }       
+                    }*/ 
+                    std::cout << "ERROR: Current Edge is isolated, equal to the next Edge" << std::endl;
+                    if (tempFace == currEdge->fa)
+                    {
+                        if (currEdge == currEdge->nextVbFa)
+                        {
+                            nextEdge = currEdge->nextVbFb;
+                        }
+                        else
+                        {
+                            nextEdge = currEdge->nextVbFa;
+                        }
+                    }
+                    else
+                    {
+                        if (currEdge == currEdge->nextVaFa)
+                        {
+                            nextEdge = currEdge->nextVaFb;
+                        }
+                        else
+                        {
+                            nextEdge = currEdge->nextVaFa;
+                        }
+                    }
+                }
+                //prevEdge = currEdge;
+            
+#endif
+                currEdge = nextEdge;
+            } while (currEdge != firstEdge);
+        }
+
         newMesh.addFace(vertices);
         newMesh.faceList[newMesh.faceList.size() - 1]->user_defined_color =
             (*fIt)->user_defined_color;
@@ -586,6 +690,34 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
     return newMesh;
 }
 
+Edge* findMeshinClass(Face* tempFace, Edge* currEdge) {
+    Vertex* tempv;
+    Edge* nextEdge;
+    int c;
+    if (tempFace == currEdge->fa)
+    {
+        tempv = currEdge->vb;
+        nextEdge = currEdge->nextVbFa;
+        c = 1;
+    }
+    else
+    {
+        assert(tempFace == currEdge->fb);
+        if (currEdge->mobius)
+        {
+            tempv = currEdge->vb;
+            nextEdge = currEdge->nextVbFb;
+            c = 2;
+        }
+        else
+        {
+            tempv = currEdge->va;
+            nextEdge = currEdge->nextVaFb;
+            c = 3;
+        }
+    }
+    return nextEdge;
+}
 void Mesh::setGlobalParameter(std::unordered_map<std::string, Parameter>* params) { this->params = params; }
 
 void Mesh::addParam(Parameter* param) { influencingParams.push_back(param); }

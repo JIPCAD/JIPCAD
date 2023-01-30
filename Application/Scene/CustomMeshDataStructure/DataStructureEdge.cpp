@@ -20,6 +20,7 @@ Edge::Edge()
 
 Edge::Edge(Vertex* v1, Vertex* v2)
 {
+    assert(v1 != v2);
     va = v1;
     vb = v2;
     nextVaFa = nextVaFb = nextVbFa = nextVbFb = NULL;
@@ -119,7 +120,9 @@ Face* Edge::theOtherFace(Face* f) const
     }
     else
     {
+        std::cout << "NOW CALCULATING THE FOLLOWING FACE:" << f << std::endl;
         std::cout << "ERROR: f is not adjacent to this edge" << std::endl;
+        return NULL;
         //exit(0);
     }
 }
