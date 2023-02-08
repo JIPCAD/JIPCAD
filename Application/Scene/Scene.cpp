@@ -317,7 +317,7 @@ void CScene::Update()
                             entity = node->GetOwner()->GetEntity(); // If it's not instantiable, get entity instead of instance entity
 
                         if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity)) { // set "auto * mesh" to this entity. Call MergeIn to set merger's vertices based on mesh's vertices. Reminder: an instance identifier is NOT a Mesh, so only real entities get merged.
-                            ent->MergeIn(*mesh);
+                            ent->MergeIn(*mesh, true); // Merge adjacent vertices
                             entity->isMerged = true;
                         }
 
