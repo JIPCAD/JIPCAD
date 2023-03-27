@@ -9,6 +9,8 @@ struct CSweepPathInfo
     std::vector<CVertexInfo *> Positions;
     std::vector<size_t> CrossSectionIndices;
     bool IsClosed;
+    bool IsBSpline;
+    std::vector<Vector3> BspTangents;
     std::string Name;
 };
 

@@ -125,6 +125,7 @@ void CBezierSpline::UpdateEntity()
     // Sweep path info
     SI.Positions = Positions;
     SI.Name = GetName();
+    SI.IsBSpline = false;
     // Initialize or update CrossSectionIndices:
     // Changing the number of segments will change the actual indices but not the number of indices,
     // so the new csIndices and the old cross-section indices (SI.CrossSectionIndices) should be the same size

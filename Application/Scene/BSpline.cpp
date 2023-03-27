@@ -68,6 +68,24 @@ float CBSpline::NFactor(int i, int k, float t) {
     return weightA + weightB;
 }
 
+/*
+ * Returns the midpoints of the segments between n control polygon vertices
+ */
+std::vector<Vector3> CBSpline::GetMidpoints(std::vector<Vector3> vertices) {
+    if (vertices.size() < 2) {
+        throw std::invalid_argument("Number of vertices must be at least 2.");
+    }
+
+    std::vector<Vector3> midpoints;
+
+    for (int i = 0; i < vertices.size() - 1; i++) {
+        Vector3 midpoint = (vertices[i] + vertices[i + 1]) / 2.0;
+        midpoints.push_back(midpoint);
+    }
+
+    return midpoints;
+}
+
 
 void CBSpline::UpdateEntity() {
     if (!IsDirty())
@@ -166,6 +184,30 @@ void CBSpline::UpdateEntity() {
         }
     }
 
+    // Calculate tangents at beginning and end of spline so that sweeps with b-spline path close with no gap
+    std::vector<Vector3> beginPoints;
+    std::vector<Vector3> endPoints;
+
+    // Populate vectors with positions of vertices
+    for (int i = 0; i < order - 1; i++) {
+        beginPoints.push_back(ControlPoints.GetValue(i, nullptr)->Position);
+        endPoints.push_back(ControlPoints.GetValue(howMany - (order - 1) + i, nullptr)->Position);
+    }
+
+    while (beginPoints.size() > 2 && endPoints.size() > 2) {
+        beginPoints = GetMidpoints(beginPoints);
+        endPoints = GetMidpoints(endPoints);
+    }
+
+    assert(beginPoints.size() == 2);
+    assert(endPoints.size() == 2);
+
+    Vector3 beginTangent = (beginPoints[1] - beginPoints[0]).Normalized();
+    Vector3 endTangent = (endPoints[1] - endPoints[0]).Normalized();
+
+    std::vector<Vector3> tangents{beginTangent, endTangent};
+
+
     std::vector<Vertex*> handles;
     handles.reserve(n + 1);
 
@@ -185,6 +227,9 @@ void CBSpline::UpdateEntity() {
     SI.Positions = positions;
     SI.Name = GetName();
     SI.IsClosed = bClosed;
+    SI.IsBSpline = true;
+    SI.BspTangents = tangents;
+
     // Initialize or update CrossSectionIndices:
     // Changing the number of segments will change the actual indices but not the number of indices,
     // so the new csIndices and the old cross-section indices (SI.CrossSectionIndices) should be the same size
