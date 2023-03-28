@@ -125,6 +125,7 @@ void CMainWindow::on_actionOpen_triggered()
 }
 void CMainWindow::on_actionChangeBackground_triggered()
 {
+    //Aaron's code 
     QColor newColor = QColorDialog::getColor(curColor, parentWidget());
     Nome3DView->defaultFrameGraph()->setClearColor(newColor);
     curColor = newColor;
