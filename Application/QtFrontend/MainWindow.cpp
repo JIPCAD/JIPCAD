@@ -162,6 +162,8 @@ void CMainWindow::on_actionExportAsStl_triggered()
     QString fileName = QFileDialog::getSaveFileName(this, tr("Save Scene as Stl"), "",
                                                     tr("Stl Files (*.stl);;All Files (*)"));
     // One shot merging, and add a new entity and its corresponding node
+    // Merge (can automatically do this)
+    bool merged = false;
     Scene->Update();
     Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
         if (node->GetOwner()->GetName() == "globalMergeNode")
@@ -170,9 +172,23 @@ void CMainWindow::on_actionExportAsStl_triggered()
             if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
             {
                 mesh->ExportAsStl(fileName);
+                merged = true;
             }
-        }
+        }    
     });
+    if (!merged) {
+        prepare_for_stl_no_merge();
+        Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
+        if (node->GetOwner()->GetName() == "globalMergeNode")
+        {
+            auto* entity = node->GetOwner()->GetEntity();
+            if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
+            {
+                mesh->ExportAsStl(fileName);
+            }
+        }    
+    });
+    }
 }
 
 
@@ -201,7 +217,53 @@ void CMainWindow::on_actionMerge_triggered()
             // set "auto * mesh" to this entity. Call MergeIn to set merger's vertices based on mesh's
             // vertices. Reminder: an instance identifier is NOT a Mesh, so only real entities get
             // merged.
-            merger->MergeIn(*mesh);
+            merger->MergeIn(*mesh, true);
+            entity->isMerged = true;
+        }
+    });
+
+    Scene->Update();
+    // TODO: 10/22 added.  These lines work to reset the scene
+    Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
+        if (node->GetOwner()->GetName() != "globalMergeNode")
+            node->GetOwner()->SetEntity(nullptr);
+    });
+
+
+    Scene->AddEntity(tc::static_pointer_cast<Scene::CEntity>(
+        merger)); // Merger now has all the vertices set, so we can add it into the scene as a new
+                  // entity
+    auto* sn = Scene->GetRootNode()->FindOrCreateChildNode("globalMergeNode"); // Add it into the Scene Tree by creating a new node called
+                            // globalMergeNode. Notice, this is the same name everytime you Merge.
+                            // This means you can only have one merger mesh each time. It will
+                            // override previous merger meshes with the new vertices.
+    sn->SetEntity(merger.Get()); // Set sn, which is the scene node, to point to entity merger
+}
+
+
+void CMainWindow::prepare_for_stl_no_merge()
+{
+    // One shot merging, and add a new entity and its corresponding node
+    Scene->Update();
+    // CmeshMerger is basically a CMesh, but with a MergeIn method. Merger will
+    // contain ALL the merged vertices (from various meshes)
+    tc::TAutoPtr<Scene::CMeshMerger> merger = new Scene::CMeshMerger("globalMerge");
+
+    Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
+        // If the node owner is a globalMergeNode, skip as that was a
+        // previously merger mesh (from a previous Merge iteration). We only
+        // want to merge vertices from our actual (non-merged) meshes.
+        if (node->GetOwner()->GetName() == "globalMergeNode")
+            return;
+        auto* entity = node->GetInstanceEntity(); // Else, get the instance
+        if (!entity) // Check to see if the an entity is instantiable
+        {
+            entity = node->GetOwner()->GetEntity(); // If it's not instantiable, get entity instead
+        } 
+        if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
+        {
+            // Call mergeIn but DO NOT actually merge adjacent vertices
+            merger->MergeIn(*mesh, false);
             entity->isMerged = true;
         }
     });

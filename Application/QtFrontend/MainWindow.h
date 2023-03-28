@@ -52,6 +52,7 @@ private slots:
 
 
     void on_actionMerge_triggered();
+    void prepare_for_stl_no_merge();
     void on_actionSubdivide_triggered();
 
     /*  10/1 Randy Commenting out because these are not fully implemented right now

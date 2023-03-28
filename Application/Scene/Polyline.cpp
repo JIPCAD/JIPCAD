@@ -59,6 +59,7 @@ void CPolyline::UpdateEntity()
     SI.Positions = positions;
     SI.Name = GetName();
     SI.IsClosed = bClosed;
+    SI.IsBSpline = false;
     if (SI.CrossSectionIndices.empty()) // May not have been initialized yet
         SI.CrossSectionIndices = csIndices;
     Polyline.UpdateValue(&SI);

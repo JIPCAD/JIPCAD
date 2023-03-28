@@ -42,6 +42,7 @@ float CSweepMath::getAngle(Vector3 vectorA, Vector3 vectorB)
 }
 
 // get the perpendicular vector from vectorB to vectorA
+// i.e. the difference between vectorA and the projection of vectorA onto vectorB
 Vector3 CSweepMath::getPerpendicularVector(Vector3 vectorA, Vector3 vectorB)
 {
     float epsilon = 1e-4;
@@ -76,6 +77,14 @@ float CSweepMath::calculateRotateAngle(Vector3 vectorA, Vector3 vectorB, Vector3
     else
         return -angle;
 }
+
+// calculate the rotation matrix to get from vectorA to vectorB
+Matrix3 CSweepMath::calculateRotationMatrix(Vector3 vectorA, Vector3 vectorB)
+{
+    Quaternion rot = Quaternion(vectorA, vectorB);
+    return rot.RotationMatrix();
+}
+
 
 Vector3 CSweepMath::getDefaultN(Vector3 T)
 {
@@ -381,8 +390,17 @@ void CSweep::UpdateEntity()
             T = points[1] - points[0];
             N = Ns[0];
 
+            float angle = 0;
+
+            if (pathInfo->IsBSpline) {
+                angle = Math.getAngle(T, pathInfo->BspTangents[0]);
+                Matrix3 rot = Math.calculateRotationMatrix(T, pathInfo->BspTangents[0]);
+                N = rot * N;
+                T = pathInfo->BspTangents[0];
+            }
+
             // generate points in a circle perpendicular to the curve at the current point
-            drawCrossSection(crossSections[0], points[0], T, N, angles[0], 0, controlScales[0],
+            drawCrossSection(crossSections[0], points[0], T, N, angles[0], angle, controlScales[0],
                              ++segmentCount, shouldFlip);
         }
         else
@@ -442,8 +460,18 @@ void CSweep::UpdateEntity()
                 }
                 else
                 {
+                    float angle = 0;
+                    N = Ns[i - 1];
                     T = points[i] - points[i - 1];
-                    drawCrossSection(crossSections[i], points[i], T, Ns[i - 1], angles[i], 0,
+
+                    if (pathInfo->IsBSpline) {
+                        angle = Math.getAngle(T, pathInfo->BspTangents[1]);
+                        Matrix3 rot = Math.calculateRotationMatrix(T, pathInfo->BspTangents[1]);
+                        N = rot * N;
+                        T = pathInfo->BspTangents[1];
+                    }
+
+                    drawCrossSection(crossSections[i], points[i], T, N, angles[i], angle,
                                      controlScales[i], ++segmentCount, shouldFlip);
                 }
             }

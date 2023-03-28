@@ -44,6 +44,7 @@ public:
     void MarkDirty() override;
     void Draw(IDebugDraw* draw, bool toggle_wireframe) override;
     float NFactor(int i, int j, float t);
+    std::vector<Vector3> GetMidpoints(std::vector<Vector3> vertices);
 
 private:
     CBSplineMath Math;

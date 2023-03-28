@@ -48,6 +48,7 @@ void CCircle::UpdateEntity()
     // Sweep path info
     SI.Positions = positions;
     SI.IsClosed = true;
+    SI.IsBSpline = false;
     SI.Name = GetName();
     Circle.UpdateValue(&SI);
     SetValid(true);
