@@ -27,7 +27,7 @@ CNome3DView::CNome3DView()
     Base = new Qt3DCore::QEntity;
 
     // Viewport initialization
-    this->defaultFrameGraph()->setClearColor(QColor(QRgb(0x4d4d4f)));
+    this->defaultFrameGraph()->setClearColor(QColor(QRgb(0xffffff)));
     // addRenderer = new Qt3DExtras::QForwardRenderer();
 
     // addRenderer->setClearColor(QColor(QRgb(0xf0f000)));

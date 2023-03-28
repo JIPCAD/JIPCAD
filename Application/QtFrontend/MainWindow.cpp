@@ -11,6 +11,7 @@
 #include <QScrollArea> // Randy added
 #include <QFileDialog>
 #include <QInputDialog>
+#include <QColorDialog>
 #include <QLabel>
 #include <QMessageBox>
 #include <QSettings>
@@ -74,6 +75,13 @@ void CMainWindow::closeEvent(QCloseEvent* event)
         Nome3DView->close();
     }
     QWidget::closeEvent(event);
+}
+
+void CMainWindow::on_actionChangeBackground_triggered() { 
+    // Aaron's code
+    QColor newColor = QColorDialog::getColor(curColor, parentWidget());
+    Nome3DView->defaultFrameGraph()->setClearColor(newColor);
+    curColor = newColor;
 }
 
 void CMainWindow::on_actionNew_triggered()

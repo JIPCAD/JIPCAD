@@ -70,6 +70,7 @@
                 <addaction name="separator"/>
                 <addaction name="actionAddFace"/>
                 <addaction name="actionAddPolyline"/>
+				<addaction name="actionChangeBackground"/>
                 <addaction name="actionRemoveFace"/>
                 <addaction name="actionCommitChanges"/>
             </widget>
@@ -191,6 +192,12 @@
                 <string>&amp;Add Point</string>
             </property>
         </action>
+
+		<action name="actionChangeBackground">
+			<property name="text">
+				<string>&amp;Change Background</string>
+			</property>
+		</action>
 
         <!--  <action name="actionPoint">
            <property name="text">

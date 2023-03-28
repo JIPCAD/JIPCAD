@@ -54,6 +54,7 @@ private slots:
     void on_actionMerge_triggered();
     void prepare_for_stl_no_merge();
     void on_actionSubdivide_triggered();
+    void on_actionChangeBackground_triggered();
 
     /*  10/1 Randy Commenting out because these are not fully implemented right now
     void on_actionPoint_triggered();
@@ -88,6 +89,8 @@ private slots:
     void on_actionToggleBackFace_triggered();
     void on_actionToggleWireFrame_triggered();
 
+    
+
 private:
     // Load nome files into the current window, only call one of them
     void mark_inst_dirty();
@@ -112,6 +115,7 @@ private:
     //QLineEdit* InstName; // Randy decided not to use this for now. This was originally intended to allow users to name their added faces/polylines
     //QLineEdit* MeshName; // Randy decided not to use this for now. This was originally intended to allow users to name their added faces/polylines
     bool bDetached3DView = false;
+    QColor curColor = QColor(0xff0000);
 
     // Info about the currently open file
     std::shared_ptr<CSourceManager> SourceMgr;
