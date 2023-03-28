@@ -451,7 +451,7 @@ void Mesh::computeNormals(bool isPolyline)
     {
         for (vIt = vertList.begin(); vIt != vertList.end(); vIt++)
         {
-            std::cout <<"Now calculating vertex with ID: "<< *vIt <<std::endl;
+            //std::cout <<"Now calculating vertex with ID: "<< *vIt <<std::endl;
             getVertexNormal(*vIt);
         }
     }
