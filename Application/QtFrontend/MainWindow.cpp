@@ -4,6 +4,7 @@
 #include "Nome3DView.h"
 #include "ui_MainWindow.h"
 #include <Scene/ASTSceneAdapter.h>
+#include <QColorDialog>
 #include <Scene/Environment.h>
 
 
@@ -130,7 +131,13 @@ void CMainWindow::on_actionOpen_triggered()
         // Not possible for now since ImGui supports only one context per process
     }
 }
-
+void CMainWindow::on_actionChangeBackground_triggered()
+{
+    //Aaron's code 
+    QColor newColor = QColorDialog::getColor(curColor, parentWidget());
+    Nome3DView->defaultFrameGraph()->setClearColor(newColor);
+    curColor = newColor;
+}
 void CMainWindow::on_actionReload_triggered()
 {
     UnloadNomeFile();

@@ -63,7 +63,7 @@ private slots:
     // void on_actionAbout_triggered(); commeting out with new developments
 
     void on_actionAddPoint_triggered(); // Steven's Add Point
-
+    void on_actionChangeBackground_triggered();
     void on_actionAddFace_triggered();
     void on_actionAddPolyline_triggered(); 
 
@@ -120,6 +120,7 @@ private:
     // Info about the currently open file
     std::shared_ptr<CSourceManager> SourceMgr;
     bool bIsBlankFile;
+    QColor curColor = QColor(0xff0000); 
 
     // Nome Context
     tc::TAutoPtr<Scene::CScene> Scene;
