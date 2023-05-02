@@ -85,6 +85,10 @@ void CMainWindow::on_actionChangeBackground_triggered() {
     curColor = newColor;
 }
 
+void CMainWindow::onactionColorChange_triggered() {
+
+}
+
 void CMainWindow::on_actionNew_triggered()
 {
     if (!bIsBlankFile)
@@ -130,13 +134,6 @@ void CMainWindow::on_actionOpen_triggered()
         // new CMainWindow(fileName.toStdString());
         // Not possible for now since ImGui supports only one context per process
     }
-}
-void CMainWindow::on_actionChangeBackground_triggered()
-{
-    //Aaron's code 
-    QColor newColor = QColorDialog::getColor(curColor, parentWidget());
-    Nome3DView->defaultFrameGraph()->setClearColor(newColor);
-    curColor = newColor;
 }
 void CMainWindow::on_actionReload_triggered()
 {
