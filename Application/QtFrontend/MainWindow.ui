@@ -71,7 +71,7 @@
                 <addaction name="actionAddFace"/>
                 <addaction name="actionAddPolyline"/>
 				<addaction name="actionChangeBackground"/>
-				<addaction name="actionChangeFaceColor"/>
+				<addaction name="actionFaceColorChange"/>
                 <addaction name="actionRemoveFace"/>
                 <addaction name="actionCommitChanges"/>
             </widget>
@@ -201,7 +201,7 @@
         </action>
 
 
-		<action name="actionChangeFaceColor">
+		<action name="actionFaceColorChange">
 			<property name="text">
 				<string>&amp;Change Face Color</string>
 			</property>

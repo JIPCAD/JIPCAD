@@ -55,7 +55,7 @@ private slots:
     void prepare_for_stl_no_merge();
     void on_actionSubdivide_triggered();
 
-    void onactionColorChange_triggered();
+    void on_actionFaceColorChange_triggered();
 
     /*  10/1 Randy Commenting out because these are not fully implemented right now
     void on_actionPoint_triggered();

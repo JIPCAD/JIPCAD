@@ -217,6 +217,8 @@ public:
         std::vector<std::string> faceNames); // Randy added on 10/19 to return face vert names
 
     void DeselectAll();
+    
+
 
 private:
     // Instance specific data
@@ -226,13 +228,11 @@ private:
 
     unsigned int TransformChangeConnection;
 
-    CMeshImpl Mesh;
-    DSMesh currMesh; // Project SwitchDS. changed to pointer on 1/29
-
-
     std::map<Face* , std::array<float, 3>> DSFaceWithColorVector; // Randy added on 12/12 for face entity coloring
     std::set<std::string> FacesToDelete;
 
+    DSMesh currMesh; // Project SwitchDS. changed to pointer on 1/29
+    CMeshImpl Mesh;
     // std::map<std::string, std::pair<CMeshInstancePoint*, uint32_t>> PickingVerts; Randy commented
     // this out on 10/10 . I dont think it does anything???
 

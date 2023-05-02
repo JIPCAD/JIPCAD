@@ -85,8 +85,13 @@ void CMainWindow::on_actionChangeBackground_triggered() {
     curColor = newColor;
 }
 
-void CMainWindow::onactionColorChange_triggered() {
-
+// This is for face color change
+void CMainWindow::on_actionFaceColorChange_triggered() {
+    //Aaron's code, revised 5/2
+    /* for (const auto& faceNames : Nome3DView->GetSelectedFaces())
+    {
+        Nome3DView->currMesh->
+    }*/
 }
 
 void CMainWindow::on_actionNew_triggered()
