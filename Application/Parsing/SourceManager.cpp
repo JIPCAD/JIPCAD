@@ -72,7 +72,11 @@ bool CSourceManager::ParseMainSource()
 void CSourceManager::InsertText(size_t globalOffset, const std::string& text)
 {
     auto [pieceIndex, currOff] = FindPieceIndexAndOffset(globalOffset);
-
+    if (pieceIndex == -1)
+    {
+        //Aaron's additions
+        pieceIndex = PieceTable.size() - 1; 
+    }
     // Append new text into append buffer
     size_t addBufStart = AddBuffer.length();
     AddBuffer.append(text);
@@ -163,7 +167,8 @@ std::pair<size_t, size_t> CSourceManager::FindPieceIndexAndOffset(size_t globalO
         pieceIndex++;
     }
     if (!bFound)
-        throw std::runtime_error("Could not insert text because global offset is out of range");
+        return { -1, currOff };
+        //throw std::runtime_error("Could not insert text because global offset is out of range");
     return { pieceIndex, currOff };
 }
 
