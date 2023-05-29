@@ -94,6 +94,41 @@ void CMainWindow::on_actionFaceColorChange_triggered() {
     }*/
 }
 
+void CMainWindow::on_actionGetSelectedVerts_triggered() {
+    //Output on stdout
+    std::cout << "Current Selected Vertices:" << std::endl;
+    int count = 1;
+    for (std::string vertice  : Nome3DView->GetSelectedVertices())
+    {
+        std::cout << "Vertex " << count << vertice << std::endl;
+    }
+
+    //Creating Dialog
+    auto* dialog = new QDialog(this);
+    dialog->setModal(true);
+    auto* layout1 = new QHBoxLayout(dialog);
+    auto* table = new QTableWidget();
+    table->setRowCount(Nome3DView->GetSelectedVertices().size());
+    table->setColumnCount(1);
+    QStringList titles;
+    titles.append(QString::fromStdString("Selected Verts"));
+    table->setHorizontalHeaderLabels(titles);
+    size_t i = 0;
+    for (std::string vertice : Nome3DView->GetSelectedVertices())
+    {
+        auto* nameWidget = new QTableWidgetItem(QString::fromStdString(vertice));
+        table->setItem(i, 0, nameWidget);
+    }
+    layout1->addWidget(table);
+    auto* layout2 = new QVBoxLayout();
+    auto* btnCancel = new QPushButton();
+    btnCancel->setText("Cancel");
+    connect(btnCancel, &QPushButton::clicked, dialog, &QWidget::close);
+    layout2->addWidget(btnCancel);
+    layout1->addLayout(layout2);
+    dialog->show();
+}
+
 void CMainWindow::on_actionNew_triggered()
 {
     if (!bIsBlankFile)
