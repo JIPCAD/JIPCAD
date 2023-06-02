@@ -90,6 +90,7 @@ static const std::unordered_map<std::string, ECommandKind> CommandInfoMap = {
     { "subdivision", ECommandKind::Instance },
     {"frontcolor", ECommandKind::Instance},
     {"backcolor", ECommandKind::Instance},
+    {"backgroundcolor", ECommandKind::Instance},
     { "offset", ECommandKind::Instance },
     { "mobiusstrip", ECommandKind::Entity },
     { "helix", ECommandKind::Entity },
@@ -536,6 +537,17 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
         auto G = std::any_cast<float>(items.at(1)->Accept(&eval));
         auto B = std::any_cast<float>(items.at(2)->Accept(&eval));
         GEnv.Scene->backColor = {R, G, B};
+    } else if (cmd->GetCommand() == "backgroundcolor") {
+        auto* expr = cmd->GetPositionalArgument(0);
+        CExprEvalDirect eval;
+        // auto result = expr->Accept(&eval);
+        // return std::any_cast<float>(result);
+        auto items = static_cast<AST::AVector*>(expr)->GetItems();
+        auto R = std::any_cast<float>(items.at(0)->Accept(&eval));
+        auto G = std::any_cast<float>(items.at(1)->Accept(&eval));
+        auto B = std::any_cast<float>(items.at(2)->Accept(&eval));
+        GEnv.Scene->backgroundColor = {R, G, B};
+
     }
     CmdTraverseStack.pop_back();
 }

@@ -27,7 +27,7 @@ CNome3DView::CNome3DView()
     Base = new Qt3DCore::QEntity;
 
     // Viewport initialization
-    this->defaultFrameGraph()->setClearColor(QColor(QRgb(0xffffff)));
+    //this->defaultFrameGraph()->setClearColor(QColor(0,0,0,255));
     // addRenderer = new Qt3DExtras::QForwardRenderer();
 
     // addRenderer->setClearColor(QColor(QRgb(0xf0f000)));
@@ -71,6 +71,7 @@ void CNome3DView::TakeScene(const tc::TAutoPtr<Scene::CScene>& scene)
 {
     using namespace Scene;
     Scene = scene;
+    this->defaultFrameGraph()->setClearColor(QColor(255*Scene->backgroundColor[0],255*Scene->backgroundColor[1],255*Scene->backgroundColor[2],255));
     Scene->Update();
     Scene->ForEachSceneTreeNode(
         [this](CSceneTreeNode* node)

@@ -142,6 +142,8 @@ id
 	| ENDFRONTCOLOR
 	| BACKCOLOR
 	| ENDBACKCOLOR
+	| BACKGROUNDCOLOR
+	| ENDBACKGROUNDCOLOR
 	| BACKFACE
 	| ENDBACKFACE
 	| WINDOW
@@ -268,6 +270,7 @@ command
    | open=SURFACE name=ident argColor end=ENDSURFACE # CmdSurface
    | open=FRONTCOLOR LPAREN expression expression expression RPAREN end=ENDFRONTCOLOR # CmdInitColor
    | open=BACKCOLOR LPAREN expression expression expression RPAREN end=ENDBACKCOLOR # CmdInitColor
+   | open=BACKGROUNDCOLOR LPAREN expression expression expression RPAREN end=ENDBACKGROUNDCOLOR # CmdInitColor
    | open=BACKFACE name=ident argColor end=ENDBACKFACE # CmdSurface
    | open=WINDOW name=ident argOrigin argSize argBackground end=ENDWINDOW # CmdWindow
    | open=FOREGROUND argSurface end=ENDFOREGROUND # CmdArgSurface
@@ -407,6 +410,8 @@ FRONTCOLOR : 'frontcolor';
 ENDFRONTCOLOR : 'endfrontcolor';
 BACKCOLOR : 'backcolor';
 ENDBACKCOLOR : 'endbackcolor';
+BACKGROUNDCOLOR: 'backgroundcolor';
+ENDBACKGROUNDCOLOR : 'endbackgroundcolor';
 ENDBACKFACE : 'endbackface';
 WINDOW : 'window';
 ENDWINDOW : 'endwindow';
