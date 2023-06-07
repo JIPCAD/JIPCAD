@@ -1,6 +1,8 @@
 #include "Nome3DView.h"
 #include "FrontendContext.h"
 #include "MainWindow.h"
+#include "ResourceMgr.h"
+#include "InteractiveCamera.h"
 #include <Scene/Mesh.h>
 
 #include <QBuffer>
@@ -130,8 +132,9 @@ void CNome3DView::TakeScene(const tc::TAutoPtr<Scene::CScene>& scene)
                         // Create an InteractiveLight from the scene node
                         auto* camera = new CInteractiveCamera(node);
                         camera->setParent(this->Root);
+                        camera->Camera = this->camera();
                         InteractiveCameras.insert(camera);
-                        node->SetEntityUpdated(false);
+                        //node->SetEntityUpdated(false);
                     }
                 }
                 else

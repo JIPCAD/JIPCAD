@@ -338,11 +338,14 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                 auto* typeinfo = cmd->GetNamedArgument("projection");
                 auto* expr = typeinfo->GetArgument(0);
                 // Just return if the corresponding element is not found in the AST
-                if (!expr)
+                if (!expr) {
                     std::cout << "Haven't detected the camera projection type" << std::endl;
-                else
+                    camera->GetCamera().type = "DEFAULT"; 
+                }
+                else {
                     camera->GetCamera().type = static_cast<const AST::AIdent*>(expr)->ToString();
-            }
+                }
+            } 
             if (auto* viewport = dynamic_cast<CViewport*>(entity.Get())) {
                 auto* cameraId = cmd->GetNamedArgument("cameraID");
                 auto* expr = cameraId->GetArgument(0);

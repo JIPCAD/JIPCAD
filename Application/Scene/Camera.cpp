@@ -22,14 +22,23 @@ namespace Nome::Scene
     {
         if (!IsDirty())
             return;
-        CI.para[0] = left.GetValue(0.5);
-        CI.para[1] = right.GetValue(-0.5);
-        CI.para[2] = bottom.GetValue(-0.5);
-        CI.para[3] = top.GetValue(0.5);
-        CI.para[4] = nearPlane.GetValue(0.1);
-        CI.para[5] = farPlane.GetValue(1000);
-        Super::UpdateEntity();
-        SetValid(true);
+        if (this->GetCamera().type == "PARALLEL") {
+            CI.para[0] = left.GetValue(0.5);
+            CI.para[1] = right.GetValue(-0.5);
+            CI.para[2] = bottom.GetValue(-0.5);
+            CI.para[3] = top.GetValue(0.5);
+            CI.para[4] = nearPlane.GetValue(0.1);
+            CI.para[5] = farPlane.GetValue(1000);
+            Super::UpdateEntity();
+            SetValid(true);
+        } else if (this->GetCamera().type == "PERSPECTIVE") {
+            CI.para[0] = left.GetValue(0.5);
+            CI.para[1] = right.GetValue(-0.5);
+            CI.para[2] = bottom.GetValue(-0.5);
+            CI.para[3] = top.GetValue(0.5);
+            Super::UpdateEntity();
+            SetValid(true);
+        }
     }
 
     bool CCamera::IsMesh() {

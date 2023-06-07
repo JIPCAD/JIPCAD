@@ -207,7 +207,7 @@ argLightType : TYPE ident;
 argLightColor : COLOR vector3;
 argCameraProjection : PROJECTION ident;
 argCameraID : CAMERAID ident;
-argCameraFrustum : FRUSTUM LPAREN expression* RPAREN;
+argCameraFrustum : FRUSTUM LPAREN ((expression expression expression expression expression expression) | (expression expression expression expression)) RPAREN;
 argTransform
    : ROTATE LPAREN exp1=expression exp2=expression exp3=expression RPAREN LPAREN exp4=expression RPAREN # argTransformTwo
    | SCALE LPAREN expression expression expression RPAREN # argTransformOne
