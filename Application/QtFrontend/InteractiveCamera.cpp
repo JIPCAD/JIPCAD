@@ -1,5 +1,6 @@
 #include "InteractiveCamera.h"
 #include "Nome3DView.h"
+#include <cmath>
 #include "ResourceMgr.h"
 #include <Scene/Camera.h>
 
@@ -45,18 +46,17 @@ void CInteractiveCamera::UpdateCamera()
 
             type = Perspective;
         } else if (CameraInstance.type == "PERSPECTIVE") {
-            Camera->lens()->setPerspectiveProjection(CameraInstance.para[0], 
-                                                        CameraInstance.para[1],
-                                                        CameraInstance.para[2],
-                                                        CameraInstance.para[3]);
+            float aspect_ratio = (float)(CameraInstance.para[1] - CameraInstance.para[0])/(float)(CameraInstance.para[3] - CameraInstance.para[2]);
+            float fov = (float)(std::atan(CameraInstance.para[3]/CameraInstance.para[4]) * 2); 
+            Camera->lens()->setPerspectiveProjection(fov, 
+                                                        aspect_ratio,
+                                                        CameraInstance.para[4],
+                                                        CameraInstance.para[5]);
             type = Perspective;
         }
-        else
-        {
-            std::cout << "ELSE" << std::endl;
+        else {
             Camera->lens()->setPerspectiveProjection(45.0f, 1280.f / 720.f, 0.1f, 1000.0f);
-            std::cout << "The entity is not a Camera instance, we don't know how to handle it."
-                      << std::endl;
+            std::cout << CameraInstance.type << " is not a Camera instance, Using default camera projection." << std::endl;
         }
     }
 }
