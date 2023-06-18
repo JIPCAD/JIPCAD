@@ -5,6 +5,9 @@
 #include <Qt3DCore/QEntity>
 #include <Qt3DCore/QTransform>
 #include <QDirectionalLight>
+#include <QCamera>
+#include <QVector3D>
+#include <QVector4D>
 
 enum LightType { SpotLight, AmbientLight, DirectionalLight, PointLight };
 
@@ -23,6 +26,7 @@ public:
 
 public:
     Qt3DRender::QAbstractLight* Light = nullptr;
+    Qt3DRender::QCamera* Camera = nullptr;
     LightType type;
     QColor Color;
 

@@ -84,7 +84,7 @@ public:
     }
 
     std::array<float, 3> backgroundColor = {255.0/255.0, 255.0/255.0, 255.0/255.0};
-    std::array<float, 3> frontColor = { 255.0 / 255.0, 165.0 / 255.0, 0.0 }; // Prof prefers orange
+    std::array<float, 3> frontColor = { 250.0 / 255.0, 166.0 / 255.0, 25.0 / 255.0 }; // Prof prefers orange
     std::array<float, 3> backColor = {0.3, 0.3, 0.3};
 
 private:

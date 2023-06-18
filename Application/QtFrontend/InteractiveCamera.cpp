@@ -4,6 +4,7 @@
 #include "ResourceMgr.h"
 #include <Scene/Camera.h>
 
+
 namespace Nome
 {
 
@@ -15,11 +16,34 @@ CInteractiveCamera::CInteractiveCamera(Scene::CSceneTreeNode* node)
 
 void CInteractiveCamera::UpdateTransform() {
     const auto &tf = SceneTreeNode->L2WTransform.GetValue(tc::Matrix3x4::IDENTITY);
-    QMatrix4x4 qtf{tf.ToMatrix4().Data()};
-
-    Camera->setUpVector(QVector3D(0, 0, 1));
-    Camera->setViewCenter(QVector3D(0, 0, 0));
-    //Camera->setProjectionMatrix(qtf);
+    if (tf.ToMatrix4().Data()) {
+        QMatrix4x4 qtf{tf.ToMatrix4().Data()};
+        if (!qtf.isIdentity()) {
+            Camera->setViewCenter(QVector3D(0, 0, 0));
+            QVector3D vec = QVector3D(0, 0, 2.73);
+            QVector4D prevupvec = QVector4D(0, 1, 0, 1);
+            QVector4D proj_vec = vec.toVector4D();
+            QVector4D newupvec = qtf * prevupvec; 
+            proj_vec.setW(1); //For Translation!
+            QVector4D mult_vec = qtf * proj_vec;
+            QVector3D eye = QVector3D(mult_vec.x(), mult_vec.y(), mult_vec.z());
+            QVector3D line_of_sight = QVector3D(0-(float)mult_vec.x(), 0-(float)mult_vec.y(), 0-(float)mult_vec.z()).normalized();
+            Camera->setPosition(eye);
+            QVector3D u = QVector3D::crossProduct(line_of_sight, QVector3D(0, 1, 0)).normalized();
+            QVector3D v = QVector3D::crossProduct(u, line_of_sight).normalized();
+            QVector3D updatednewupvec = newupvec.toVector3D().normalized(); 
+            //std::cout << mult_vec.x() << " " << mult_vec.y() << " " << mult_vec.z() << std::endl;
+            //std::cout << updatednewupvec.x() << " " << updatednewupvec.y() << " " << updatednewupvec.z() << std::endl;
+            Camera->setUpVector(updatednewupvec);
+            //Camera->setUpVector(qtf.column(3).toVector3D().normalized());
+            // Camera->setProjectionMatrix(qtf);
+            Camera->transform(); 
+        } else {
+            Camera->setViewCenter(QVector3D(0, 0, 0));
+            Camera->setPosition(QVector3D(0, 0, 2.73));
+            Camera->setUpVector(QVector3D(0, 1, 0));
+        }
+    }
 
 }
 /* Brian add on Jun 7 2023 for Parallel, Perspective Projection with user defined frustum. */
@@ -37,21 +61,35 @@ void CInteractiveCamera::UpdateCamera()
         if (!Camera)
             Camera = new Qt3DRender::QCamera();
         if (CameraInstance.type == "PARALLEL") {
-            this->Camera->lens()->setOrthographicProjection(CameraInstance.para[0],
-                                                      CameraInstance.para[1],
-                                                      CameraInstance.para[2],
-                                                      CameraInstance.para[3],
-                                                      CameraInstance.para[4],
-                                                      CameraInstance.para[5]);
 
-            type = Perspective;
+            this->Camera->lens()->setOrthographicProjection(CameraInstance.para[0],
+                                        CameraInstance.para[1],
+                                        CameraInstance.para[2],
+                                        CameraInstance.para[3],
+                                        CameraInstance.para[4],
+                                        CameraInstance.para[5]);
+
+            
+
+            type = Orthogonal;
         } else if (CameraInstance.type == "PERSPECTIVE") {
-            float aspect_ratio = (float)(CameraInstance.para[1] - CameraInstance.para[0])/(float)(CameraInstance.para[3] - CameraInstance.para[2]);
-            float fov = (float)(std::atan(CameraInstance.para[3]/CameraInstance.para[4]) * 2); 
-            Camera->lens()->setPerspectiveProjection(fov, 
-                                                        aspect_ratio,
-                                                        CameraInstance.para[4],
-                                                        CameraInstance.para[5]);
+            if (CameraInstance.para[0] == (float)0.5 && 
+                CameraInstance.para[1] == (float)-0.5 &&
+                CameraInstance.para[2] == (float)-0.5 &&
+                CameraInstance.para[3] == (float)0.5 &&
+                CameraInstance.para[4] == (float)0.1 &&
+                CameraInstance.para[5] == (float)1000) {
+                Camera->lens()->setPerspectiveProjection(45.0f, 1280.f / 720.f, 0.1f, 1000.0f);
+            } else {
+                std::cout << "BYE" << std::endl;
+                float aspect_ratio = (float)(CameraInstance.para[1] - CameraInstance.para[0])/(float)(CameraInstance.para[3] - CameraInstance.para[2]);
+                float fov = (float)(std::atan(CameraInstance.para[3]/CameraInstance.para[4]) * 2); 
+                Camera->lens()->setPerspectiveProjection(fov, 
+                                                            aspect_ratio,
+                                                            CameraInstance.para[4],
+                                                            CameraInstance.para[5]);
+
+            }
             type = Perspective;
         }
         else {

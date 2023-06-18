@@ -326,6 +326,13 @@ antlrcpp::Any CFileBuilder::visitArgLightColor(NomParser::ArgLightColorContext* 
     return arg;
 }
 
+antlrcpp::Any CFileBuilder::visitArgLightVector(NomParser::ArgLightVectorContext* ctx)
+{
+    auto* arg = new AST::ANamedArgument(ConvertToken(ctx->getStart()));
+    arg->AddChild(visit(ctx->vector3()).as<AST::AExpr*>());
+    return arg;
+}
+
 antlrcpp::Any CFileBuilder::visitArgLightType(NomParser::ArgLightTypeContext* ctx)
 {
     auto* result = new AST::ANamedArgument(ConvertToken(ctx->getStart()));
@@ -395,7 +402,8 @@ antlrcpp::Any CFileBuilder::visitCmdLight(NomParser::CmdLightContext* context)
     // Handle arguments other than name
     cmd->AddNamedArgument(visit(context->argLightType()));
     cmd->AddNamedArgument(visit(context->argLightColor()));
-
+    for (auto* arg : context->argLightVector())
+        cmd->AddNamedArgument(visit(arg));
     return cmd;
 }
 
@@ -627,7 +635,9 @@ antlrcpp::Any CFileBuilder::visitCmdCamera(NomParser::CmdCameraContext *context)
     cmd->PushPositionalArgument(visit(context->name));
     // Handle arguments other than name
     cmd->AddNamedArgument(visit(context->argCameraProjection()));
-    cmd->AddNamedArgument(visit(context->argCameraFrustum()));
+    for (auto* arg : context->argCameraFrustum())
+        cmd->AddNamedArgument(visit(arg));
+    //cmd->AddNamedArgument(visit(context->argCameraFrustum()));
     return cmd;
 }
 antlrcpp::Any CFileBuilder::visitCmdWindow(NomParser::CmdWindowContext* context)

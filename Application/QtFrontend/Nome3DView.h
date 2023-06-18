@@ -121,6 +121,10 @@ private:
     QVector2D firstPosition;
     QVector2D secondPosition;
 
+    /* Brian Added Jun 15 2023 for dynamic rendering */
+    tc::Matrix3x4 camerarotation = tc::Matrix3x4::IDENTITY;
+    
+     
     QQuaternion rotation;
     Qt3DRender::QCamera* mainCamera;
     // Qt3DRender::QMaterial *material;

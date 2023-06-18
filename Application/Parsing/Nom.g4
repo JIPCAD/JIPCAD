@@ -46,6 +46,7 @@ id
 	| ORDER
 	| TYPE
 	| COLOR
+	| DIRECTION
 	| PROJECTION
 	| CAMERAID
 	| FRUSTUM
@@ -54,7 +55,6 @@ id
 	| TRANSLATE
 	| CROTATE
 	| CTRANSLATE
-	| COLOR
 	| ROTATE
 	| SCALE
 	| POINT
@@ -205,6 +205,7 @@ argSegs : SEGS expression ;
 argOrder : ORDER expression ;
 argLightType : TYPE ident;
 argLightColor : COLOR vector3;
+argLightVector : DIRECTION vector3;
 argCameraProjection : PROJECTION ident;
 argCameraID : CAMERAID ident;
 argCameraFrustum : FRUSTUM LPAREN expression expression expression expression expression expression RPAREN;
@@ -286,8 +287,8 @@ command
    | open=SHARP expression idList+ end=ENDSHARP # CmdSharp
    | open=OFFSET name=ident argOffsetFlag* argHeight* argWidth* command* end=ENDOFFSET # CmdOffset
    | open=INCLUDE name=ident end=ENDINCLUDE # CmdInclude
-   | open=LIGHT name=ident argLightType argLightColor end=ENDLIGHT # CmdLight
-   | open=CAMERA name=ident argCameraProjection argCameraFrustum end=ENDCAMERA #CmdCamera
+   | open=LIGHT name=ident argLightType argLightColor argLightVector* end=ENDLIGHT # CmdLight
+   | open=CAMERA name=ident argCameraProjection (argCameraFrustum)* end=ENDCAMERA #CmdCamera
    | open=VIEWPORT name=ident argCameraID argOrigin argSize end=ENDVIEWPORT #CmdViewport
    ;
 
@@ -320,6 +321,7 @@ SEGS : 'segs';
 ORDER : 'order';
 TYPE : 'type';
 COLOR : 'color';
+DIRECTION : 'direction'; 
 PROJECTION : 'projection';
 CAMERAID : 'cameraID';
 FRUSTUM : 'frustum';

@@ -4,6 +4,7 @@
 
 #include <map>
 #include <set>
+#include <vector>
 #include <utility>
 #include <QColor>
 
@@ -14,6 +15,7 @@ struct CLightInfo
 {
     QColor color;
     std::string type;
+    float direction[3];
     virtual ~CLightInfo() = default;
 };
 
@@ -23,6 +25,9 @@ class CLight : public CEntity
 DEFINE_INPUT(float, R) { MarkDirty(); }
 DEFINE_INPUT(float, G) { MarkDirty(); }
 DEFINE_INPUT(float, B) { MarkDirty(); }
+DEFINE_INPUT(float, X) { MarkDirty(); }
+DEFINE_INPUT(float, Y) { MarkDirty(); }
+DEFINE_INPUT(float, Z) { MarkDirty(); }
 
 public:
     DECLARE_META_CLASS(CLight, CEntity);

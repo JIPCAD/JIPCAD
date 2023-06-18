@@ -5,8 +5,11 @@
 #include <Qt3DCore/QEntity>
 #include <Qt3DCore/QTransform>
 #include <QCamera>
+#include <QVector3D>
+#include <QVector4D>
 
-enum CameraType { Perspective, FRUSTUM };
+
+enum CameraType { Perspective, Orthogonal };
 
 
 namespace Nome
@@ -24,6 +27,7 @@ public:
 
 public:
     Qt3DRender::QCamera* Camera = nullptr;
+    Qt3DCore::QTransform* Transform = nullptr;
     CameraType type;
     std::string name;
 

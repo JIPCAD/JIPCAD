@@ -48,6 +48,7 @@ public:
     antlrcpp::Any visitArgFuncY(NomParser::ArgFuncYContext* ctx) override; // Brandon's gen shape generator
     antlrcpp::Any visitArgFuncZ(NomParser::ArgFuncZContext* ctx) override; // Brandon's gen shape generator
     antlrcpp::Any visitArgLightColor(NomParser::ArgLightColorContext* ctx) override;
+    antlrcpp::Any visitArgLightVector(NomParser::ArgLightVectorContext* ctx) override;
     antlrcpp::Any visitArgOffsetFlag(NomParser::ArgOffsetFlagContext* ctx) override;
     antlrcpp::Any visitArgHeight(NomParser::ArgHeightContext* ctx) override;
     antlrcpp::Any visitArgWidth(NomParser::ArgWidthContext* ctx) override;

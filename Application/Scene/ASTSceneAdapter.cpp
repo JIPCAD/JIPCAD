@@ -327,6 +327,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
             entity->GetMetaObject().DeserializeFromAST(*cmd, *entity);
             if (auto* light = dynamic_cast<CLight*>(entity.Get())) {
                 auto* typeinfo = cmd->GetNamedArgument("type");
+                auto* vectorinfo = cmd->GetNamedArgument("color");
                 auto* expr = typeinfo->GetArgument(0);
                 // Just return if the corresponding element is not found in the AST
                 if (!expr)

@@ -25,7 +25,7 @@ namespace Nome
     , PointGeometry {}
     , PointRenderer {}
 {
-    InstanceColor = { 255.0 / 255.0, 165.0 / 255.0, 0.0 }; // Prof prefers orange
+    InstanceColor = {250.0 / 255.0, 166.0 / 255.0, 25.0 / 255.0}; // Prof prefers orange
     InstanceBackColor = {0.3, 0.3, 0.3};
     InstanceColor = frontColor;
     InstanceBackColor = backColor;
@@ -212,6 +212,9 @@ void CInteractiveMesh::UpdateMaterial()
     }
     for (auto light : GFrtCtx->NomeView->InteractiveLights) {
         if (light->type != AmbientLight) {
+            // InstanceColor[0] *= light->Color.redF();
+            // InstanceColor[1] *= light->Color.greenF();
+            // InstanceColor[2] *= light->Color.blueF();
             this->addComponent(light->Light);
         } else {
             InstanceColor[0] = light->Color.redF();

@@ -46,6 +46,7 @@ CNome3DView::CNome3DView()
     mainCamera->setPosition(QVector3D(0, 0, zPos));
     mainCamera->setViewCenter(QVector3D(0, 0, 0));
 
+
     // Xinyu add on Oct 8 for rotation
     projection.setToIdentity();
     objectX = objectY = objectZ = 0;
@@ -134,6 +135,9 @@ void CNome3DView::TakeScene(const tc::TAutoPtr<Scene::CScene>& scene)
                         camera->setParent(this->Root);
                         camera->Camera = this->camera();
                         InteractiveCameras.insert(camera);
+                        //IF a camera is rotated, the OrbitTransformController needs to be reconfigured
+                        this->camerarotation = node->L2WTransform.GetValue(tc::Matrix3x4::IDENTITY);
+
                         //node->SetEntityUpdated(false);
                     }
                 }
@@ -200,6 +204,7 @@ void CNome3DView::PostSceneUpdate()
                     {
                         /// add and update light
                         CInteractiveLight* light;
+                        light->Camera = this->camera();
                         // Check for existing InteractiveMesh
                         auto iter = sceneLightAssoc.find(node);
                         if (iter != sceneLightAssoc.end())
@@ -1188,9 +1193,13 @@ void CNome3DView::mouseMoveEvent(QMouseEvent* e)
                 QVector3D secondCrystalPoint = GetCrystalPoint(secondPoint);
                 QVector3D axis =
                     QVector3D::crossProduct(firstCrystalPoint, secondCrystalPoint).normalized();
+                /* Added by Brian, 06/15/2023. Change the viewing axis if the camera is rotated.*/
+                QMatrix4x4 qtf{this->camerarotation.ToMatrix4().Data()};
+                QVector4D trans = qtf * QVector4D(axis.x(), axis.y(), axis.z(), 0);
+                QVector3D objectinput = trans.toVector3D(); 
                 float distance = firstCrystalPoint.distanceToPoint(secondCrystalPoint);
                 rotation =
-                    QQuaternion::fromAxisAndAngle(axis, qRadiansToDegrees(2 * asin(distance / 2)))
+                    QQuaternion::fromAxisAndAngle(objectinput, qRadiansToDegrees(2 * asin(distance / 2)))
                     * rotation;
             }
         }
@@ -1225,7 +1234,12 @@ void CNome3DView::wheelEvent(QWheelEvent* ev)
         }
         if (objectZ > 30)
             objectZ = 30;
-        sphereTransform->setTranslation(QVector3D(objectX, objectY, objectZ));
+        /* Added by Brian, 06/15/2023, wheelEvent axis should be translated via camera's transformation matrix. */
+        QMatrix4x4 qtf{this->camerarotation.ToMatrix4().Data()};
+        QVector4D trans = qtf * QVector4D(objectX, objectY, objectZ, 0);
+        QVector3D objectinput = trans.toVector3D(); 
+        sphereTransform->setTranslation(objectinput);
+        //sphereTransform->setTranslation(QVector3D(objectX, objectY, objectZ));
         ev->accept();
     }
 }
