@@ -217,9 +217,10 @@ void CInteractiveMesh::UpdateMaterial()
             // InstanceColor[2] *= light->Color.blueF();
             this->addComponent(light->Light);
         } else {
-            InstanceColor[0] = light->Color.redF();
-            InstanceColor[1] = light->Color.greenF();
-            InstanceColor[2] = light->Color.blueF();
+            InstanceColor[0] *= light->Color.redF();
+            InstanceColor[1] *= light->Color.greenF();
+            InstanceColor[2] *= light->Color.blueF();
+            //this->addComponent(light->Light);
         }
     }
 
