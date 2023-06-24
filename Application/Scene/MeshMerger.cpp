@@ -97,9 +97,14 @@ void CMeshMerger::ExportAsStl(QString filename) {
 void CMeshMerger::Catmull()
 {
     bool needSubdivision = subdivisionLevel != 0;
-    bool needOffset = (Width.GetValue(0) != 0 || Height.GetValue(0) != 0);
+    //bool needOffset = (Width.GetValue(0) != 0 || Height.GetValue(0) != 0);
+    bool needOffset = offsetIdent;
+    // std::cout << std::to_string(Width.GetValue(0)).c_str() << '\n' << std::endl;
+    // std::cout << std::to_string(Height.GetValue(0)).c_str() << std::endl;
+
     if ((!needSubdivision && !needOffset) || MergedMesh.vertList.empty() && currMesh.isEmpty())//.vertices_empty()) Randy changed the commented out method
     {
+        //nothing to do
         return;
     }
     WireFrames.clear();
@@ -112,7 +117,7 @@ void CMeshMerger::Catmull()
 
     if (needSubdivision)
     {
-        //subdivide(otherMesh, subdivisionLevel); //, isSharp); // Randy commented this out for now. add back asap 
+        subdivide(otherMesh, subdivisionLevel); //, isSharp); // Randy commented this out for now. add back asap 
         std::cout << "Apply catmullclark subdivision, may take some time..." << std::endl;
     }
     if (needOffset)
@@ -121,11 +126,21 @@ void CMeshMerger::Catmull()
         std::cout << "Apply offset, may take some time..." << std::endl;
     }
     currMesh = otherMesh.newMakeCopy();
-    subdivide(currMesh, subdivisionLevel);
+    //subdivide(currMesh, subdivisionLevel);
     // ccSubdivision(3);
-    currMesh.buildBoundary();
-    currMesh.computeNormals();
-    std::cout << "done with subdiv" << std::endl;
+    try
+    {
+        currMesh.buildBoundary();
+        currMesh.computeNormals();
+        std::cout << "done with everything" << std::endl;
+    }
+    catch (std::exception& e)
+    {
+        std::cout << "catmul clark subdivision failed: Please do one of the following:" << std::endl;
+
+    }
+    
+    
 }
 
 
@@ -255,8 +270,9 @@ std::pair<Vertex*, float> CMeshMerger::FindClosestVertex(const tc::Vector3& pos)
 // Randy changed it to use DSMesh
 bool CMeshMerger::offset(DSMesh & _m)
 {
-    float height = Height.GetValue(0.0f);
-    float width = Width.GetValue(0.0f);
+
+    double height = Height.GetValue(h);
+    double width = Width.GetValue(w);
     if (height <= 0 && width <= 0)
     {
         return true;

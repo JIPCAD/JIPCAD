@@ -45,6 +45,15 @@ public:
         subdivisionLevel = level;
     }
 
+    void setOffset(bool o) { 
+        offsetIdent = o;
+    }
+    
+    void setOffsetHeightWidth(double height, double width)
+    {
+        h = height;
+        w = width;
+    }
 
     void SetSharp(bool setSharp) { isSharp = setSharp; }
 
@@ -74,6 +83,8 @@ private:
 
     //CMeshImpl MergedMesh;
     unsigned int subdivisionLevel = 0;
+    double h = 0.0f, w = 0.0f;
+    bool offsetIdent = false;
     bool isSharp = true;
     // true == NOME_OFFSET_DEFAULT, false == NOME_OFFSET_GRID
     bool offsetFlag = true;

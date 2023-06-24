@@ -67,6 +67,7 @@
                 </property>
                 <addaction name="actionMerge"/>
                 <addaction name="actionSubdivide"/>
+				<addaction name="actionOffset"/>
                 <addaction name="separator"/>
                 <addaction name="actionAddFace"/>
                 <addaction name="actionAddPolyline"/>
@@ -238,6 +239,11 @@
                 <string>&amp;Subdivide</string>
             </property>
         </action>
+		<action name="actionOffset">
+			<property name="text">
+				<string>&amp;Offset</string>
+			</property>
+		</action>
         <action name="actionAddFace">
             <property name="text">
                 <string>Add Face</string>

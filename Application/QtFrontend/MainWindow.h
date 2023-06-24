@@ -68,6 +68,7 @@ private slots:
     void on_actionChangeBackground_triggered();
     void on_actionAddFace_triggered();
     void on_actionAddPolyline_triggered(); 
+    void on_actionOffset_triggered();
 
      void on_actionRemoveFace_triggered(); // Randy added this. Buggy implementation.
     // void on_actionSharpenFace_triggered(); // Randy added this. Not currently used.

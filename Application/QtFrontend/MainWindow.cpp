@@ -175,6 +175,8 @@ void CMainWindow::on_actionOpen_triggered()
         // Not possible for now since ImGui supports only one context per process
     }
 }
+
+
 void CMainWindow::on_actionReload_triggered()
 {
     UnloadNomeFile();
@@ -250,12 +252,16 @@ void CMainWindow::on_actionMerge_triggered()
     Scene->Update();
     // CmeshMerger is basically a CMesh, but with a MergeIn method. Merger will
     // contain ALL the merged vertices (from various meshes)
+    // The name of the CMeshMerger is an identifier
     tc::TAutoPtr<Scene::CMeshMerger> merger = new Scene::CMeshMerger("globalMerge");
+    // tc::TAutoPtr<Scene::CMeshMerger> merger2 = new Scene::CMeshMerger("random");
 
     Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
         // If the node owner is a globalMergeNode, skip as that was a
         // previously merger mesh (from a previous Merge iteration). We only
         // want to merge vertices from our actual (non-merged) meshes.
+
+        // this is for the merger. If the merger instance is the globalMergeNode, then it is already 
         if (node->GetOwner()->GetName() == "globalMergeNode")
             return;
         auto* entity = node->GetInstanceEntity(); // Else, get the instance
@@ -292,6 +298,40 @@ void CMainWindow::on_actionMerge_triggered()
     sn->SetEntity(merger.Get()); // Set sn, which is the scene node, to point to entity merger
 }
 
+//Triggered when the offset option is triggered
+//Aaron's code added the offsetting option to create offsetted faces
+void CMainWindow::on_actionOffset_triggered() { 
+    Scene->Update(); 
+    //Update the scene
+
+    //tc::TAutoPtr<Scene::CMeshMerger> merger = new Scene::CMeshMerger("globalMerge");
+    // Contains all nodes in theory.
+    bool ok;
+    int offset_width = QInputDialog::getDouble(this, tr("Please enter the width of the offsettingoffset"),
+                                         tr("Offsetting Width:"), 3, 0, 10, 1, &ok);  
+    
+    Scene->ForEachSceneTreeNode(
+        [&](Scene::CSceneTreeNode* node)
+        {
+            if (node->GetOwner()->GetName() == "globalMergeNode")
+            {
+
+                auto* entity = node->GetOwner()->GetEntity();
+                if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
+                {
+                    if (ok && offset_width > 0)
+                        mesh->setOffsetHeightWidth(offset_width, offset_width);
+                    else
+                        mesh->setOffsetHeightWidth(0.1f, 0.1f);
+                    mesh->setOffset(true);
+                    mesh->Catmull();
+                    mesh->setOffset(false);
+                    mesh->MarkDirty();
+                }
+            }
+        });
+
+}
 
 void CMainWindow::prepare_for_stl_no_merge()
 {
