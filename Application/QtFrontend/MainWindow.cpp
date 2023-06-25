@@ -245,6 +245,41 @@ void CMainWindow::on_actionExportAsStl_triggered()
     }
 }
 
+void CMainWindow::on_actionGetSelectedFaces_triggered() 
+{ 
+    // Output on stdout
+    std::cout << "Current Selected Faces:" << std::endl;
+    int count = 1;
+    for (std::string face : Nome3DView->GetSelectedFaces())
+    {
+        std::cout << "Face " << count << face << std::endl;
+    }
+
+    // Creating Dialog
+    auto* dialog = new QDialog(this);
+    dialog->setModal(true);
+    auto* layout1 = new QHBoxLayout(dialog);
+    auto* table = new QTableWidget();
+    table->setRowCount(Nome3DView->GetSelectedFaces().size());
+    table->setColumnCount(1);
+    QStringList titles;
+    titles.append(QString::fromStdString("Selected Faces"));
+    table->setHorizontalHeaderLabels(titles);
+    size_t i = 0;
+    for (std::string face : Nome3DView->GetSelectedFaces())
+    {
+        auto* nameWidget = new QTableWidgetItem(QString::fromStdString(face));
+        table->setItem(i, 0, nameWidget);
+    }
+    layout1->addWidget(table);
+    auto* layout2 = new QVBoxLayout();
+    auto* btnCancel = new QPushButton();
+    btnCancel->setText("Cancel");
+    connect(btnCancel, &QPushButton::clicked, dialog, &QWidget::close);
+    layout2->addWidget(btnCancel);
+    layout1->addLayout(layout2);
+    dialog->show();
+}
 
 void CMainWindow::on_actionMerge_triggered()
 {

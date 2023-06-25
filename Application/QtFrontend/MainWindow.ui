@@ -104,6 +104,7 @@
                 </property>
                 <addaction name="actionRemoveFace"/>
 				<addaction name="actionGetSelectedVerts" />
+				<addaction name="actionGetSelectedFaces" />
             </widget>
 
             <widget class="QMenu" name="menuAddPointConfig">
@@ -262,6 +263,11 @@
 		<action name="actionGetSelectedVerts">
 			<property name="text">
 				<string>Get Selected Vertices</string>
+			</property>
+		</action>
+		<action name="actionGetSelectedFaces">
+			<property name="text">
+				<string>Get Selected Faces</string>
 			</property>
 		</action>
         <!--   <action name="actionSharpenFace">
