@@ -84,14 +84,49 @@ void CMainWindow::on_actionChangeBackground_triggered() {
     Nome3DView->defaultFrameGraph()->setClearColor(newColor);
     curColor = newColor;
 }
-
+std::array<float, 3> colorToFloatArray(const QColor& color)
+{
+    return { (float)color.redF(), (float) color.greenF(), (float) color.blueF() };
+}
 // This is for face color change
 void CMainWindow::on_actionFaceColorChange_triggered() {
-    //Aaron's code, revised 5/2
-    /* for (const auto& faceNames : Nome3DView->GetSelectedFaces())
+    Scene->Update();
+    QColor selectedColor = QColorDialog::getColor(curColor, parentWidget());
+    // Aaron's code, revised 5/2, added Face Color Change option for Selected Faces
+    if (selectedColor != nullptr)
     {
-        Nome3DView->currMesh->
-    }*/
+
+        for (const auto& faceName : Nome3DView->GetSelectedFaces())
+        {
+            Scene->ForEachSceneTreeNode(
+                [&](Scene::CSceneTreeNode* node)
+                {
+                    if (node->GetOwner()->GetName() == "globalMergeNode")
+                    {
+
+                        auto* entity = node->GetOwner()->GetEntity();
+                        if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
+                        {
+                            DSMesh dsMesh =
+                                mesh->GetDSMesh(); // Aaron's code. Getting instance of DS Mesh
+                            for (auto flt = dsMesh.faceList.begin(); flt < dsMesh.faceList.end();
+                                 flt++)
+                            {
+                                Face* curFace = *flt;
+                                if (curFace->name == faceName)
+                                {
+                                    curFace->color = colorToFloatArray(selectedColor);
+                                    curFace->user_defined_color = true;
+                                }
+                                
+                            }
+                        }
+                    }
+                    node->SetEntityUpdated(true);
+                });
+        }
+    }
+    Scene->Update();
 }
 
 void CMainWindow::on_actionGetSelectedVerts_triggered() {
@@ -343,7 +378,7 @@ void CMainWindow::on_actionOffset_triggered() {
     // Contains all nodes in theory.
     bool ok;
     int offset_width = QInputDialog::getDouble(this, tr("Please enter the width of the offsettingoffset"),
-                                         tr("Offsetting Width:"), 3, 0, 10, 1, &ok);  
+                                         tr("Offsetting Width:"), 0.1, 0, 10, 1, &ok);  
     
     Scene->ForEachSceneTreeNode(
         [&](Scene::CSceneTreeNode* node)
