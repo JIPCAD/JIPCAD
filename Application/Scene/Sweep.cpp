@@ -344,21 +344,24 @@ void CSweep::UpdateEntity()
 
     // get the result rotation angles
     for (size_t i = numPoints - 2; i >= 1; i--) { angles[i - 1] += angles[i]; }
-    //add twist to angles
-    for (size_t i = 0; i < numPoints; i++) { angles[i] += i * twist; }
+
+    bool isReversed = false;
+
     // add rotation
     for (size_t i = 0; i < numPoints; i++)
     {
         CSweepControlPointInfo* SI = dynamic_cast<CSweepControlPointInfo*>(pathInfo->Positions[i]);
 
-        angles[i] += azimuth;
-
         if (SI != nullptr) {
 
-            angles[i] += SI->Rotate.z * tc::M_PI / 180;
             controlScales[i].x *= SI->Scale.x;
             controlScales[i].y *= SI->Scale.y;
             controlReverses[i] = SI->Reverse;
+
+            if (controlReverses[i]) { isReversed = !isReversed; }
+
+            float rotAmount = SI->Rotate.z * tc::M_PI / 180;
+            angles[i] += isReversed ? -rotAmount : rotAmount;
 
             if (SI->CrossSection != NULL)
             {
@@ -373,8 +376,16 @@ void CSweep::UpdateEntity()
                 crossSections[i] = section;
             }
         }
+
+        angles[i] += isReversed ? -azimuth : azimuth;
     }
 
+    isReversed = false;
+    // add twist to angles
+    for (size_t i = 0; i < numPoints; i++) {
+        if (controlReverses[i]) { isReversed = !isReversed; }
+        angles[i] += isReversed ? -1 * (i * twist) : i * twist;
+    }
 
     // the count of drawing segments
     int segmentCount = 0;
