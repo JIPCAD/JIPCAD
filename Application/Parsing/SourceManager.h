@@ -24,6 +24,8 @@ class CSourceManager
 
         bool ParseMainSource();
 
+        bool ParseMainSource(bool withAxes);
+
         [[nodiscard]] const std::string& GetMainSourcePath() const { return MainSource; }
         [[nodiscard]] AST::CASTContext& GetASTContext() { return ASTContext; }
 

@@ -120,6 +120,7 @@ void CMainWindow::on_actionFaceColorChange_triggered() {
                                 }
                                 
                             }
+                            dsMesh.buildBoundary();
                         }
                     }
                     node->SetEntityUpdated(true);
@@ -650,7 +651,16 @@ void CMainWindow::on_actionToggleFrontFace_triggered()
     // mark all mesh instances dirty.
     mark_inst_dirty();
 }
-
+//Aaron's code, draws axes on the nome programme and shows them
+void CMainWindow::on_actionAddAxes_triggered() 
+{
+    UnloadNomeFile();
+    axesShown = !axesShown;
+    if (!SourceMgr || SourceMgr->GetMainSourcePath().empty())
+        LoadEmptyNomeFile();
+    else
+        LoadNomeFile(SourceMgr->GetMainSourcePath(), axesShown);
+}
 
 // Toggle on/off back face
 void CMainWindow::on_actionToggleBackFace_triggered()
@@ -762,28 +772,28 @@ void CMainWindow::LoadEmptyNomeFile()
 }
 
 
-void CMainWindow::LoadNomeFile(const std::string& filePath)
-{
+void CMainWindow::LoadNomeFile(const std::string& filePath) { LoadNomeFile(filePath, false); }
+void CMainWindow::LoadNomeFile(const std::string& filePath, bool includeAxes) {
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)                     \
     || defined(__WINDOWS__) || defined(_WIN64)
     system("CLS");
 #else
     system("clear");
 #endif
- 
+
     printf("Loading file: %s \n\n", filePath.c_str());
     setWindowFilePath(QString::fromStdString(filePath));
     bIsBlankFile = false;
     SourceMgr = std::make_shared<CSourceManager>(filePath);
 
-    bool parseSuccess = SourceMgr->ParseMainSource(); // AST is created with this function call. If
+    bool parseSuccess = SourceMgr->ParseMainSource(includeAxes); // AST is created with this function call. If
                                                       // want to add #include, must combine files
-    //if (!parseSuccess)
+    // if (!parseSuccess)
     //{
-    //    auto resp = QMessageBox::question(
-    //        this, "Parser error",
-    //        "The file did not completely successfully parse, do you still want "
-    //        "to continue anyway? (See console for more information!)");
+    //     auto resp = QMessageBox::question(
+    //         this, "Parser error",
+    //         "The file did not completely successfully parse, do you still want "
+    //         "to continue anyway? (See console for more information!)");
 
     //    if (resp != QMessageBox::Yes)
     //    {
@@ -792,9 +802,9 @@ void CMainWindow::LoadNomeFile(const std::string& filePath)
     //        return;
     //    }
     //}
-    if (!parseSuccess) 
+    if (!parseSuccess)
     {
-        //TODO: Focus on console!
+        // TODO: Focus on console!
         printf("\nLoading file failed! Errors printed above. \n");
         LoadEmptyNomeFile();
         return;
@@ -808,22 +818,22 @@ void CMainWindow::LoadNomeFile(const std::string& filePath)
     Scene::CASTSceneAdapter adapter;
     try
     {
-        auto includeFileNames = adapter.GetIncludes(SourceMgr->GetASTContext().GetAstRoot(), *Scene); // randy added includeFileNames variable on 11/30. Currently assumes included
+        auto includeFileNames = adapter.GetIncludes(
+            SourceMgr->GetASTContext().GetAstRoot(),
+            *Scene); // randy added includeFileNames variable on 11/30. Currently assumes included
                      // file names are in same directory as original
 
         // TODO: In the future, allow included files to be in different directories
         for (auto fileName : includeFileNames)
         {
             auto nofileNamepath = filePath.substr(0, filePath.find_last_of("/") + 1);
-            auto testSourceMgr = std::make_shared<CSourceManager>(
-                nofileNamepath + fileName); 
+            auto testSourceMgr = std::make_shared<CSourceManager>(nofileNamepath + fileName);
+            // ParseMainSource is the one that creates the entire AST from scratch.
             bool testparseSuccess = testSourceMgr->ParseMainSource();
             adapter.TraverseFile(testSourceMgr->GetASTContext().GetAstRoot(), *Scene);
         }
 
-
-
-        adapter.TraverseFile(SourceMgr->GetASTContext().GetAstRoot(), *Scene); 
+        adapter.TraverseFile(SourceMgr->GetASTContext().GetAstRoot(), *Scene);
     }
     catch (const AST::CSemanticError& e)
     {
@@ -856,6 +866,7 @@ void CMainWindow::PostloadSetup()
     SceneUpdateClock->setSingleShot(false);
     elapsedRender->start();
     connect(SceneUpdateClock, &QTimer::timeout, [this]() {
+        //Scene updates every 50ms.
         Scene->Update();
         Nome3DView->PostSceneUpdate();
         // Randy added this on 11/5 for edge selection

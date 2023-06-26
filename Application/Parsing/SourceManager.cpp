@@ -20,6 +20,36 @@ using namespace antlr4;
 const int CSourceManager::OrigBuf;
 const int CSourceManager::AddBuf;
 
+//Aaron's code for axis generation on command. Randomised identifier names prevent collision of names (keeps it to minimum)
+const std::string AXES_ADDING_STRING = R"(
+point the_origin_pt_12 (0 0 0 ) endpoint
+point x_axis_pt_12 (100 0 0 ) endpoint
+point y_axis_pt_12 (0 100 0 ) endpoint
+point z_axis_pt_12 (0 0 100 ) endpoint
+point x_axis_pt_34 (-100 0 0 ) endpoint
+point y_axis_pt_34 (0 -100 0 ) endpoint
+point z_axis_pt_34 (0 0 -100 ) endpoint
+
+
+polyline x_axis_line_13 ( the_origin_pt_12 x_axis_pt_12 ) endpolyline
+instance inst_for_x_axis_2382  x_axis_line_13  surface R  endinstance
+
+polyline y_axis_line_13 ( the_origin_pt_12 y_axis_pt_12 ) endpolyline
+instance inst_for_y_axis_2382  y_axis_line_13  surface B  endinstance
+
+polyline z_axis_line_13 ( the_origin_pt_12 z_axis_pt_12 ) endpolyline
+instance inst_for_z_axis_2382  z_axis_line_13  surface G  endinstance
+
+polyline x_axis_line_15 ( the_origin_pt_12 x_axis_pt_34 ) endpolyline
+instance inst_for_x_axis_34923  x_axis_line_15  surface R  endinstance
+
+polyline y_axis_line_15 ( the_origin_pt_12 y_axis_pt_34 ) endpolyline
+instance inst_for_y_axis_34923  y_axis_line_15  surface B  endinstance
+
+polyline z_axis_line_15 ( the_origin_pt_12 z_axis_pt_34 ) endpolyline
+instance inst_for_z_axis_34923  z_axis_line_15  surface G  endinstance
+)";
+
 class CMyErrorListener : public BaseErrorListener
 {
 public:
@@ -40,15 +70,19 @@ CSourceManager::CSourceManager(std::string mainSource)
 {
 }
 
-bool CSourceManager::ParseMainSource()
-{
+//Aaron's code... enables adding axes option in NOME JIPCAD
+bool CSourceManager::ParseMainSource() { return ParseMainSource(false); }
+bool CSourceManager::ParseMainSource(bool withAxes) {
     std::ifstream ifs(MainSource);
     std::string content((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
     ifs.close();
-
+    if (withAxes)
+    {
+        content.append(AXES_ADDING_STRING);
+    }
     MainSourceBuffer = CStringBuffer(content);
     PieceTable.emplace_back(OrigBuf, 0, content.length());
-    //ReportErros(content);
+    // ReportErros(content);
 
     ANTLRInputStream input(content);
     NomLexer lexer(&input);
@@ -59,7 +93,8 @@ bool CSourceManager::ParseMainSource()
     parser.addErrorListener(&errorListener);
     auto* tree = parser.file();
 
-    if (errorListener.bDidErrorHappen) return false;
+    if (errorListener.bDidErrorHappen)
+        return false;
 
     CFileBuilder builder(MainSourceBuffer);
     ASTRoot = builder.visitFile(tree);

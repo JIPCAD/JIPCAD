@@ -90,6 +90,7 @@ private slots:
     void on_actionToggleFaceSelection_triggered(); // Randy added this on 11/5
 
     void on_actionToggleFrontFace_triggered();
+    void on_actionAddAxes_triggered();
     void on_actionToggleBackFace_triggered();
     void on_actionToggleWireFrame_triggered();
 
@@ -101,6 +102,7 @@ private:
     void SetupUI();
     void LoadEmptyNomeFile();
     void LoadNomeFile(const std::string& filePath);
+    void LoadNomeFile(const std::string& filePath, bool includeAxes);
     void PostloadSetup();
     void UnloadNomeFile();
     bool hasEnding(std::string const &str, std::string const &end) {
@@ -121,6 +123,8 @@ private:
     bool bDetached3DView = false;
     QColor curColor = QColor(0xff0000);
 
+    //Aaron decided to add this for viewing convenience
+    bool axesShown = false;
     // Info about the currently open file
     std::shared_ptr<CSourceManager> SourceMgr;
     bool bIsBlankFile;

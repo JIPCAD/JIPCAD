@@ -93,6 +93,7 @@
                 <property name="title">
                     <string>&amp;Render Config</string>
                 </property>
+				<addaction name="actionAddAxes"/>
                 <addaction name="actionToggleFrontFace"/>
                 <addaction name="actionToggleBackFace"/>
                 <addaction name="actionToggleWireFrame"/>
@@ -343,7 +344,15 @@
                 <bool>true</bool>
             </property>
         </action>
-
+		<action name="actionAddAxes">
+			<property name="text">
+				<string>Add Axes</string>
+			</property>
+			<property name="checkable">
+				<bool>true</bool>
+			</property>
+		</action>
+		
         <action name="actionToggleBackFace">
             <property name="text">
                 <string>No BackFace</string>
