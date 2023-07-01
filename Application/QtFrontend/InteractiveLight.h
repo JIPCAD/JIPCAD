@@ -27,6 +27,7 @@ public:
 public:
     Qt3DRender::QAbstractLight* Light = nullptr;
     Qt3DRender::QCamera* Camera = nullptr;
+    Qt3DCore::QTransform* sphereTransform;
     LightType type;
     QColor Color;
 

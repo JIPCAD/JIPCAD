@@ -162,6 +162,7 @@ void CInteractiveMesh::UpdateMaterial()
                 InstanceColor[1] = (surface->ColorG.GetValue(1.0f));
                 InstanceColor[2] = (surface->ColorB.GetValue(1.0f));
                 setColor = true;
+                break;
             }
             if (auto backface = currNode->GetOwner()->GetBackface())
             {
@@ -171,7 +172,10 @@ void CInteractiveMesh::UpdateMaterial()
                 setBackColor = true;
                 break;
             }
+            /* Fix by Brian Kim, Jul 2 2023. We have to */
             currNode = currNode->GetParent();
+            currNode = currNode->GetParent();
+
         }
 
         if (!setColor || !setBackColor) // If the surface color hasn't been set yet
@@ -210,19 +214,6 @@ void CInteractiveMesh::UpdateMaterial()
         this->addComponent(mat);
         Material = mat;
     }
-    for (auto light : GFrtCtx->NomeView->InteractiveLights) {
-        if (light->type != AmbientLight) {
-            // InstanceColor[0] *= light->Color.redF();
-            // InstanceColor[1] *= light->Color.greenF();
-            // InstanceColor[2] *= light->Color.blueF();
-            this->addComponent(light->Light);
-        } else {
-            InstanceColor[0] *= light->Color.redF();
-            InstanceColor[1] *= light->Color.greenF();
-            InstanceColor[2] *= light->Color.blueF();
-            //this->addComponent(light->Light);
-        }
-    }
 
     // Use non-default line color only if the instance has a surface
     auto surface = SceneTreeNode->GetOwner()->GetSurface();
@@ -230,6 +221,16 @@ void CInteractiveMesh::UpdateMaterial()
     {
         auto* lineMat = dynamic_cast<CXMLMaterial*>(LineMaterial);
         lineMat->FindParameterByName("instanceColor")->setValue(QVector3D(InstanceColor[0], InstanceColor[1], InstanceColor[2]));
+    }
+    for (auto light : GFrtCtx->NomeView->InteractiveLights) {
+        if (light->type != AmbientLight) {
+            this->addComponent(light->Light);
+        } else {
+            InstanceColor[0] *= light->Color.redF();
+            InstanceColor[1] *= light->Color.greenF();
+            InstanceColor[2] *= light->Color.blueF();
+            //this->addComponent(light->Light);
+        }
     }
 }
 

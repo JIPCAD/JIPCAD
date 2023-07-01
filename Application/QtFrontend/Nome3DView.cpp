@@ -93,6 +93,7 @@ void CNome3DView::TakeScene(const tc::TAutoPtr<Scene::CScene>& scene)
                         // Create an InteractiveLight from the scene node
                         auto* light = new CInteractiveLight(node);
                         light->setParent(this->Root);
+                        light->sphereTransform = sphereTransform;
                         InteractiveLights.insert(light);
                         node->SetEntityUpdated(false);
                     }
@@ -205,6 +206,7 @@ void CNome3DView::PostSceneUpdate()
                         /// add and update light
                         CInteractiveLight* light;
                         light->Camera = this->camera();
+                        light->sphereTransform = sphereTransform; 
                         // Check for existing InteractiveMesh
                         auto iter = sceneLightAssoc.find(node);
                         if (iter != sceneLightAssoc.end())

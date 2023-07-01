@@ -81,7 +81,6 @@ void CInteractiveCamera::UpdateCamera()
                 CameraInstance.para[5] == (float)1000) {
                 Camera->lens()->setPerspectiveProjection(45.0f, 1280.f / 720.f, 0.1f, 1000.0f);
             } else {
-                std::cout << "BYE" << std::endl;
                 float aspect_ratio = (float)(CameraInstance.para[1] - CameraInstance.para[0])/(float)(CameraInstance.para[3] - CameraInstance.para[2]);
                 float fov = (float)(std::atan(CameraInstance.para[3]/CameraInstance.para[4]) * 2); 
                 Camera->lens()->setPerspectiveProjection(fov, 

@@ -83,7 +83,8 @@ public:
     bool RayCasted = false;
     std::unordered_set<CInteractiveLight*> InteractiveLights;
     std::unordered_set<CInteractiveCamera*> InteractiveCameras;
-
+    // For the animation
+    Qt3DCore::QTransform* sphereTransform;
 protected:
     // Xinyu added on Oct 8 for rotation
     void mouseMoveEvent(QMouseEvent* e) override;
@@ -139,8 +140,6 @@ private:
     float objectY;
     float objectZ;
 
-    // For the animation
-    Qt3DCore::QTransform* sphereTransform;
 
     OrbitTransformController* controller;
     QPropertyAnimation* sphereRotateTransformAnimation;

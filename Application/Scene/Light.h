@@ -1,6 +1,7 @@
 #pragma once
 #include "Entity.h"
 #include <Flow/FlowNodeArray.h>
+#include <Qt3DCore/QTransform>
 
 #include <map>
 #include <set>
@@ -46,6 +47,7 @@ public:
     CEntity* Instantiate(CSceneTreeNode* treeNode) override;
 
     CLightInfo& GetLight(){return LI;};
+    Qt3DCore::QTransform* Transform = nullptr;
 
 
 private:

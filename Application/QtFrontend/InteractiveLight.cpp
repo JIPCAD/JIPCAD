@@ -2,6 +2,9 @@
 #include "Nome3DView.h"
 #include "ResourceMgr.h"
 #include <Scene/Light.h>
+#include <Qt3DExtras>
+#include <QTransform>
+
 
 namespace Nome
 {
@@ -15,6 +18,7 @@ CInteractiveLight::CInteractiveLight(Scene::CSceneTreeNode* node)
 void CInteractiveLight::UpdateTransform() {
     if (type == DirectionalLight) {
         auto *dLight = dynamic_cast<Qt3DRender::QDirectionalLight *>(Light);
+        dLight -> worldDirectionChanged(QVector3D(0, 1, 0));
         const auto &tf = SceneTreeNode->L2WTransform.GetValue(tc::Matrix3x4::IDENTITY);
         QMatrix4x4 qtf{tf.ToMatrix4().Data()};
         QVector4D mult = qtf * QVector4D(0, 0, 0, 1);
@@ -34,17 +38,23 @@ void CInteractiveLight::UpdateLight()
     }
     if (entity)
     {
+        // std::cout << "UPDATING" << std::endl;
+        // std::cout << sphereTransform << std::endl;
+        // Qt3DCore::QTransform* st = sphereTransform;
+        // if (*st) {
+        //     std::cout << st->matrix() << std::endl;
+        // }
+        //QMatrix4x4 transform = QMatrix4x4(&this->sphereTransform);
         auto LightInstance = dynamic_cast<Scene::CLight*>(entity)->GetLight();
+        std::cout << LightInstance.direction[0] << ' ' << LightInstance.direction[1] << ' ' << LightInstance.direction[0] << std::endl;
         if (LightInstance.type == "DIRECTIONAL") {
             if (!Light)
                 Light = new Qt3DRender::QDirectionalLight();
             auto *dLight = dynamic_cast<Qt3DRender::QDirectionalLight *>(Light);
-            dLight->setColor(LightInstance.color);
-            dLight->setWorldDirection(QVector3D(LightInstance.direction[0], LightInstance.direction[1], LightInstance.direction[2])); 
+            Light->setColor(LightInstance.color);
+            Light->setIntensity((float)1.0);
+            dLight->setWorldDirection(QVector3D(LightInstance.direction[0], LightInstance.direction[1], LightInstance.direction[2]));
             this->addComponent(Light);
-            // Qt3DCore::QTransform *lightTransform = new Qt3DCore::QTransform(this);
-            // lightTransform->setTranslation(QVector3D(3, 3, 2.73));
-            // this->addComponent(lightTransform); 
             Light->setEnabled(true); 
             type = DirectionalLight;
         } else if (LightInstance.type == "AMBIENT") {

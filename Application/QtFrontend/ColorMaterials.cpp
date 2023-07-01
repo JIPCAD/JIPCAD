@@ -46,7 +46,7 @@ CColorFlatMaterial::CColorFlatMaterial(Qt3DCore::QNode* parent)
     GL3Technique->addRenderPass(GL3RenderPass);
     Effect->addTechnique(GL3Technique);
 
-    Effect->addParameter(BaseColorParameter);
+    //Effect->addParameter(BaseColorParameter);
 
     this->setEffect(Effect);
 }
