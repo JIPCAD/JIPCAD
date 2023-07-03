@@ -36,7 +36,7 @@ CMainWindow::CMainWindow(QWidget* parent, bool bDetached3d)
 {
     ui->setupUi(this);
     SetupUI();
-    LoadEmptyNomeFile();
+    LoadEmptyNomeFile(axesShown);
     this->installEventFilter(Nome3DView.get());
 }
 
@@ -48,7 +48,7 @@ CMainWindow::CMainWindow(const QString& fileToOpen, QWidget* parent, bool bDetac
 {
     ui->setupUi(this);
     SetupUI();
-    LoadNomeFile(fileToOpen.toStdString());
+    LoadNomeFile(fileToOpen.toStdString(), axesShown);
 }
 
 CMainWindow::~CMainWindow()
@@ -176,13 +176,13 @@ void CMainWindow::on_actionNew_triggered()
         if (reply == QMessageBox::Yes)
         {
             UnloadNomeFile();
-            LoadEmptyNomeFile();
+            LoadEmptyNomeFile(axesShown);
         }
     }
     else
     {
         UnloadNomeFile();
-        LoadEmptyNomeFile();
+        LoadEmptyNomeFile(axesShown);
     }
 }
 
@@ -202,7 +202,7 @@ void CMainWindow::on_actionOpen_triggered()
     if (true /*bIsBlankFile*/)
     {
         UnloadNomeFile();
-        LoadNomeFile(fileName.toStdString());
+        LoadNomeFile(fileName.toStdString(), axesShown);
     }
     else
     {
@@ -217,9 +217,9 @@ void CMainWindow::on_actionReload_triggered()
 {
     UnloadNomeFile();
     if (!SourceMgr || SourceMgr->GetMainSourcePath().empty())
-        LoadEmptyNomeFile();
+        LoadEmptyNomeFile(axesShown);
     else
-        LoadNomeFile(SourceMgr->GetMainSourcePath());
+        LoadNomeFile(SourceMgr->GetMainSourcePath(), axesShown);
 }
 
 void CMainWindow::on_actionSave_triggered()
@@ -279,6 +279,18 @@ void CMainWindow::on_actionExportAsStl_triggered()
         }    
     });
     }
+}
+
+void CMainWindow::on_actionOpenWithTextEditor_triggered() {
+    //Aaron's code... allows code to be opened with default text editor.
+    if (!SourceMgr || SourceMgr->GetMainSourcePath().empty())
+    {
+        printf("Opening file in text editor failed! Empty file.");
+        return;
+    }
+    // Opening NOME file
+    const char* filePath = SourceMgr->GetMainSourcePath().c_str();
+    ShellExecute(NULL, "open", filePath, NULL, NULL, SW_SHOWNORMAL);
 }
 
 void CMainWindow::on_actionGetSelectedFaces_triggered() 
@@ -379,7 +391,7 @@ void CMainWindow::on_actionOffset_triggered() {
     // Contains all nodes in theory.
     bool ok;
     int offset_width = QInputDialog::getDouble(this, tr("Please enter the width of the offsettingoffset"),
-                                         tr("Offsetting Width:"), 0.1, 0, 10, 1, &ok);  
+                                         tr("Offsetting Width:"), 0.1, 0, 10, 0.1, &ok);  
     
     Scene->ForEachSceneTreeNode(
         [&](Scene::CSceneTreeNode* node)
@@ -657,7 +669,7 @@ void CMainWindow::on_actionAddAxes_triggered()
     UnloadNomeFile();
     axesShown = !axesShown;
     if (!SourceMgr || SourceMgr->GetMainSourcePath().empty())
-        LoadEmptyNomeFile();
+        LoadEmptyNomeFile(axesShown);
     else
         LoadNomeFile(SourceMgr->GetMainSourcePath(), axesShown);
 }
@@ -761,13 +773,42 @@ void CMainWindow::SetupUI()
     //connect(ui->actionAboutQt, &QAction::triggered, this, &QApplication::aboutQt);
 }
 
-void CMainWindow::LoadEmptyNomeFile()
+void CMainWindow::LoadEmptyNomeFile() { LoadEmptyNomeFile(false); }
+void CMainWindow::LoadEmptyNomeFile(bool includeAxes)
 {
     // Called from the constructor
+    std::string stdFilePath = "untitled.nom";
     setWindowFilePath("untitled.nom");
     bIsBlankFile = true;
     Scene = new Scene::CScene();
     Scene::GEnv.Scene = Scene.Get();
+    Scene::CASTSceneAdapter adapter;
+    if (includeAxes)
+    {
+        try
+        {
+
+            SourceMgr = std::make_shared<CSourceManager>(stdFilePath);
+            bool parseSuccess = SourceMgr->ParseMainSource(includeAxes);
+            if (!parseSuccess)
+            {
+                printf("\nLoading failed! Errors printed above. \n");
+                axesShown = false;
+                LoadEmptyNomeFile();
+                return;
+            }
+            adapter.TraverseFile(SourceMgr->GetASTContext().GetAstRoot(), *Scene);
+            printf("Scene loaded successfully. \n");
+        }
+        catch (const AST::CSemanticError& e)
+        {
+            printf("Error encountered during scene generation:\n%s\n", e.what());
+            axesShown = false;
+            LoadEmptyNomeFile();
+            return;
+        }
+        
+    }
     PostloadSetup();
 }
 
@@ -806,7 +847,7 @@ void CMainWindow::LoadNomeFile(const std::string& filePath, bool includeAxes) {
     {
         // TODO: Focus on console!
         printf("\nLoading file failed! Errors printed above. \n");
-        LoadEmptyNomeFile();
+        LoadEmptyNomeFile(axesShown);
         return;
     }
     else
@@ -848,7 +889,7 @@ void CMainWindow::LoadNomeFile(const std::string& filePath, bool includeAxes) {
         }*/
 
         printf("Error encountered during scene generation:\n%s\n", e.what());
-        LoadEmptyNomeFile();
+        LoadEmptyNomeFile(axesShown);
         return;
     }
     printf("Scene loaded successfully. \n");

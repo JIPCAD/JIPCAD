@@ -26,6 +26,7 @@ const std::string AXES_ADDING_STRING = R"(
 surface R  color  (0.9 0.1 0  ) endsurface   # Red
 surface G  color  (0.1 0.8 0  ) endsurface   # Green
 surface B  color  (0   0.3 1  ) endsurface   # Blue
+surface Y color (0.9 0.9 0 ) endsurface     # Yellow
 
 point the_origin_pt_12 (0 0 0 ) endpoint
 point x_axis_pt_12 (100 0 0 ) endpoint
@@ -51,7 +52,7 @@ polyline z_axis_line_13 ( the_origin_pt_12 z_axis_pt_12 ) endpolyline
 instance inst_for_z_axis_2382  z_axis_line_13  surface G  endinstance
 
 polyline r_axis_line_13 ( the_origin_pt_12 r_axis_pt_12 ) endpolyline
-instance inst_for_r_axis_2382  r_axis_line_13  surface B  endinstance
+instance inst_for_r_axis_2382  r_axis_line_13  surface Y  endinstance
 
 polyline x_axis_line_15 ( the_origin_pt_12 x_axis_pt_34 ) endpolyline
 instance inst_for_x_axis_34923  x_axis_line_15  surface R  endinstance
@@ -63,7 +64,7 @@ polyline z_axis_line_15 ( the_origin_pt_12 z_axis_pt_34 ) endpolyline
 instance inst_for_z_axis_34923  z_axis_line_15  surface G  endinstance
 
 polyline r_axis_line_15 ( the_origin_pt_12 r_axis_pt_34 ) endpolyline
-instance inst_for_r_axis_34923  r_axis_line_15  surface B  endinstance
+instance inst_for_r_axis_34923  r_axis_line_15  surface Y  endinstance
 )";
 
 class CMyErrorListener : public BaseErrorListener

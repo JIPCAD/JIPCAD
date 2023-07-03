@@ -36,6 +36,7 @@
                 </property>
                 <addaction name="actionNew"/>
                 <addaction name="actionOpen"/>
+				<addaction name="actionOpenWithTextEditor"/>
                 <addaction name="actionReload"/>
                 <addaction name="actionSave"/>
                 <addaction name="actionExportAsStl"/>
@@ -164,6 +165,14 @@
                 <string>Ctrl+O</string>
             </property>
         </action>
+		<action name="actionOpenWithTextEditor">
+			<property name="text">
+				<string>&amp;Open with Text Editor</string>
+			</property>
+			<property name="shortcut">
+				<string>Shift+Ctrl+O</string>
+			</property>
+		</action>
         <action name="actionSave">
             <property name="text">
                 <string>&amp;Save</string>
