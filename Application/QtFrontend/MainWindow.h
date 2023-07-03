@@ -57,7 +57,7 @@ private slots:
     void on_actionSubdivide_triggered();
     void on_actionGetSelectedVerts_triggered();
     void on_actionGetSelectedFaces_triggered();
-
+    void on_actionClearSelected_triggered();
     void on_actionFaceColorChange_triggered();
 
     /*  10/1 Randy Commenting out because these are not fully implemented right now

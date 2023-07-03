@@ -329,6 +329,21 @@ void CMainWindow::on_actionGetSelectedFaces_triggered()
     dialog->show();
 }
 
+void CMainWindow::on_actionClearSelected_triggered() { 
+    Scene->Update();
+    Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
+        auto* entity = node->GetInstanceEntity();
+        if (entity)
+        {
+            auto* meshInst = dynamic_cast<Scene::CMeshInstance*>(entity);
+            meshInst->DeselectAll();
+        }
+    });
+    Scene->Update();
+    mark_inst_dirty();
+
+}
+
 void CMainWindow::on_actionMerge_triggered()
 {
     // One shot merging, and add a new entity and its corresponding node

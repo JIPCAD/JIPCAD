@@ -843,6 +843,7 @@ void CNome3DView::PickVertexWorldRay(tc::Ray& ray, bool sharpSelection)
             SelectedVertices.erase(position);
             GFrtCtx->MainWindow->statusBar()->showMessage(
                 QString::fromStdString("Deselected " + vertName));
+
         }
         if (sharpSelection)
         {
@@ -938,7 +939,7 @@ void CNome3DView::PickVertexWorldRay(tc::Ray& ray, bool sharpSelection)
                                               << std::endl;
                                     meshInst->MarkVertAsSelected(
                                         { overlapvertName },
-                                        -1); // TODO: Fix this -1 sharpness logic. Should
+                                        1); // TODO: Fix this -1 sharpness logic. Should
                                              // overlapping vertices have the same sharpness?
                                 }
                             }

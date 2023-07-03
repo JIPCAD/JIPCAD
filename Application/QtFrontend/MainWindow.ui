@@ -107,6 +107,7 @@
                 <addaction name="actionRemoveFace"/>
 				<addaction name="actionGetSelectedVerts" />
 				<addaction name="actionGetSelectedFaces" />
+				<addaction name="actionClearSelected" />
             </widget>
 
             <widget class="QMenu" name="menuAddPointConfig">
@@ -273,6 +274,11 @@
 		<action name="actionGetSelectedVerts">
 			<property name="text">
 				<string>Get Selected Vertices</string>
+			</property>
+		</action>
+		<action name="actionClearSelected">
+			<property name="text">
+				<string>Clear Selected</string>
 			</property>
 		</action>
 		<action name="actionGetSelectedFaces">
