@@ -64,6 +64,8 @@ void CTorusKnot::UpdateEntity()
     for (int i = 0; i < numSegments;
          i++) // Create torus knot, creating one cross section at each iteration
     {
+        // one segment of circular points created. 
+
         float t0 = i * dt;
         float r0 = (majorRadius + minorRadius * cosf(_p * t0)); // * 0.5;
 

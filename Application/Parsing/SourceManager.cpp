@@ -22,13 +22,23 @@ const int CSourceManager::AddBuf;
 
 //Aaron's code for axis generation on command. Randomised identifier names prevent collision of names (keeps it to minimum)
 const std::string AXES_ADDING_STRING = R"(
+
+surface R  color  (0.9 0.1 0  ) endsurface   # Red
+surface G  color  (0.1 0.8 0  ) endsurface   # Green
+surface B  color  (0   0.3 1  ) endsurface   # Blue
+
 point the_origin_pt_12 (0 0 0 ) endpoint
 point x_axis_pt_12 (100 0 0 ) endpoint
 point y_axis_pt_12 (0 100 0 ) endpoint
 point z_axis_pt_12 (0 0 100 ) endpoint
+point r_axis_pt_12 (100 100 0) endpoint 
+
 point x_axis_pt_34 (-100 0 0 ) endpoint
 point y_axis_pt_34 (0 -100 0 ) endpoint
 point z_axis_pt_34 (0 0 -100 ) endpoint
+point r_axis_pt_34 (-100 -100 0) endpoint 
+
+
 
 
 polyline x_axis_line_13 ( the_origin_pt_12 x_axis_pt_12 ) endpolyline
@@ -40,6 +50,9 @@ instance inst_for_y_axis_2382  y_axis_line_13  surface B  endinstance
 polyline z_axis_line_13 ( the_origin_pt_12 z_axis_pt_12 ) endpolyline
 instance inst_for_z_axis_2382  z_axis_line_13  surface G  endinstance
 
+polyline r_axis_line_13 ( the_origin_pt_12 r_axis_pt_12 ) endpolyline
+instance inst_for_r_axis_2382  r_axis_line_13  surface B  endinstance
+
 polyline x_axis_line_15 ( the_origin_pt_12 x_axis_pt_34 ) endpolyline
 instance inst_for_x_axis_34923  x_axis_line_15  surface R  endinstance
 
@@ -48,6 +61,9 @@ instance inst_for_y_axis_34923  y_axis_line_15  surface B  endinstance
 
 polyline z_axis_line_15 ( the_origin_pt_12 z_axis_pt_34 ) endpolyline
 instance inst_for_z_axis_34923  z_axis_line_15  surface G  endinstance
+
+polyline r_axis_line_15 ( the_origin_pt_12 r_axis_pt_34 ) endpolyline
+instance inst_for_r_axis_34923  r_axis_line_15  surface B  endinstance
 )";
 
 class CMyErrorListener : public BaseErrorListener
