@@ -406,7 +406,7 @@ void CMainWindow::on_actionOffset_triggered() {
     // Contains all nodes in theory.
     bool ok;
     int offset_width = QInputDialog::getDouble(this, tr("Please enter the width of the offsettingoffset"),
-                                         tr("Offsetting Width:"), 0.1, 0, 10, 0.1, &ok);  
+                                tr("Offsetting Width:"), 0.1, 0, 10, 1, &ok, Qt::WindowFlags(), 0.1);  
     
     Scene->ForEachSceneTreeNode(
         [&](Scene::CSceneTreeNode* node)
