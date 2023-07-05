@@ -46,7 +46,7 @@ private slots:
     void on_actionReload_triggered();
     void on_actionSave_triggered();
     void on_actionExportAsStl_triggered();
-    //void on_actionOpenWithTextEditor_triggered();
+    void on_actionOpenWithTextEditor_triggered();
 
     // 10/11 Xinyu to add save to stl capability
     // void on_actionSceneAsObj_triggered();
