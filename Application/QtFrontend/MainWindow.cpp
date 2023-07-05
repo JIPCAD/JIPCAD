@@ -21,8 +21,20 @@
 #include <QToolBar>
 #include <QVBoxLayout>
 #include <StringPrintf.h>
+#include <iostream>
 
 #include <QTableWidget> // Steven's Add Point
+
+#ifdef _WIN32
+    #define OS_NAME "Windows"
+    #define OS_VERSION 0
+#elif __APPLE__
+    #define OS_NAME "macOS"
+    #define OS_VERSION 1
+#else
+    #define OS_NAME "Unknown"
+    #define OS_VERSION 2
+#endif
 namespace Nome
 {
 static CFrontendContext AnonFrontendContext;
@@ -57,6 +69,8 @@ CMainWindow::~CMainWindow()
     UnloadNomeFile();
     delete ui;
 }
+
+
 
 void CMainWindow::mark_inst_dirty() {
     Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
@@ -290,7 +304,26 @@ void CMainWindow::on_actionOpenWithTextEditor_triggered() {
     }
     // Opening NOME file
     const char* filePath = SourceMgr->GetMainSourcePath().c_str();
-    ShellExecute(NULL, "open", filePath, NULL, NULL, SW_SHOWNORMAL);
+    if (OS_VERSION == 0)
+    {
+        /// <summary>
+        /// Windows System
+        /// </summary>
+        ShellExecute(NULL, "open", filePath, NULL, NULL, SW_SHOWNORMAL);
+    }
+    else if (OS_VERSION == 1) { 
+        std::string command = "open " + std::string(filePath);
+        int result = std::system(command.c_str());
+        if (result != 0)
+        {
+            std::cerr << "Error executing command: " << command << std::endl;
+        }
+    }
+    else
+    {
+        std::cerr << "Error: OS Not recognised" << std::endl;
+    }
+    
 }
 
 void CMainWindow::on_actionGetSelectedFaces_triggered() 
@@ -681,7 +714,7 @@ void CMainWindow::on_actionToggleFrontFace_triggered()
 //Aaron's code, draws axes on the nome programme and shows them
 void CMainWindow::on_actionAddAxes_triggered() 
 {
-    UnloadNomeFile();
+    //UnloadNomeFile();
     axesShown = !axesShown;
     if (!SourceMgr || SourceMgr->GetMainSourcePath().empty())
         LoadEmptyNomeFile(axesShown);
