@@ -46,7 +46,7 @@ private slots:
     void on_actionReload_triggered();
     void on_actionSave_triggered();
     void on_actionExportAsStl_triggered();
-    void on_actionOpenWithTextEditor_triggered();
+    //void on_actionOpenWithTextEditor_triggered();
 
     // 10/11 Xinyu to add save to stl capability
     // void on_actionSceneAsObj_triggered();
@@ -117,6 +117,7 @@ private:
     // Slider panel management
     void OnSliderAdded(Scene::CSlider& slider, const std::string& name) override;
     void OnSliderRemoving(Scene::CSlider& slider, const std::string& name) override;
+    void RemoveAllSliders(); 
 
     Ui::MainWindow* ui;
     std::unique_ptr<CNome3DView> Nome3DView;
@@ -138,6 +139,7 @@ private:
 
     std::unique_ptr<QWidget> SliderWidget;
     QFormLayout* SliderLayout = nullptr;
+    QDockWidget* sliderDock = nullptr;
     std::unordered_map<std::string, QLayout*> SliderNameToWidget;
 
     std::unique_ptr<Scene::CTemporaryMeshManager> TemporaryMeshManager;
