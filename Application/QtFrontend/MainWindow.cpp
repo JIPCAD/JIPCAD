@@ -20,6 +20,7 @@
 #include <QPushButton>
 #include <QToolBar>
 #include <QVBoxLayout>
+#include <QtAlgorithms>
 #include <StringPrintf.h>
 #include <iostream>
 
@@ -229,11 +230,14 @@ void CMainWindow::on_actionOpen_triggered()
 
 void CMainWindow::on_actionReload_triggered()
 {
+    //RemoveAllSliders();
     UnloadNomeFile();
     if (!SourceMgr || SourceMgr->GetMainSourcePath().empty())
         LoadEmptyNomeFile(axesShown);
     else
         LoadNomeFile(SourceMgr->GetMainSourcePath(), axesShown);
+    std::cout << SliderNameToWidget.size() << std::endl;
+
 }
 
 void CMainWindow::on_actionSave_triggered()
@@ -990,14 +994,15 @@ void CMainWindow::UnloadNomeFile()
     delete elapsedRender;
     Nome3DView->UnloadScene();
     assert(Scene->GetRefCount() == 1);
-    Scene = nullptr;
+    Scene = nullptr; 
 }
 
 void CMainWindow::OnSliderAdded(Scene::CSlider& slider, const std::string& name) // adding a single widget at a time
 {
+    std::cout << "FUNCTION CALLED" << std::endl;
     if (!SliderWidget)
     {
-        auto* sliderDock = new QDockWidget("Scene Parameter Sliders", this);
+        sliderDock = new QDockWidget("Scene Parameter Sliders", this);
 
         sliderDock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
         SliderWidget = std::make_unique<QWidget>();
@@ -1027,6 +1032,7 @@ void CMainWindow::OnSliderAdded(Scene::CSlider& slider, const std::string& name)
         {
             if (Pair.first.substr(0, Pair.first.find_last_of(".") + 1) == bankname)
             {
+                std::cout << "THIS SLIDER IS ALREADY ADDED" << std::endl;
                 alreadyAdded = true;
             }
         }
@@ -1056,6 +1062,7 @@ void CMainWindow::OnSliderAdded(Scene::CSlider& slider, const std::string& name)
     sliderBar->setMinimum(0); 
     sliderBar->setMaximum(numSteps);
     sliderBar->setValue(currTick);
+    sliderBar->setTickInterval(currTick);
     sliderBar->setOrientation(Qt::Horizontal);
     sliderBar->setTickPosition(QSlider::TicksBelow);
     sliderLayout->addWidget(sliderBar);
@@ -1089,6 +1096,7 @@ void CMainWindow::OnSliderAdded(Scene::CSlider& slider, const std::string& name)
 
     SliderLayout->addRow(sliderName, sliderLayout);
     SliderNameToWidget.emplace(name, sliderLayout);
+    //RemoveAllSliders(); 
 }
 
 bool CMainWindow::eventFilter(QObject* obj, QEvent* event)
@@ -1109,13 +1117,34 @@ bool CMainWindow::eventFilter(QObject* obj, QEvent* event)
 void CMainWindow::OnSliderRemoving(Scene::CSlider& slider, const std::string& name)
 {
     auto iter = SliderNameToWidget.find(name);
-    assert(iter != SliderNameToWidget.end());
+    //assert(iter != SliderNameToWidget.end());
+    if (iter != SliderNameToWidget.end()) {
+        auto* widget = iter->second;
 
-    auto* widget = iter->second;
+        SliderNameToWidget.erase(iter);
+        SliderLayout->removeRow(widget);
 
-    SliderNameToWidget.erase(iter);
-    SliderLayout->removeRow(widget);
+    }
 }
+
+void CMainWindow::RemoveAllSliders()
+{
+    for (auto node : SliderNameToWidget) {
+        auto iter = SliderNameToWidget.find(node.first);
+        //assert(iter != SliderNameToWidget.end());
+        if (iter != SliderNameToWidget.end()) {
+            std::cout << node.first << std::endl;
+            auto* widget = iter->second;
+            qDeleteAll(widget->findChildren<QWidget*>("", Qt::FindDirectChildrenOnly));
+            SliderLayout->removeRow(widget);
+            delete widget->widget();
+
+        }
+
+    }
+    SliderNameToWidget.clear(); 
+}
+
 
 
 }
