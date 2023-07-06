@@ -236,6 +236,7 @@ void CMainWindow::on_actionReload_triggered()
         LoadEmptyNomeFile(axesShown);
     else
         LoadNomeFile(SourceMgr->GetMainSourcePath(), axesShown);
+    //RemoveAllSliders();
     std::cout << SliderNameToWidget.size() << std::endl;
 
 }
@@ -987,6 +988,7 @@ void CMainWindow::PostloadSetup()
 
 void CMainWindow::UnloadNomeFile()
 {
+    //RemoveAllSliders();
     TemporaryMeshManager.reset(nullptr);
     SceneUpdateClock->stop();
     delete SceneUpdateClock;
@@ -1048,8 +1050,11 @@ void CMainWindow::OnSliderAdded(Scene::CSlider& slider, const std::string& name)
             SliderNameToWidget.emplace(name, sliderLayout);
         }
     }
-
-
+    /*
+    if (SliderLayout->rowCount() && hasSliderWithName(SliderLayout, name))
+    {
+        return;
+    }*/
     auto* sliderName = new QLabel();
     sliderName->setText(QString::fromStdString(name));
     QFont f("Arial", 13);
@@ -1098,7 +1103,22 @@ void CMainWindow::OnSliderAdded(Scene::CSlider& slider, const std::string& name)
     SliderNameToWidget.emplace(name, sliderLayout);
     //RemoveAllSliders(); 
 }
-
+//Aaron's code, has slider or not
+bool CMainWindow::hasSliderWithName(QFormLayout* formLayout, std::string name) {
+    // Check if the layout contains a slider with the name "mySlider"
+    bool hasSlider = false;
+    for (int i = 0; i < formLayout->rowCount(); i++)
+    {
+        QWidget* widget = formLayout->itemAt(i)->widget();
+        QSlider* slider = dynamic_cast<QSlider*>(widget);
+        if (slider && slider->objectName() == QString::fromStdString(name))
+        {
+            hasSlider = true;
+            break;
+        }
+    }
+    return hasSlider;
+}
 bool CMainWindow::eventFilter(QObject* obj, QEvent* event)
 {
     if (event->type() == QEvent::KeyRelease) {
@@ -1137,7 +1157,9 @@ void CMainWindow::RemoveAllSliders()
             auto* widget = iter->second;
             qDeleteAll(widget->findChildren<QWidget*>("", Qt::FindDirectChildrenOnly));
             SliderLayout->removeRow(widget);
+            //delete widget;
             delete widget->widget();
+            //delete widget->findChildren<QWidget*>("", Qt::FindDirectChildrenOnly);
 
         }
 
