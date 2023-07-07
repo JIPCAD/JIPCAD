@@ -230,14 +230,13 @@ void CMainWindow::on_actionOpen_triggered()
 
 void CMainWindow::on_actionReload_triggered()
 {
-    //RemoveAllSliders();
     UnloadNomeFile();
     if (!SourceMgr || SourceMgr->GetMainSourcePath().empty())
         LoadEmptyNomeFile(axesShown);
     else
         LoadNomeFile(SourceMgr->GetMainSourcePath(), axesShown);
-    //RemoveAllSliders();
-    std::cout << SliderNameToWidget.size() << std::endl;
+    
+
 
 }
 
@@ -314,7 +313,7 @@ void CMainWindow::on_actionOpenWithTextEditor_triggered() {
         /// <summary>
         /// Windows System
         /// </summary>
-        ShellExecute(NULL, "open", filePath, NULL, NULL, SW_SHOWNORMAL);
+        //ShellExecute(NULL, "open", filePath, NULL, NULL, SW_SHOWNORMAL);
     }
     else if (OS_VERSION == 1) { 
         std::string command = "open " + std::string(filePath);
@@ -1001,7 +1000,6 @@ void CMainWindow::UnloadNomeFile()
 
 void CMainWindow::OnSliderAdded(Scene::CSlider& slider, const std::string& name) // adding a single widget at a time
 {
-    std::cout << "FUNCTION CALLED" << std::endl;
     if (!SliderWidget)
     {
         sliderDock = new QDockWidget("Scene Parameter Sliders", this);
@@ -1025,31 +1023,31 @@ void CMainWindow::OnSliderAdded(Scene::CSlider& slider, const std::string& name)
         sliderDock->setWidget(m_pMapInfoScrollArea );
         SliderWidget.get()->setMinimumSize(280, 1200); //https://www.qtcentre.org/threads/55669-Scroll-Area-inside-Dock-Widget
     }
-    else
-    {
-        auto bankname = name.substr(0, name.find_last_of(".") + 1);
-        // Check if bank has already been added
-        auto alreadyAdded = false;
-        for (auto& Pair : SliderNameToWidget)
-        {
-            if (Pair.first.substr(0, Pair.first.find_last_of(".") + 1) == bankname)
-            {
-                std::cout << "THIS SLIDER IS ALREADY ADDED" << std::endl;
-                alreadyAdded = true;
-            }
-        }
-        // If it hasn't been added, add a blank row
-        if (!alreadyAdded)
-        {
-            auto* sliderName = new QLabel();
-            sliderName->setText(QString::fromStdString(""));
-            QFont f("Arial", 13);
-            sliderName->setFont(f);
-            auto* sliderLayout = new QHBoxLayout();
-            SliderLayout->addRow(sliderName, sliderLayout);
-            SliderNameToWidget.emplace(name, sliderLayout);
-        }
-    }
+    // else
+    // {
+    //     auto bankname = name.substr(0, name.find_last_of(".") + 1);
+    //     // Check if bank has already been added
+    //     auto alreadyAdded = false;
+    //     for (auto& Pair : SliderNameToWidget)
+    //     {
+    //         if (Pair.first.substr(0, Pair.first.find_last_of(".") + 1) == bankname)
+    //         {
+    //             std::cout << "THIS SLIDER IS ALREADY ADDED" << std::endl;
+    //             alreadyAdded = true;
+    //         }
+    //     }
+    //     // If it hasn't been added, add a blank row
+    //     if (!alreadyAdded)
+    //     {
+    //         auto* sliderName = new QLabel();
+    //         sliderName->setText(QString::fromStdString(""));
+    //         QFont f("Arial", 13);
+    //         sliderName->setFont(f);
+    //         auto* sliderLayout = new QHBoxLayout();
+    //         SliderLayout->addRow(sliderName, sliderLayout);
+    //         SliderNameToWidget.emplace(name, sliderLayout);
+    //     }
+    // }
     /*
     if (SliderLayout->rowCount() && hasSliderWithName(SliderLayout, name))
     {
@@ -1147,25 +1145,7 @@ void CMainWindow::OnSliderRemoving(Scene::CSlider& slider, const std::string& na
     }
 }
 
-void CMainWindow::RemoveAllSliders()
-{
-    for (auto node : SliderNameToWidget) {
-        auto iter = SliderNameToWidget.find(node.first);
-        //assert(iter != SliderNameToWidget.end());
-        if (iter != SliderNameToWidget.end()) {
-            std::cout << node.first << std::endl;
-            auto* widget = iter->second;
-            qDeleteAll(widget->findChildren<QWidget*>("", Qt::FindDirectChildrenOnly));
-            SliderLayout->removeRow(widget);
-            //delete widget;
-            delete widget->widget();
-            //delete widget->findChildren<QWidget*>("", Qt::FindDirectChildrenOnly);
 
-        }
-
-    }
-    SliderNameToWidget.clear(); 
-}
 
 
 
