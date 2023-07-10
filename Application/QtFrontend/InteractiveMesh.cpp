@@ -174,7 +174,10 @@ void CInteractiveMesh::UpdateMaterial()
             }
             /* Fix by Brian Kim, Jul 2 2023. We have to */
             currNode = currNode->GetParent();
-            currNode = currNode->GetParent();
+            //Aaron's fix, no need double currNode = GetParent() instances
+            //This code doesn't work for non-group specific nodes,
+            // like offsetting and subdivision
+            //currNode = currNode->GetParent();
 
         }
 
