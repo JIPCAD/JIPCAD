@@ -230,13 +230,13 @@ void CMainWindow::on_actionOpen_triggered()
 
 void CMainWindow::on_actionReload_triggered()
 {
-    //RemoveAllSliders();
     UnloadNomeFile();
     if (!SourceMgr || SourceMgr->GetMainSourcePath().empty())
         LoadEmptyNomeFile(axesShown);
     else
         LoadNomeFile(SourceMgr->GetMainSourcePath(), axesShown);
-    std::cout << SliderNameToWidget.size() << std::endl;
+    
+
 
 }
 
@@ -313,7 +313,7 @@ void CMainWindow::on_actionOpenWithTextEditor_triggered() {
         /// <summary>
         /// Windows System
         /// </summary>
-        ShellExecute(NULL, "open", filePath, NULL, NULL, SW_SHOWNORMAL);
+        //ShellExecute(NULL, "open", filePath, NULL, NULL, SW_SHOWNORMAL);
     }
     else if (OS_VERSION == 1) { 
         std::string command = "open " + std::string(filePath);
@@ -987,6 +987,7 @@ void CMainWindow::PostloadSetup()
 
 void CMainWindow::UnloadNomeFile()
 {
+    //RemoveAllSliders();
     TemporaryMeshManager.reset(nullptr);
     SceneUpdateClock->stop();
     delete SceneUpdateClock;
@@ -999,7 +1000,6 @@ void CMainWindow::UnloadNomeFile()
 
 void CMainWindow::OnSliderAdded(Scene::CSlider& slider, const std::string& name) // adding a single widget at a time
 {
-    std::cout << "FUNCTION CALLED" << std::endl;
     if (!SliderWidget)
     {
         sliderDock = new QDockWidget("Scene Parameter Sliders", this);
@@ -1023,33 +1023,36 @@ void CMainWindow::OnSliderAdded(Scene::CSlider& slider, const std::string& name)
         sliderDock->setWidget(m_pMapInfoScrollArea );
         SliderWidget.get()->setMinimumSize(280, 1200); //https://www.qtcentre.org/threads/55669-Scroll-Area-inside-Dock-Widget
     }
-    else
+    // else
+    // {
+    //     auto bankname = name.substr(0, name.find_last_of(".") + 1);
+    //     // Check if bank has already been added
+    //     auto alreadyAdded = false;
+    //     for (auto& Pair : SliderNameToWidget)
+    //     {
+    //         if (Pair.first.substr(0, Pair.first.find_last_of(".") + 1) == bankname)
+    //         {
+    //             std::cout << "THIS SLIDER IS ALREADY ADDED" << std::endl;
+    //             alreadyAdded = true;
+    //         }
+    //     }
+    //     // If it hasn't been added, add a blank row
+    //     if (!alreadyAdded)
+    //     {
+    //         auto* sliderName = new QLabel();
+    //         sliderName->setText(QString::fromStdString(""));
+    //         QFont f("Arial", 13);
+    //         sliderName->setFont(f);
+    //         auto* sliderLayout = new QHBoxLayout();
+    //         SliderLayout->addRow(sliderName, sliderLayout);
+    //         SliderNameToWidget.emplace(name, sliderLayout);
+    //     }
+    // }
+    /*
+    if (SliderLayout->rowCount() && hasSliderWithName(SliderLayout, name))
     {
-        auto bankname = name.substr(0, name.find_last_of(".") + 1);
-        // Check if bank has already been added
-        auto alreadyAdded = false;
-        for (auto& Pair : SliderNameToWidget)
-        {
-            if (Pair.first.substr(0, Pair.first.find_last_of(".") + 1) == bankname)
-            {
-                std::cout << "THIS SLIDER IS ALREADY ADDED" << std::endl;
-                alreadyAdded = true;
-            }
-        }
-        // If it hasn't been added, add a blank row
-        if (!alreadyAdded)
-        {
-            auto* sliderName = new QLabel();
-            sliderName->setText(QString::fromStdString(""));
-            QFont f("Arial", 13);
-            sliderName->setFont(f);
-            auto* sliderLayout = new QHBoxLayout();
-            SliderLayout->addRow(sliderName, sliderLayout);
-            SliderNameToWidget.emplace(name, sliderLayout);
-        }
-    }
-
-
+        return;
+    }*/
     auto* sliderName = new QLabel();
     sliderName->setText(QString::fromStdString(name));
     QFont f("Arial", 13);
@@ -1098,7 +1101,22 @@ void CMainWindow::OnSliderAdded(Scene::CSlider& slider, const std::string& name)
     SliderNameToWidget.emplace(name, sliderLayout);
     //RemoveAllSliders(); 
 }
-
+//Aaron's code, has slider or not
+bool CMainWindow::hasSliderWithName(QFormLayout* formLayout, std::string name) {
+    // Check if the layout contains a slider with the name "mySlider"
+    bool hasSlider = false;
+    for (int i = 0; i < formLayout->rowCount(); i++)
+    {
+        QWidget* widget = formLayout->itemAt(i)->widget();
+        QSlider* slider = dynamic_cast<QSlider*>(widget);
+        if (slider && slider->objectName() == QString::fromStdString(name))
+        {
+            hasSlider = true;
+            break;
+        }
+    }
+    return hasSlider;
+}
 bool CMainWindow::eventFilter(QObject* obj, QEvent* event)
 {
     if (event->type() == QEvent::KeyRelease) {
@@ -1127,23 +1145,7 @@ void CMainWindow::OnSliderRemoving(Scene::CSlider& slider, const std::string& na
     }
 }
 
-void CMainWindow::RemoveAllSliders()
-{
-    for (auto node : SliderNameToWidget) {
-        auto iter = SliderNameToWidget.find(node.first);
-        //assert(iter != SliderNameToWidget.end());
-        if (iter != SliderNameToWidget.end()) {
-            std::cout << node.first << std::endl;
-            auto* widget = iter->second;
-            qDeleteAll(widget->findChildren<QWidget*>("", Qt::FindDirectChildrenOnly));
-            SliderLayout->removeRow(widget);
-            delete widget->widget();
 
-        }
-
-    }
-    SliderNameToWidget.clear(); 
-}
 
 
 
