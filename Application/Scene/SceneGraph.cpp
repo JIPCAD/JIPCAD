@@ -109,6 +109,7 @@ CSceneNode::CSceneNode(CScene* owningScene, std::string name, bool isRoot, bool 
     : Scene(owningScene)
     , Name(std::move(name))
     , bIsGroup(isGroup)
+    , bIsSubdivision(isSubdivision)
 {
     if (isRoot)
     {

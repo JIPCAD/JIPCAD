@@ -79,6 +79,8 @@ public:
     const std::string& GetName() const { return Name; }
     bool SetName(std::string newName);
     bool IsGroup() const { return bIsGroup; }
+    //Aaron's code, allowing for better interactive mesh
+    bool IsSubdivision() const { return bIsSubdivision; }
 
 
     // Hierarchy management
@@ -156,6 +158,7 @@ private:
     std::string Name;
     /// Denotes whether this node is a group. Group names can be skipped in a path
     bool bIsGroup = false;
+    bool bIsSubdivision = false;
 
     CScene* Scene;
 
