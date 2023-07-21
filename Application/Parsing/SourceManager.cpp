@@ -86,7 +86,39 @@ CSourceManager::CSourceManager(std::string mainSource)
     : MainSource(std::move(mainSource))
 {
 }
-
+/* Error Reporting Functions - Brian Kim 07/19/2023*/
+inline std::string& ltrim(std::string& s, const char* t = " \t\n\r\f\v"){s.erase(0, s.find_first_not_of(t));return s;}
+inline std::string& rtrim(std::string& s, const char* t = " \t\n\r\f\v"){s.erase(s.find_last_not_of(t) + 1);return s;}
+inline std::string& trim(std::string& s, const char* t = " \t\n\r\f\v"){return ltrim(rtrim(s, t), t);}
+std::vector<std::string> TokenizeByNewLine(std::string s) {
+    std::vector<std::string> ret; 
+    int breakoff = s.find_first_of("\n");
+    while (breakoff != -1) {
+        std::string substr1 = s.substr(0, breakoff);
+        if (s.size() > 1) {s = s.substr(breakoff+1, s.size()-breakoff);}
+        else {break;}
+        breakoff = s.find_first_of("\n"); 
+        if (substr1.size() > 0) {ret.push_back(trim(substr1));}
+        else {ret.push_back("empty-line");}
+    }
+    if (s.size() > 0) {ret.push_back(s);}
+    return ret; 
+}
+std::vector<std::string> TokenizeByNewSpace(std::string s) {
+    std::vector<std::string> ret = {}; 
+    int breakoff = s.find_first_of(" ");
+    while (breakoff != -1) {
+        std::string substr1 = s.substr(0, breakoff);
+        if (s.size() > 1) {s = s.substr(breakoff+1, s.size()-breakoff);}
+        else {break;}
+        breakoff = s.find_first_of(" "); 
+        substr1 = trim(substr1);
+        if (substr1[0] == '#') {s = ""; break;}
+        if (substr1.size() > 0) {ret.push_back(substr1);}
+    }
+    if (s.size() > 0 && s[0] != '#') {ret.push_back(s);}
+    return ret; 
+}
 //Aaron's code... enables adding axes option in NOME JIPCAD
 bool CSourceManager::ParseMainSource() { return ParseMainSource(false); }
 bool CSourceManager::ParseMainSource(bool withAxes) {
@@ -97,6 +129,25 @@ bool CSourceManager::ParseMainSource(bool withAxes) {
     {
         content.append(AXES_ADDING_STRING);
     }
+
+    /* Error Reporting (Check for Duplicate Instance) - Brian Kim 07/19/2023*/
+    std::vector<std::string> first_tokenized = TokenizeByNewLine(content);
+    std::vector<std::vector<std::string>> code_tokens; 
+    for (int i = 0; i < first_tokenized.size(); i++) {
+        code_tokens.push_back(TokenizeByNewSpace(first_tokenized[i]));
+    }
+    std::map<std::string, int> Instance_ID_Map; 
+    for (int i = 0; i < code_tokens.size(); i++) {
+        for (int j = 0; j < code_tokens[i].size(); j++) {
+            if (j == 0 && code_tokens[i][j] == "instance") {
+                if (Instance_ID_Map.find(code_tokens[i][1]) != Instance_ID_Map.end()) {
+                    std::cout << "Error at line " << i+1 << " Duplicate Instance ID: " + code_tokens[i][1] << std::endl;
+                } else {
+                    Instance_ID_Map[code_tokens[i][1]] = i; 
+                }
+            }
+        } 
+    } 
     MainSourceBuffer = CStringBuffer(content);
     PieceTable.emplace_back(OrigBuf, 0, content.length());
     // ReportErros(content);
