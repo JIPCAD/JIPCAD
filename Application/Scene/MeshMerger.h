@@ -38,6 +38,8 @@ public:
 
     // sd_flag can be set to sharp and plain cc to have different types of subdivision
     void Catmull();
+    void Shell(Face f);
+    void doShell(DSMesh& _m, Face f);
 
     bool subdivide(DSMesh& _m, unsigned int n);
 
@@ -48,6 +50,7 @@ public:
     void setOffset(bool o) { 
         offsetIdent = o;
     }
+
     
     void setOffsetHeightWidth(double height, double width)
     {
@@ -88,6 +91,7 @@ private:
     bool isSharp = true;
     // true == NOME_OFFSET_DEFAULT, false == NOME_OFFSET_GRID
     bool offsetFlag = true;
+
 };
 }
 

@@ -69,6 +69,7 @@
                 <addaction name="actionMerge"/>
                 <addaction name="actionSubdivide"/>
 				<addaction name="actionOffset"/>
+				<addaction name="actionShell"/>
                 <addaction name="separator"/>
                 <addaction name="actionAddFace"/>
                 <addaction name="actionAddPolyline"/>
@@ -158,6 +159,11 @@
                 <string>Ctrl+N</string>
             </property>
         </action>
+		<action name="actionShell">
+			<property name="text">
+				<string>&amp;Shell</string>
+			</property>
+		</action>
         <action name="actionOpen">
             <property name="text">
                 <string>&amp;Open</string>

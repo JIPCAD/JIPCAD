@@ -24,8 +24,8 @@ COffsetRefiner::COffsetRefiner(DSMesh& _m, bool offsetFlag)
     // Mesh.request_face_normals();
 
     size_t numVertices = currMesh.vertList.size(); // Mesh.n_vertices();
-    vertexEdges.resize(numVertices);
-    newVertices.resize(numVertices);
+    vertexEdges.resize(numVertices); //no of Edge per vertex
+    newVertices.resize(numVertices); // no of new vertices
     // for (auto vertex : currMesh.vertList)//Mesh.vertices())
     //{
     //    int i = 0;
@@ -161,6 +161,7 @@ void COffsetRefiner::generateNewFaceVertices(Face* face, float width, float heig
 
         if (flag)
         {
+            //normalise the prev path and curr path
             prevPath.Normalize();
             curPath.Normalize();
         }

@@ -116,29 +116,30 @@ void CMainWindow::on_actionFaceColorChange_triggered() {
             Scene->ForEachSceneTreeNode(
                 [&](Scene::CSceneTreeNode* node)
                 {
-                    if (node->GetOwner()->GetName() == "globalMergeNode")
+                if (node->GetOwner()->GetName() == "globalMergeNode")
+                {
+                    return;
+                }
+                auto* entity = node->GetInstanceEntity();
+                if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
+                {
+                    DSMesh dsMesh =
+                        mesh->GetDSMesh(); // Aaron's code. Getting instance of DS Mesh
+                    for (auto flt = dsMesh.faceList.begin(); flt < dsMesh.faceList.end();
+                            flt++)
                     {
-
-                        auto* entity = node->GetOwner()->GetEntity();
-                        if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
+                        Face* curFace = *flt;
+                        if (curFace->name == faceName)
                         {
-                            DSMesh dsMesh =
-                                mesh->GetDSMesh(); // Aaron's code. Getting instance of DS Mesh
-                            for (auto flt = dsMesh.faceList.begin(); flt < dsMesh.faceList.end();
-                                 flt++)
-                            {
-                                Face* curFace = *flt;
-                                if (curFace->name == faceName)
-                                {
-                                    curFace->color = colorToFloatArray(selectedColor);
-                                    curFace->user_defined_color = true;
-                                }
-                                
-                            }
-                            dsMesh.buildBoundary();
+                            curFace->color = colorToFloatArray(selectedColor);
+                            curFace->user_defined_color = true;
                         }
+                                
                     }
-                    node->SetEntityUpdated(true);
+                    dsMesh.buildBoundary();
+                }
+                    
+            node->SetEntityUpdated(true);
                 });
         }
     }
@@ -313,7 +314,7 @@ void CMainWindow::on_actionOpenWithTextEditor_triggered() {
         /// <summary>
         /// Windows System
         /// </summary>
-        //ShellExecute(NULL, "open", filePath, NULL, NULL, SW_SHOWNORMAL);
+        ShellExecute(NULL, "open", filePath, NULL, NULL, SW_SHOWNORMAL);
     }
     else if (OS_VERSION == 1) { 
         std::string command = "open " + std::string(filePath);
@@ -511,6 +512,51 @@ void CMainWindow::prepare_for_stl_no_merge()
                             // This means you can only have one merger mesh each time. It will
                             // override previous merger meshes with the new vertices.
     sn->SetEntity(merger.Get()); // Set sn, which is the scene node, to point to entity merger
+}
+
+void CMainWindow::on_actionShell_triggered() { 
+    //Aaron's code, this adds the new shelling feature to JIPCAD
+    int no_of_faces = Nome3DView->GetSelectedFaces().size();
+    if (no_of_faces < 1)
+    {
+        std::cout << "Error: No faces selected for shelling" << std::endl;
+        return;
+    }
+    std::string faceName = Nome3DView->GetSelectedFaces()[0];
+    DSMesh* cMesh = Nome3DView->GetSelectedMeshInstances().at(faceName);
+    Face shellFace;
+    for (auto flt = (*cMesh).faceList.begin(); flt < (*cMesh).faceList.end(); flt++)
+    {
+        Face* face = *flt;
+        if (face->name == faceName)
+        {
+            shellFace = *face;
+        }
+
+    }
+    Scene->Update();
+    Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) { 
+        if (node->GetOwner()->GetName() == "globalMergeNode")
+        {
+            auto* entity = node->GetOwner()->GetEntity();
+            //Getting the entity, which we hope is a CMeshMerger instance
+            //meaning all the subnodes and children are all merged into a mesh
+            if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
+            {
+                bool ok;
+                int shell_level = QInputDialog::getInt(this, tr("please enter the width of the shell."), 
+                    tr("Shell Width:"), 0.3, 0, 10, 0.1, &ok);
+                if (ok && shell_level > 0 && shell_level < 10)
+                {
+                    
+                    mesh->Shell(shellFace);
+                    mesh->MarkDirty();
+                }
+            }
+
+            
+        }
+   });
 }
 
 // only subdivide merge nodes

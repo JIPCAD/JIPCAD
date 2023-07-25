@@ -7,6 +7,9 @@
 
 #include <QBuffer>
 #include <QDialog>
+
+#include <iostream>
+#include <unordered_map>
 #include <QHBoxLayout>
 #include <QInputDialog>
 #include <QPushButton>
@@ -547,12 +550,16 @@ void CNome3DView::PickFaceWorldRay(tc::Ray& ray)
         if (position == SelectedFaces.end())
         { // if this face has not been selected before
             SelectedFaces.push_back(faceName); // add face to selected faces
+            SelectedFacesMap[faceName] = &meshInst->GetDSMesh() ;
+            //SelectedFacesMap.emplace_back(std::make_pair(faceName, meshInst));
             GFrtCtx->MainWindow->statusBar()->showMessage(
                 QString::fromStdString("Selected " + faceName));
         }
         else // else, this face has been selected previously
         {
+            const auto& newposition = position;
             SelectedFaces.erase(position);
+            //SelectedFacesMap.erase(faceName);
             GFrtCtx->MainWindow->statusBar()->showMessage(
                 QString::fromStdString("Deselected " + faceName));
         }

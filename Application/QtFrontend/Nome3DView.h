@@ -10,9 +10,10 @@
 
 #include <Qt3DExtras>
 
+#include <iostream>
 #include <unordered_map>
 #include <unordered_set>
-
+#include <Scene/Mesh.h>
 // TODO: enable multiple view ports
 #include <QRenderSurfaceSelector>
 #include <QViewport>
@@ -35,6 +36,10 @@ public:
     // Randy added on 10/14 for face selection
     [[nodiscard]] const std::vector<std::string>& GetSelectedFaces() const { return SelectedFaces; }
 
+    [[nodiscard]] const std::unordered_map<std::string, DSMesh*> &GetSelectedMeshInstances() const
+    {
+        return SelectedFacesMap;
+    }
     // Randy added on 11/5 for edge selection
     [[nodiscard]] const std::vector<std::string>& GetSelectedEdgeVertices() const
     {
@@ -111,6 +116,7 @@ private:
     std::vector<tc::Vector3>
         RayInteractivePoint; // Randy added on 2/26 for adding vertices via a Ray
     std::vector<std::string> SelectedFaces; // Randy added on 10/10
+    std::unordered_map<std::string, DSMesh*> SelectedFacesMap;
     std::vector<std::string> SelectedEdgeVertices; // Randy added on 11/5
     // std::vector<const & std::vector<std::string>> SelectedEdgeVertPositions; // There are no edge
     // "names" right now TODO: Introduce Edge names and handles    bool vertexSelectionEnabled;

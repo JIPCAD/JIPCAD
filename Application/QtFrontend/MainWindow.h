@@ -55,6 +55,7 @@ private slots:
 
     void on_actionMerge_triggered();
     void prepare_for_stl_no_merge();
+    void on_actionShell_triggered();
     void on_actionSubdivide_triggered();
     void on_actionGetSelectedVerts_triggered();
     void on_actionGetSelectedFaces_triggered();

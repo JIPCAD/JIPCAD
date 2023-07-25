@@ -317,6 +317,7 @@ void Mesh::buildBoundary()
             for (eIt = edgesAtThisPoint.begin(); eIt < edgesAtThisPoint.end(); eIt++)
             {
                 Edge* currEdge = (*eIt);
+                //NextEdge is null means that the face fb must be null
                 if ((currEdge->nextEdge(currEdge->va, currEdge->fb)) == NULL)
                 {
                     Edge* firstBoundaryEdge = currEdge;

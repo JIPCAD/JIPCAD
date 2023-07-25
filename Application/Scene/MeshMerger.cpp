@@ -1,5 +1,6 @@
 #include "MeshMerger.h"
 #include "OffsetRefiner.h"
+#include "ShellRefiner.h"
 #include "Subdivision.h"
 
 #include <unordered_map>
@@ -93,7 +94,60 @@ void CMeshMerger::ExportAsStl(QString filename) {
     }
     file << "endsolid\n";
 }
+void CMeshMerger::Shell(Face f) { 
+    DSMesh otherMesh = MergedMesh.newMakeCopy();
+    doShell(otherMesh, f);
+    currMesh = otherMesh.newMakeCopy();
+    try
+    {
+        currMesh.computeNormals();
+        currMesh.buildBoundary();
+        std::cout << "Build completed successfully. Done with everything." << std::endl;
+    }
+    catch (std::exception& e)
+    {
+        std::cout << " shell build failed: Please do one of the following:"
+                  << std::endl;
+    }
+}
+void CMeshMerger::doShell(DSMesh & _m, Face f) {
+    double height = Height.GetValue(h);
+    double width = Width.GetValue(w);
+    if (height <= 0 && width <= 0)
+    {
+        return;
+    }
+    CShellRefiner shellRefiner(_m, f);
+    shellRefiner.Refine(height, width);
+    _m.clear(); // TODO: is this not doing anyhting???
 
+    std::vector<Vertex*> vertices = shellRefiner.GetVertices();
+    std::vector<Face*> faces = shellRefiner.getFaces();
+
+    // Offset verts and faces
+    printf("============ output verts and faces ======\n"); // TODO: debug below...
+    // for (int index = 0; index < faces.size(); index++)
+    for (auto face : faces)
+    {
+        std::vector<Vertex*> newVerts;
+        for (int i = 0; i < face->vertices.size(); i++)
+        {
+            auto vert = face->vertices[i];
+            Vertex* newVert = new Vertex(vert->position.x, vert->position.y, vert->position.z,
+                                         _m.vertList.size());
+            newVert->name =
+                "shellVert" + std::to_string(i); // Randy this was the bug. Need to name the Vert
+                                                  // before adding it! Fix this logic.
+            _m.addVertex(newVert);
+            newVerts.push_back(newVert);
+        }
+        _m.addFace(newVerts);
+    }
+
+    //_m.buildBoundary(); // Randy added this on 2/26
+    //_m.computeNormals();
+
+}
 void CMeshMerger::Catmull()
 {
     bool needSubdivision = subdivisionLevel != 0;
@@ -303,8 +357,8 @@ bool CMeshMerger::offset(DSMesh & _m)
         _m.addFace(newVerts);
     }
 
-    _m.buildBoundary(); // Randy added this on 2/26
-    _m.computeNormals();
+   //_m.buildBoundary(); // Randy added this on 2/26
+    //_m.computeNormals();
     return true;
 }
 
