@@ -443,7 +443,7 @@ void CMainWindow::on_actionOffset_triggered() {
     //tc::TAutoPtr<Scene::CMeshMerger> merger = new Scene::CMeshMerger("globalMerge");
     // Contains all nodes in theory.
     bool ok;
-    int offset_width = QInputDialog::getDouble(this, tr("Please enter the width of the offsettingoffset"),
+    double offset_width = QInputDialog::getDouble(this, tr("Please enter the width of the offset"),
                                 tr("Offsetting Width:"), 0.1, 0, 10, 1, &ok, Qt::WindowFlags(), 0.1);  
     
     Scene->ForEachSceneTreeNode(
@@ -523,17 +523,21 @@ void CMainWindow::on_actionShell_triggered() {
         return;
     }
     std::string faceName = Nome3DView->GetSelectedFaces()[0];
-    DSMesh* cMesh = Nome3DView->GetSelectedMeshInstances().at(faceName);
-    Face shellFace;
+    /* DSMesh* cMesh = Nome3DView->GetSelectedMeshInstances().at(faceName);
+    Face* shellFace;
     for (auto flt = (*cMesh).faceList.begin(); flt < (*cMesh).faceList.end(); flt++)
     {
         Face* face = *flt;
         if (face->name == faceName)
         {
-            shellFace = *face;
+            shellFace = face;
         }
 
-    }
+    }*/
+    bool ok;
+    double shell_level = QInputDialog::getDouble(this, tr("please enter the width of the shell."),
+                                              tr("Shell Width:"), 0.3, 0, 10, 1, &ok, Qt::WindowFlags(), 0.1);
+
     Scene->Update();
     Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) { 
         if (node->GetOwner()->GetName() == "globalMergeNode")
@@ -543,15 +547,17 @@ void CMainWindow::on_actionShell_triggered() {
             //meaning all the subnodes and children are all merged into a mesh
             if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
             {
-                bool ok;
-                int shell_level = QInputDialog::getInt(this, tr("please enter the width of the shell."), 
-                    tr("Shell Width:"), 0.3, 0, 10, 0.1, &ok);
                 if (ok && shell_level > 0 && shell_level < 10)
                 {
+                    mesh->setShellHeightWidth(shell_level, shell_level);
                     
-                    mesh->Shell(shellFace);
-                    mesh->MarkDirty();
                 }
+                else
+                {
+                    mesh->setShellHeightWidth(0.1f, 0.1f);
+                }
+                mesh->Shell(faceName);
+                mesh->MarkDirty();
             }
 
             

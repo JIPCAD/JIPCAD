@@ -9,7 +9,7 @@ namespace Nome::Scene
 	class CShellRefiner
 	{
         public:
-            CShellRefiner(DSMesh& _m, Face targetFace);
+            CShellRefiner(DSMesh& _m);
             void Refine(float shellHeight, float shellWidth);
             std::vector<Vertex*> GetVertices() { return shellVertices;
             }
@@ -26,7 +26,7 @@ namespace Nome::Scene
             };
             bool flag = false;
             DSMesh currMesh;
-            Face targetFace;
+            Face* targetFace;
             float getAngle(Vector3 a, Vector3 b);
             void generateNewVertices(Vertex* vertex, float height);
             Vector3 crossProduct(Vector3 vectorA, Vector3 vectorB);

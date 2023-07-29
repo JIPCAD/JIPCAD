@@ -615,6 +615,7 @@ void CNome3DView::PickFaceWorldRay(tc::Ray& ray)
                         if (position == SelectedFaces.end())
                         { // if this face has not been selected before
                             SelectedFaces.push_back(faceName); // add face to selected face
+                            SelectedFacesMap[faceName] = &meshInst->GetDSMesh();
                             GFrtCtx->MainWindow->statusBar()->showMessage(
                                 QString::fromStdString("Selected " + faceName));
                         }

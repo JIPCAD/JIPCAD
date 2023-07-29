@@ -3,11 +3,25 @@
 
 namespace Nome::Scene
 {
-	CShellRefiner::CShellRefiner(DSMesh& _m, Face targetFace) 
+	CShellRefiner::CShellRefiner(DSMesh& _m) 
 	{ 
         //New mesh
         currMesh = _m.newMakeCopy();
-        CShellRefiner::targetFace = targetFace;
+
+        //Aaron's code. This code is intended for the deletion of the Face object from the mesh, but 
+        //this is not clean. Needs to delete from the Surface node. 
+
+        /* targetFace = target;
+        for (auto faceAdd = currMesh.faceList.begin(); faceAdd < currMesh.faceList.end(); faceAdd++)
+        {
+            Face* face = *faceAdd;
+            std::string name = face->name;
+            if (face->name == targetFace->name)
+            {
+                currMesh.deleteFace(targetFace);
+                break;
+            }
+        } */
         size_t num_faces = currMesh.faceList.size(); // Mesh.faces
 
         faceVertices.resize(num_faces);
@@ -59,7 +73,7 @@ namespace Nome::Scene
                 generateNewFacesVertices(face, shellHeight, shellWidth);
             }
             generateNewFaces(face, needGrid, needShell);
-            pushBackFaces(face);
+            //pushBackFaces(face);
         }
         if (needShell)
         {

@@ -38,8 +38,8 @@ public:
 
     // sd_flag can be set to sharp and plain cc to have different types of subdivision
     void Catmull();
-    void Shell(Face f);
-    void doShell(DSMesh& _m, Face f);
+    void Shell(std::string f);
+    void doShell(DSMesh& _m, Face* f);
 
     bool subdivide(DSMesh& _m, unsigned int n);
 
@@ -57,6 +57,11 @@ public:
         h = height;
         w = width;
     }
+    void setShellHeightWidth(double height, double width) 
+    { 
+        shellH = height;
+        shellW = width;
+    }
 
     void SetSharp(bool setSharp) { isSharp = setSharp; }
 
@@ -70,6 +75,7 @@ private:
 
     unsigned int VertCount = 0;
     unsigned int FaceCount = 0;
+    double shellH = 0.1f, shellW = 0.1f;
 
 
     OpenMesh::VPropHandleT<CMeshImpl::Point> vp_pos_; // next vertex pos

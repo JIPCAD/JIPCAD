@@ -94,9 +94,24 @@ void CMeshMerger::ExportAsStl(QString filename) {
     }
     file << "endsolid\n";
 }
-void CMeshMerger::Shell(Face f) { 
+void CMeshMerger::Shell(std::string f) { 
     DSMesh otherMesh = MergedMesh.newMakeCopy();
-    doShell(otherMesh, f);
+    Face* shellFace;
+    bool selected = false;
+    for (auto flt = otherMesh.faceList.begin(); flt < otherMesh.faceList.end(); flt++)
+    {
+        Face* shell = *flt;
+        if (shell->name == f)
+        {
+            shellFace = shell;
+            selected = true;
+        }
+    }
+    if (!selected)
+    {
+        shellFace = otherMesh.faceList.at(0);
+    }
+    doShell(otherMesh, shellFace);
     currMesh = otherMesh.newMakeCopy();
     try
     {
@@ -110,14 +125,15 @@ void CMeshMerger::Shell(Face f) {
                   << std::endl;
     }
 }
-void CMeshMerger::doShell(DSMesh & _m, Face f) {
-    double height = Height.GetValue(h);
-    double width = Width.GetValue(w);
+void CMeshMerger::doShell(DSMesh & _m, Face* f) {
+    double height = Height.GetValue(shellH);
+    double width = Width.GetValue(shellW);
     if (height <= 0 && width <= 0)
     {
         return;
     }
-    CShellRefiner shellRefiner(_m, f);
+    _m.deleteFace(f);
+    CShellRefiner shellRefiner(_m);
     shellRefiner.Refine(height, width);
     _m.clear(); // TODO: is this not doing anyhting???
 
