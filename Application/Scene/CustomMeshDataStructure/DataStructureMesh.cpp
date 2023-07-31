@@ -683,9 +683,21 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
     }
 
     std::vector<Edge*>::iterator eItr;
+
     for (eItr = newMesh.edgeList.begin(); eItr != newMesh.edgeList.end(); eItr++) {
-        (*eItr)->sharpness = findEdge((*eItr)->v0()->name, (*eItr)->v1()->name, false)->sharpness;
+        Edge* edge = findEdge((*eItr)->v0()->name, (*eItr)->v1()->name, false);
+        if (edge)
+        {
+            (*eItr)->sharpness = edge->sharpness;
+        }
+        else
+        {
+            std::cout << "Error:  Edge Not Found" + (*eItr)->v0()->name << std::endl;
+            (*eItr)->sharpness = 0.0;
+        }
+        
     }
+    
     newMesh.buildBoundary();
     newMesh.computeNormals(isPolyline);
     return newMesh;

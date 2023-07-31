@@ -74,7 +74,7 @@ void CShellRefiner::Refine(float shellHeight, float shellWidth)
             generateNewFacesVertices(face, shellHeight, shellWidth);
         }
         generateNewFaces(face, needGrid, needShell);
-        pushBackFaces(face);
+        //pushBackFaces(face);
     }
     if (needShell)
     {
@@ -137,9 +137,9 @@ void CShellRefiner::generateNewVertices(Vertex* vertex, float height)
         sumEdges = crossProduct(edge1, edge2);
     }
     sumEdges.Normalize();
-    sumEdges *= height / 2;
+    sumEdges *= height;
 
-    Vector3 newPoint1 = point - sumEdges;
+    Vector3 newPoint1 = point;
     Vector3 newPoint2 = point + sumEdges;
     Vertex* newVert1 = addPoint(newPoint1);
     Vertex* newVert2 = addPoint(newPoint2);
@@ -293,39 +293,38 @@ Vector3 CShellRefiner::getEdgeVector(Edge* edge, Vertex* vertex)
 
 void CShellRefiner::generateNewFaces(Face* face, bool needGrid, bool needShell)
 {
-    if (!needGrid)
+    std::vector<int> indexList1, indexList2;
+    std::vector<Vertex*> vertices1, vertices2;
+    for (auto vertex : face->vertices)
     {
-        std::vector<int> indexList1, indexList2;
-        std::vector<Vertex*> vertices1, vertices2;
-        for (auto vertex : face->vertices)
-        {
-            int index = vertex->ID;
+        int index = vertex->ID;
 
-            int topIndex = newVertices[index].topIndex;
-            int currIndex = newVertices[index].currIndex;
-            indexList1.push_back(topIndex);
-            indexList2.push_back(currIndex);
-            vertices1.push_back(newVertexList[topIndex]);
-            vertices2.push_back(newVertexList[currIndex]);
-        }
-
-        std::reverse(indexList2.begin(), indexList2.end());
-        std::reverse(vertices2.begin(), vertices2.end());
-
-        // shellFaces.push_back(indexList1);
-        // shellFaces.push_back(indexList2);
-
-        // Randy changed above line to the following
-        Face* shellFace1 = new Face(vertices1); // takes in a vector of Vertex objects
-        Face* shellFace2 = new Face(vertices2); // takes in a vector of Vertex objects
-        shellFaces.push_back(shellFace1);
-        shellFaces.push_back(shellFace2);
-
-        currMesh.addFace(vertices1);
-        currMesh.addFace(vertices2);
-        return;
+        int topIndex = newVertices[index].topIndex;
+        int currIndex = newVertices[index].currIndex;
+        indexList1.push_back(topIndex);
+        indexList2.push_back(currIndex);
+        vertices1.push_back(newVertexList[topIndex]);
+        vertices2.push_back(newVertexList[currIndex]);
     }
 
+    std::reverse(indexList2.begin(), indexList2.end());
+    std::reverse(vertices2.begin(), vertices2.end());
+
+    // shellFaces.push_back(indexList1);
+    // shellFaces.push_back(indexList2);
+
+    // Randy changed above line to the following
+    Face* shellFace1 = new Face(vertices1); // takes in a vector of Vertex objects
+    Face* shellFace2 = new Face(vertices2); // takes in a vector of Vertex objects
+    shellFaces.push_back(shellFace1);
+    shellFaces.push_back(shellFace2);
+
+    currMesh.addFace(vertices1);
+    currMesh.addFace(vertices2);
+    if (!needGrid)
+    {
+        return;
+    }
     int faceId = face->id;
     std::vector<int> idxList;
 
@@ -334,15 +333,9 @@ void CShellRefiner::generateNewFaces(Face* face, bool needGrid, bool needShell)
 
     for (size_t i = 0; i < idxList.size(); i++)
     {
+
         int vertex1Id = idxList[i];
-        int vertex2Id = idxList[(i + 1) % idxList.size()];
-
-        int vertex1TopIndex = newVertices[vertex1Id].topIndex;
-        int vertex1TopInsideIndex = newFaceVertices[faceId][vertex1Id].topIndex;
-
-        int vertex2TopIndex = newVertices[vertex2Id].topIndex;
-        int vertex2TopInsideIndex = newFaceVertices[faceId][vertex2Id].topIndex;
-
+        int vertex2Id = idxList[(i + 1) % (idxList.size())];
         // Randy added below lines to hopefully replace above lines
         Vertex* vertex1Top = newVertices[vertex1Id].topVert;
         Vertex* vertex1TopInside = newFaceVertices[faceId][vertex1Id].topVert;
@@ -366,24 +359,6 @@ void CShellRefiner::generateNewFaces(Face* face, bool needGrid, bool needShell)
         // Mesh.add_face(newVertexList[vertex1TopInsideIndex],
         //              newVertexList[vertex1TopIndex], newVertexList[vertex2TopIndex],
         //              newVertexList[vertex2TopInsideIndex]);
-
-        if (needShell)
-        {
-            Vertex* vertex1Curr = newVertices[vertex1Id].currVert;
-            Vertex* vertex1CurrInside = newFaceVertices[faceId][vertex1Id].currVert;
-            Vertex* vertex2Curr = newVertices[vertex2Id].currVert;
-            Vertex* vertex2CurrInside = newFaceVertices[faceId][vertex2Id].currVert;
-
-            Face* shellFaceBotTop = currMesh.addFace(
-                { vertex1CurrInside, vertex1TopInside, vertex2TopInside, vertex2CurrInside });
-            shellFaces.push_back(shellFaceBotTop);
-
-            Face* shellFaceBot =
-                currMesh.addFace({ vertex1Curr, vertex1CurrInside, vertex2CurrInside,
-                                   vertex2Curr }); // TODO // randy check if the two BottomInside
-                                                   // is a typo or should i switch to it
-            shellFaces.push_back(shellFaceBot);
-        }
     }
 }
 
