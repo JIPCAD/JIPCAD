@@ -74,7 +74,7 @@ void CShellRefiner::Refine(float shellHeight, float shellWidth)
             generateNewFacesVertices(face, shellHeight, shellWidth);
         }
         generateNewFaces(face, needGrid, needShell);
-        //pushBackFaces(face);
+        pushBackFaces(face);
     }
     if (needShell)
     {
@@ -400,8 +400,10 @@ void CShellRefiner::pushBackFaces(Face* face)
         vertices1.push_back(newVertexList[topIndex]);
         vertices2.push_back(newVertexList[currIndex]);
     }
-    currMesh.addFace(vertices1);
-    currMesh.addFace(vertices2);
+    Face* face1 = currMesh.addFace(vertices1);
+    Face* face2 = currMesh.addFace(vertices2);
+    shellFaces.push_back(face1);
+    shellFaces.push_back(face2);
 }
 float CShellRefiner::getAngle(Vector3 a, Vector3 b)
 {
