@@ -517,12 +517,17 @@ void CMainWindow::prepare_for_stl_no_merge()
 void CMainWindow::on_actionShell_triggered() { 
     //Aaron's code, this adds the new shelling feature to JIPCAD
     int no_of_faces = Nome3DView->GetSelectedFaces().size();
+    std::string faceName;
     if (no_of_faces < 1)
     {
-        std::cout << "Error: No faces selected for shelling" << std::endl;
-        return;
+        std::cout << "Warning: No faces selected for shelling" << std::endl;
+        faceName = "none";
     }
-    std::string faceName = Nome3DView->GetSelectedFaces()[0];
+    else
+    {
+        faceName = Nome3DView->GetSelectedFaces()[0];
+    }
+    
     /* DSMesh* cMesh = Nome3DView->GetSelectedMeshInstances().at(faceName);
     Face* shellFace;
     for (auto flt = (*cMesh).faceList.begin(); flt < (*cMesh).faceList.end(); flt++)
