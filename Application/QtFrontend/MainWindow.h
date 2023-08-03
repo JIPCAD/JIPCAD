@@ -119,7 +119,8 @@ private:
     // Slider panel management
     void OnSliderAdded(Scene::CSlider& slider, const std::string& name) override;
     void OnSliderRemoving(Scene::CSlider& slider, const std::string& name) override;
-    void RemoveAllSliders(); 
+    //void RemoveAllSliders(); 
+    void openTextEditor(const char* filePath);
 
     Ui::MainWindow* ui;
     std::unique_ptr<CNome3DView> Nome3DView;

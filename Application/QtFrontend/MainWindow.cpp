@@ -8,6 +8,7 @@
 #include <Scene/Environment.h>
 
 
+#include <filesystem>
 #include <QDockWidget>
 #include <QScrollArea> // Randy added
 #include <QFileDialog>
@@ -304,11 +305,34 @@ void CMainWindow::on_actionOpenWithTextEditor_triggered() {
     //Aaron's code... allows code to be opened with default text editor.
     if (!SourceMgr || SourceMgr->GetMainSourcePath().empty())
     {
-        printf("Opening file in text editor failed! Empty file.");
-        return;
+        //printf("Opening file in text editor failed! Empty file.");
+        std::filesystem::path default_dir = std::filesystem::current_path();
+        std::string path = default_dir.string() + "/untitled.nom";
+        const char* filePath = path.c_str();
+        openTextEditor(filePath);
     }
     // Opening NOME file
-    const char* filePath = SourceMgr->GetMainSourcePath().c_str();
+    else
+    {
+        const char* filePath = SourceMgr->GetMainSourcePath().c_str();
+        openTextEditor(filePath);
+    }
+}
+
+void CMainWindow::openTextEditor(const char* filePath) { 
+    if (!std::filesystem::exists(filePath))
+    {
+        std::ofstream outfile(filePath);
+        if (outfile.is_open())
+        {
+            outfile << "### This is a new NOME file ###" << std::endl;
+            std::cout << "New file created successfully" << std::endl;
+        }
+        else
+        {
+            std::cout << "New File cannot be created successfully" << std::endl;
+        }
+    }
     if (OS_VERSION == 0)
     {
         /// <summary>
@@ -316,7 +340,8 @@ void CMainWindow::on_actionOpenWithTextEditor_triggered() {
         /// </summary>
         ShellExecute(NULL, "open", filePath, NULL, NULL, SW_SHOWNORMAL);
     }
-    else if (OS_VERSION == 1) { 
+    else if (OS_VERSION == 1)
+    {
         std::string command = "open " + std::string(filePath);
         int result = std::system(command.c_str());
         if (result != 0)
@@ -328,10 +353,8 @@ void CMainWindow::on_actionOpenWithTextEditor_triggered() {
     {
         std::cerr << "Error: OS Not recognised" << std::endl;
     }
-    
 }
-
-void CMainWindow::on_actionGetSelectedFaces_triggered() 
+void CMainWindow::on_actionGetSelectedFaces_triggered()
 { 
     // Output on stdout
     std::cout << "Current Selected Faces:" << std::endl;
@@ -882,6 +905,7 @@ void CMainWindow::SetupUI()
     //connect(ui->actionAboutQt, &QAction::triggered, this, &QApplication::aboutQt);
 }
 
+//Aaron's code, adding the includeAxes option to the Empty Nome file
 void CMainWindow::LoadEmptyNomeFile() { LoadEmptyNomeFile(false); }
 void CMainWindow::LoadEmptyNomeFile(bool includeAxes)
 {
