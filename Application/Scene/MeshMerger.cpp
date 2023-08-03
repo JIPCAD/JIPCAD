@@ -316,8 +316,17 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
 
         try
         {
-            mergedEdge->sharpness =
-                std::max(edge->sharpness, mergedEdge->sharpness);
+            //Aaron's edit
+            if (mergedEdge == nullptr)
+            {
+                mergedEdge = new Edge(edge->v0(), edge->v1());
+                mergedEdge->sharpness = edge->sharpness;
+            }
+            else
+            {
+                mergedEdge->sharpness = std::max(edge->sharpness, mergedEdge->sharpness);
+            }
+            
         }
         catch (int e)
         {
