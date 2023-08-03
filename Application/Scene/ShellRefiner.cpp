@@ -328,38 +328,6 @@ void CShellRefiner::generateNewFaces(Face* face, bool needGrid, bool needShell)
     int faceId = face->id;
     std::vector<int> idxList;
 
-    for (auto vertex : face->vertices)
-        idxList.push_back(vertex->ID);
-
-    for (size_t i = 0; i < idxList.size(); i++)
-    {
-
-        int vertex1Id = idxList[i];
-        int vertex2Id = idxList[(i + 1) % (idxList.size())];
-        // Randy added below lines to hopefully replace above lines
-        Vertex* vertex1Top = newVertices[vertex1Id].topVert;
-        Vertex* vertex1TopInside = newFaceVertices[faceId][vertex1Id].topVert;
-        Vertex* vertex2Top = newVertices[vertex2Id].topVert;
-        Vertex* vertex2TopInside = newFaceVertices[faceId][vertex2Id].topVert;
-
-        // std::vector<int> faceIndexList;
-        // faceIndexList = {
-        //    vertex1TopInsideIndex,
-        //    vertex1TopIndex, // Randy the bug is here, for some reason always 0
-        //    vertex2TopIndex, // Randy the bug is here, for some reason always 0
-        //    vertex2TopInsideIndex,
-        //};
-        // shellFaces.push_back(faceIndexList);
-
-        // Randy below line to hopefully replace above lines
-        Face* shellFaceTop =
-            currMesh.addFace({ vertex1TopInside, vertex1Top, vertex2Top, vertex2TopInside });
-        shellFaces.push_back(shellFaceTop);
-
-        // Mesh.add_face(newVertexList[vertex1TopInsideIndex],
-        //              newVertexList[vertex1TopIndex], newVertexList[vertex2TopIndex],
-        //              newVertexList[vertex2TopInsideIndex]);
-    }
 }
 
 void CShellRefiner::pushBackFaces(Face* face)
