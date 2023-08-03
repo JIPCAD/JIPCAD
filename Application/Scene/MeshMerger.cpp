@@ -94,14 +94,30 @@ void CMeshMerger::ExportAsStl(QString filename) {
     }
     file << "endsolid\n";
 }
+std::vector<std::string> CMeshMerger::splitString(const std::string& str, const char delim)
+{
+    std::vector<std::string> result;
+    std::string::size_type start = 0;
+    std::string::size_type end = str.find(delim);
+    while (end != std::string::npos)
+    {
+        result.push_back(str.substr(start, end - start));
+        start = end + 1;
+        end = str.find(delim, start);
+    }
+    result.push_back(str.substr(start));
+    return result;
+}
 void CMeshMerger::Shell(std::string f) { 
     DSMesh otherMesh = MergedMesh.newMakeCopy();
     Face* shellFace;
     bool selected = false;
+    std::vector<std::string> strList = splitString(f, '.');
+    std::string fName = strList.at(strList.size() - 1);
     for (auto flt = otherMesh.faceList.begin(); flt < otherMesh.faceList.end(); flt++)
     {
         Face* shell = *flt;
-        if (shell->name == f)
+        if (shell->name == fName)
         {
             shellFace = shell;
             selected = true;

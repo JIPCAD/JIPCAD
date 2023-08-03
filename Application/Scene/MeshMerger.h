@@ -69,6 +69,8 @@ public:
 
     void ExportAsStl(QString filename);
 
+    std::vector<std::string> splitString(const std::string& str, const char delim);
+
 private:
     DSMesh MergedMesh;
     std::pair<Vertex*, float> FindClosestVertex(const tc::Vector3& pos);

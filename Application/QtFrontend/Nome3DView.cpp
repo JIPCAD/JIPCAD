@@ -628,7 +628,10 @@ void CNome3DView::PickFaceWorldRay(tc::Ray& ray)
                         float selected_dist = round(dist * 100);
 
                         // mark all those that share the same location
-                        for (int i = 0; i < hits.size(); i++)
+                        //Aaron's fix, we only mark one face at a time
+
+                        meshInst->MarkFaceAsSelected({ faceName }, true, InputSharpness());
+                        /* for (int i = 0; i < hits.size(); i++)
                         {
                             const auto& [dist, meshInst, overlapfaceName] = hits[i];
                             if (round(dist * 100) == selected_dist)
@@ -636,7 +639,8 @@ void CNome3DView::PickFaceWorldRay(tc::Ray& ray)
                                 meshInst->MarkFaceAsSelected({ overlapfaceName }, true,
                                                              InputSharpness());
                             }
-                        }
+                        } */
+
                     }
                     dialog->close();
                 });

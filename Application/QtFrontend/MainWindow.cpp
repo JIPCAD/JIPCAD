@@ -1042,6 +1042,9 @@ void CMainWindow::PostloadSetup()
     connect(SceneUpdateClock, &QTimer::timeout, [this]() {
         //Scene updates every 50ms.
         Scene->Update();
+        //For debugging purposes
+        auto name = Scene->GetRootNode()->GetName();
+        auto children = Scene->GetRootNode()->GetSceneNodeChildren();
         Nome3DView->PostSceneUpdate();
         // Randy added this on 11/5 for edge selection
         if (!Nome3DView->GetSelectedEdgeVertices().empty())
