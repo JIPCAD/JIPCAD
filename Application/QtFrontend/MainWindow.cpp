@@ -338,7 +338,9 @@ void CMainWindow::openTextEditor(const char* filePath) {
         /// <summary>
         /// Windows System
         /// </summary>
+#if defined(WIN32)
         ShellExecute(NULL, "open", filePath, NULL, NULL, SW_SHOWNORMAL);
+#endif
     }
     else if (OS_VERSION == 1)
     {
