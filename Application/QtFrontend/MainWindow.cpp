@@ -467,10 +467,13 @@ void CMainWindow::on_actionOffset_triggered() {
 
     //tc::TAutoPtr<Scene::CMeshMerger> merger = new Scene::CMeshMerger("globalMerge");
     // Contains all nodes in theory.
-    bool ok;
+    bool ok, ok2;
     double offset_width = QInputDialog::getDouble(this, tr("Please enter the width of the offset"),
-                                tr("Offsetting Width:"), 0.1, 0, 10, 1, &ok, Qt::WindowFlags(), 0.1);  
-    
+                                tr("Offsetting Width:"), 0.1, 0, 10, 1, &ok, Qt::WindowFlags(), 0.1);
+    double offset_height = QInputDialog::getDouble(this, tr("Please enter the height of the offset"),
+                                                  tr("Offsetting Height:"), 0.1, 0, 10, 1, &ok2,
+                                                  Qt::WindowFlags(), 0.1); 
+    ok = ok && ok2;
     Scene->ForEachSceneTreeNode(
         [&](Scene::CSceneTreeNode* node)
         {
@@ -480,8 +483,8 @@ void CMainWindow::on_actionOffset_triggered() {
                 auto* entity = node->GetOwner()->GetEntity();
                 if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
                 {
-                    if (ok && offset_width > 0)
-                        mesh->setOffsetHeightWidth(offset_width, offset_width);
+                    if (ok && offset_width >= 0)
+                        mesh->setOffsetHeightWidth(offset_height, offset_width);
                     else
                         mesh->setOffsetHeightWidth(0.1f, 0.1f);
                     mesh->setOffset(true);
