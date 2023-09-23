@@ -62,7 +62,7 @@ void COffsetRefiner::Refine(float height, float width)
     auto faces = currMesh.faceList; // Mesh.faces().to_vector();
     for (auto face : faces)
     {
-        if (needGrid || 1)
+        if (needGrid)
         {
             generateNewFaceVertices(face, width, height);
         }
