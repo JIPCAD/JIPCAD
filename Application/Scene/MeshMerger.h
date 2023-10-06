@@ -36,6 +36,8 @@ public:
 
     bool offset(DSMesh& _m);
 
+    bool offset(DSMesh& _m, double height, double width);
+
     // sd_flag can be set to sharp and plain cc to have different types of subdivision
     void Catmull();
     void Shell(std::string f);

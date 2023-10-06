@@ -148,7 +148,15 @@ void CMeshMerger::doShell(DSMesh & _m, Face* f) {
     {
         return;
     }
-    _m.deleteFace(f);
+    try
+    {
+        _m.deleteFace(f);
+    }
+    catch (std::exception& e)
+    {
+        std::cout << "face deletion failed, there is no face available to be deleted." << std::endl;
+    }
+    
     CShellRefiner shellRefiner(_m);
     shellRefiner.Refine(height, width);
     _m.clear(); // TODO: is this not doing anyhting???
@@ -208,7 +216,7 @@ void CMeshMerger::Catmull()
     }
     if (needOffset)
     {
-        offset(otherMesh);
+        offset(otherMesh, h, w);
         std::cout << "Apply offset, may take some time..." << std::endl;
     }
     currMesh = otherMesh.newMakeCopy();
@@ -399,6 +407,45 @@ bool CMeshMerger::offset(DSMesh & _m)
     }
 
    //_m.buildBoundary(); // Randy added this on 2/26
+    //_m.computeNormals();
+    return true;
+}
+
+bool CMeshMerger::offset(DSMesh& _m, double height, double width)
+{
+
+    if (height <= 0 && width <= 0)
+    {
+        return true;
+    }
+    COffsetRefiner offsetRefiner(_m, offsetFlag);
+    offsetRefiner.Refine(height, width);
+    _m.clear(); // TODO: is this not doing anyhting???
+
+    std::vector<Vertex*> vertices = offsetRefiner.GetVertices();
+    std::vector<Face*> faces = offsetRefiner.GetFaces();
+
+    // Offset verts and faces
+    printf("============ output verts and faces ======\n"); // TODO: debug below...
+    // for (int index = 0; index < faces.size(); index++)
+    for (auto face : faces)
+    {
+        std::vector<Vertex*> newVerts;
+        for (int i = 0; i < face->vertices.size(); i++)
+        {
+            auto vert = face->vertices[i];
+            Vertex* newVert = new Vertex(vert->position.x, vert->position.y, vert->position.z,
+                                         _m.vertList.size());
+            newVert->name =
+                "offsetVert" + std::to_string(i); // Randy this was the bug. Need to name the Vert
+                                                  // before adding it! Fix this logic.
+            _m.addVertex(newVert);
+            newVerts.push_back(newVert);
+        }
+        _m.addFace(newVerts);
+    }
+
+    //_m.buildBoundary(); // Randy added this on 2/26
     //_m.computeNormals();
     return true;
 }
