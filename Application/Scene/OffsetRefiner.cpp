@@ -1,6 +1,7 @@
 // Project AddOffset - Zachary's changes. I modified this file extensively to work with the new
 // winged edge DS
 #include "OffsetRefiner.h"
+#include "qcolor.h"
 #undef M_PI
 
 namespace Nome::Scene
@@ -62,10 +63,10 @@ void COffsetRefiner::Refine(float height, float width)
     auto faces = currMesh.faceList; // Mesh.faces().to_vector();
     for (auto face : faces)
     {
-        if (needGrid)
-        {
-            generateNewFaceVertices(face, width, height);
-        }
+        //if (needGrid)
+        //{
+        generateNewFaceVertices(face, width, height);
+        //}
         generateNewFaces(face, needGrid, needOffset);
     }
     if (needOffset)
@@ -188,18 +189,30 @@ void COffsetRefiner::generateNewFaces(Face* face, bool needGrid, bool needOffset
 
     if (!needGrid)
     {
+        //Aaron changed this to include points specific to faces rather than to edges. 
+        //Previously was causing bugs as there was collision between the in and out
         std::vector<int> indexList1, indexList2;
         std::vector<Vertex*> vertices1, vertices2;
         for (auto vertex : face->vertices)
         {
             int index = vertex->ID;
 
-            int topIndex = newVertices[index].topIndex;
+            int topIndex = newFaceVertices[face->id][vertex->ID].topIndex;
+            int bottomIndex = newFaceVertices[face->id][vertex->ID].bottomIndex;
+            indexList1.push_back(topIndex);
+            indexList2.push_back(bottomIndex);
+
+            vertices1.push_back(newFaceVertices[face->id][vertex->ID].topVert);
+            vertices2.push_back(newFaceVertices[face->id][vertex->ID].bottomVert);
+
+            //Aaron commented this out.
+
+            /* int topIndex = newVertices[index].topIndex;
             int bottomIndex = newVertices[index].bottomIndex;
             indexList1.push_back(topIndex);
             indexList2.push_back(bottomIndex);
             vertices1.push_back(newVertexList[topIndex]);
-            vertices2.push_back(newVertexList[bottomIndex]);
+            vertices2.push_back(newVertexList[bottomIndex]);*/
         }
 
         std::reverse(indexList2.begin(), indexList2.end());
@@ -211,11 +224,18 @@ void COffsetRefiner::generateNewFaces(Face* face, bool needGrid, bool needOffset
         // Randy changed above line to the following
         Face* offsetFace1 = new Face(vertices1); // takes in a vector of Vertex objects
         Face* offsetFace2 = new Face(vertices2); // takes in a vector of Vertex objects
+        
         offsetFaces.push_back(offsetFace1);
         offsetFaces.push_back(offsetFace2);
 
-        currMesh.addFace(vertices1);
-        currMesh.addFace(vertices2);
+        //Set to different colors
+        std::array<float,3> color1 = {0.f, 0.f, 0.f};
+        std::array<float, 3> color2 = { 1.f, 0.9f, 0.3f };
+        offsetFace1->color = color1;
+        offsetFace2->color = color2;
+
+        currMesh.addFace(vertices1, color1);
+        currMesh.addFace(vertices2, color2);
         return;
     }
 

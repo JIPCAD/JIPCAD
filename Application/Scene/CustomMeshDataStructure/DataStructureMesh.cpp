@@ -7,6 +7,7 @@
 
 //#include "group.h"
 #include "DataStructureMesh.h"
+#include "qcolor.h"
 //#include "parameter.h"
 Mesh::Mesh(int type)
 {
@@ -300,8 +301,174 @@ Face* Mesh::addFace(std::vector<Vertex*> vertices, bool reverseOrder)
     nameToFace[newFace->name] = newFace; // Randy added this
     return newFace;
 }
+Face* Mesh::addFace(std::vector<Vertex*> vertices, std::array<float, 3> color, bool reverseOrder)
+{
+    if (vertices.size() < 3)
+    {
+        std::cout << "A face have at least 3 vertices" << std::endl;
+        return NULL; // Randy added the null
+    }
+    Face* newFace = new Face(vertices); // Randy added the (vertices)
+    newFace->color = color;
+    std::vector<Vertex*>::iterator vIt;
+    std::vector<Edge*> edgesInFace;
+    std::vector<Edge*>::iterator eIt;
+    Edge* currEdge = NULL;
 
-// Build the next pointers for boundary edges in the mesh.
+    if (!reverseOrder)
+    {
+        for (vIt = vertices.begin(); vIt < vertices.end(); vIt++)
+        {
+            if (vIt != vertices.end() - 1)
+            {
+                // Aaron's edit: there are a bunch of edges that have two equal vertices.
+                if (*vIt == *(vIt + 1))
+                {
+                    continue;
+                }
+                currEdge = createEdge(*vIt, *(vIt + 1));
+                edgesInFace.push_back(currEdge);
+            }
+            else
+            {
+                if (*vIt == *(vertices.begin()))
+                {
+                    continue;
+                }
+                currEdge = createEdge(*vIt, *(vertices.begin()));
+                edgesInFace.push_back(currEdge);
+            }
+            if (currEdge->fa == NULL)
+            {
+                currEdge->fa = newFace;
+            }
+            else if (currEdge->fb == NULL)
+            {
+                currEdge->fb = newFace;
+            }
+            else
+            {
+                std::cout << "addFace ERROR: Try to create a Non-Manifold at edge with vertex1 : "
+                          << currEdge->va->position.x << " " << currEdge->va->position.y << "  "
+                          << currEdge->va->position.z
+                          << " and vertex2 :" << currEdge->vb->position.x << " "
+                          << currEdge->vb->position.y << "  " << currEdge->vb->position.z
+                          << std::endl;
+                // exit(0);
+            }
+        }
+    }
+    else
+    {
+        for (vIt = vertices.end() - 1; vIt >= vertices.begin(); vIt--)
+        {
+            if (vIt != vertices.begin())
+            {
+                currEdge = createEdge(*vIt, *(vIt - 1));
+                edgesInFace.push_back(currEdge);
+            }
+            else
+            {
+                currEdge = createEdge(*vIt, *(vertices.end() - 1));
+                edgesInFace.push_back(currEdge);
+            }
+            if (currEdge->fa == NULL)
+            {
+                currEdge->fa = newFace;
+            }
+            else if (currEdge->fb == NULL)
+            {
+                currEdge->fb = newFace;
+            }
+            else
+            {
+                std::cout << "ERROR: Try to create a Non-Manifold at edge with vertex1 : "
+                          << currEdge->va->ID << " and vertex2 :" << currEdge->vb->ID << std::endl;
+                // exit(0); // TODO: This is being triggered
+            }
+        }
+    }
+    if (currEdge == NULL)
+    {
+        return NULL;
+    }
+    newFace->oneEdge = currEdge;
+    for (eIt = edgesInFace.begin(); eIt < edgesInFace.end(); eIt++)
+    {
+        Edge* currEdge = (*eIt);
+        if (eIt == edgesInFace.begin())
+        {
+            if (newFace == currEdge->fa)
+            {
+                currEdge->nextVbFa = *(eIt + 1);
+                currEdge->nextVaFa = *(edgesInFace.end() - 1);
+            }
+            else
+            {
+                if (currEdge->mobius)
+                {
+                    currEdge->nextVbFb = *(eIt + 1);
+                    currEdge->nextVaFb = *(edgesInFace.end() - 1);
+                }
+                else
+                {
+                    currEdge->nextVaFb = *(eIt + 1);
+                    currEdge->nextVbFb = *(edgesInFace.end() - 1);
+                }
+            }
+        }
+        else if (eIt == (edgesInFace.end() - 1))
+        {
+            if (newFace == currEdge->fa)
+            {
+                currEdge->nextVbFa = *(edgesInFace.begin());
+                currEdge->nextVaFa = *(eIt - 1);
+            }
+            else
+            {
+                if (currEdge->mobius)
+                {
+                    currEdge->nextVbFb = *(edgesInFace.begin());
+                    currEdge->nextVaFb = *(eIt - 1);
+                }
+                else
+                {
+                    currEdge->nextVaFb = *(edgesInFace.begin());
+                    currEdge->nextVbFb = *(eIt - 1);
+                }
+            }
+        }
+        else
+        {
+            if (newFace == currEdge->fa)
+            {
+                currEdge->nextVbFa = *(eIt + 1);
+                currEdge->nextVaFa = *(eIt - 1);
+            }
+            else
+            {
+                if (currEdge->mobius)
+                {
+                    currEdge->nextVbFb = *(eIt + 1);
+                    currEdge->nextVaFb = *(eIt - 1);
+                }
+                else
+                {
+                    currEdge->nextVaFb = *(eIt + 1);
+                    currEdge->nextVbFb = *(eIt - 1);
+                }
+            }
+        }
+    }
+    newFace->id = faceList.size();
+    newFace->name =
+        "addedFace" + std::to_string(faceList.size()); // Randy added this on 2/12 because realized
+                                                       // we weren't naming DS faces anywhere else
+    faceList.push_back(newFace);
+    nameToFace[newFace->name] = newFace; // Randy added this
+    return newFace;
+}
+    // Build the next pointers for boundary edges in the mesh.
 // @param mesh: refer to the mesh to build connection in.
 // This one takes O(E) time.
 void Mesh::buildBoundary()

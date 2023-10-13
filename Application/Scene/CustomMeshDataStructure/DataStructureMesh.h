@@ -11,6 +11,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <set>
 #include "DataStructureFace.h"
 //#include "transformation.h"
 //#include "utils.h"
@@ -107,6 +108,8 @@ public:
      */
     Face* addFace(std::vector<Vertex*> vertices,
                   bool reverseOrder = false); // Randy changed this on 1/22
+    Face* addFace(std::vector<Vertex*> vertices, std::array<float, 3> color,
+                  bool reverseOrder = false);
     /**
      * @brief delelteFace: Delete a face from this mesh.
      * @param face: the face to be deleted.

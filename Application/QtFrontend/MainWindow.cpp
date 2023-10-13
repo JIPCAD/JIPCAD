@@ -477,21 +477,21 @@ void CMainWindow::on_actionOffset_triggered() {
     Scene->ForEachSceneTreeNode(
         [&](Scene::CSceneTreeNode* node)
         {
+            //Aaron's edit, removing the necessiy of globalMergeNode
             if (node->GetOwner()->GetName() == "globalMergeNode")
             {
-
-                auto* entity = node->GetOwner()->GetEntity();
-                if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
-                {
-                    if (ok && offset_width >= 0)
-                        mesh->setOffsetHeightWidth(offset_height, offset_width);
-                    else
-                        mesh->setOffsetHeightWidth(0.1f, 0.1f);
-                    mesh->setOffset(true);
-                    mesh->Catmull();
-                    mesh->setOffset(false);
-                    mesh->MarkDirty();
-                }
+            auto* entity = node->GetOwner()->GetEntity();
+            if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
+            {
+                if (ok && offset_width >= 0)
+                    mesh->setOffsetHeightWidth(offset_height, offset_width);
+                else
+                    mesh->setOffsetHeightWidth(0.1f, 0.1f);
+                mesh->setOffset(true);
+                mesh->Catmull();
+                mesh->setOffset(false);
+                mesh->MarkDirty();
+            }
             }
         });
 
@@ -574,27 +574,28 @@ void CMainWindow::on_actionShell_triggered() {
     Scene->Update();
     Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) { 
         if (node->GetOwner()->GetName() == "globalMergeNode")
-        {
-            auto* entity = node->GetOwner()->GetEntity();
-            //Getting the entity, which we hope is a CMeshMerger instance
-            //meaning all the subnodes and children are all merged into a mesh
-            if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
             {
-                if (ok && shell_level > 0 && shell_level < 10)
+                // if (node->GetOwner()->GetName() == "globalMergeNode")
+                //{
+                auto* entity = node->GetOwner()->GetEntity();
+                // Getting the entity, which we hope is a CMeshMerger instance
+                // meaning all the subnodes and children are all merged into a mesh
+                if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
                 {
-                    mesh->setShellHeightWidth(shell_level, shell_level);
-                    
+                    if (ok && shell_level > 0 && shell_level < 10)
+                    {
+                        mesh->setShellHeightWidth(shell_level, shell_level);
+                    }
+                    else
+                    {
+                        mesh->setShellHeightWidth(0.1f, 0.1f);
+                    }
+                    mesh->Shell(faceName);
+                    mesh->MarkDirty();
                 }
-                else
-                {
-                    mesh->setShellHeightWidth(0.1f, 0.1f);
-                }
-                mesh->Shell(faceName);
-                mesh->MarkDirty();
-            }
 
-            
-        }
+                //}
+            }
    });
 }
 
@@ -604,23 +605,28 @@ void CMainWindow::on_actionSubdivide_triggered()
     // One shot merging, and add a new entity and its corresponding node
     Scene->Update();
     Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
-        if (node->GetOwner()->GetName() == "globalMergeNode")
-        {
-
-            auto* entity = node->GetOwner()->GetEntity();
-            if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
+            if (node->GetOwner()->GetName() == "globalMergeNode")
             {
-                bool ok;
-                int sub_level = QInputDialog::getInt(this, tr("Please enter the level of subdivision"),
-                                                     tr("Subdivision Level:"), 3, 0, 10, 1, &ok);
-                if (ok && sub_level > 0 && sub_level < 10)
-                    mesh->setSubLevel(sub_level);
-                else
-                    mesh->setSubLevel(3);
-                mesh->Catmull();
-                mesh->MarkDirty();
+                // if (node->GetOwner()->GetName() == "globalMergeNode")
+                //{
+                // Aaron's edits, remove necessity of having merged previously.
+
+                auto* entity = node->GetOwner()->GetEntity();
+                if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
+                {
+                    bool ok;
+                    int sub_level =
+                        QInputDialog::getInt(this, tr("Please enter the level of subdivision"),
+                                             tr("Subdivision Level:"), 3, 0, 10, 1, &ok);
+                    if (ok && sub_level > 0 && sub_level < 10)
+                        mesh->setSubLevel(sub_level);
+                    else
+                        mesh->setSubLevel(3);
+                    mesh->Catmull();
+                    mesh->MarkDirty();
+                }
+                //}
             }
-        }
     });
 }
 
