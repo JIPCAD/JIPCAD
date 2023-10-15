@@ -2,6 +2,7 @@
 // winged edge DS
 #include "OffsetRefiner.h"
 #include "qcolor.h"
+#include <set>
 #undef M_PI
 
 namespace Nome::Scene
@@ -58,7 +59,8 @@ void COffsetRefiner::Refine(float height, float width)
         {
             continue;
         }
-        generateNewVertices(vertex, height);
+        //generateNewVertices(vertex, height);
+        generateNewVerticesForFace(vertex, height);
     }
     auto faces = currMesh.faceList; // Mesh.faces().to_vector();
     for (auto face : faces)
@@ -79,7 +81,47 @@ void COffsetRefiner::Refine(float height, float width)
     currMesh.computeNormals();
 }
 
+void COffsetRefiner::generateNewVerticesForFace(Vertex* vertex, float height) {
+    //All of this section is Aaron's code
+    Vector3 point = vertex->position;
 
+    if (height <= 0)
+    {
+        addPoint(point);
+        newVertices[vertex->ID] =
+            OffsetVerticesInfo { vertex, (int)offsetVertices.size() - 1 }; // Randy replaced above
+        return;
+    }
+    Vector3 sumFaceNormals;
+    std::vector<Edge *> edges = currMesh.randyedgeTable[vertex];
+    std::set<Face*> facesReq = std::set<Face*>();
+    for (auto edge : edges)
+    {
+        if (edge->fa != NULL)
+        {
+            facesReq.insert(edge->fa);
+        }
+        if (edge->fb != NULL)
+        {
+            facesReq.insert(edge->fb);
+        }
+    }
+    Vector3 sumNormals;
+    for (auto face : facesReq)
+    {
+        sumNormals += face->normal;
+    }
+    sumNormals.Normalize();
+    sumNormals *= height / 2;
+
+    Vector3 newPoint1 = point - sumNormals;
+    Vector3 newPoint2 = point + sumNormals;
+    Vertex* newVert1 = addPoint(newPoint1);
+    Vertex* newVert2 = addPoint(newPoint2);
+    int size = offsetVertices.size();
+    newVertices[vertex->ID] = OffsetVerticesInfo { newVert1, size - 2, newVert2, size - 1 };
+
+}
 void COffsetRefiner::generateNewVertices(Vertex* vertex, float height)
 {
     Vector3 point = vertex->position; // getPosition(vertex);
@@ -197,26 +239,27 @@ void COffsetRefiner::generateNewFaces(Face* face, bool needGrid, bool needOffset
         {
             int index = vertex->ID;
 
-            int topIndex = newFaceVertices[face->id][vertex->ID].topIndex;
-            int bottomIndex = newFaceVertices[face->id][vertex->ID].bottomIndex;
-            indexList1.push_back(topIndex);
-            indexList2.push_back(bottomIndex);
+            //int topIndex = newFaceVertices[face->id][vertex->ID].topIndex;
+            //int bottomIndex = newFaceVertices[face->id][vertex->ID].bottomIndex;
+            //indexList1.push_back(topIndex);
+            //indexList2.push_back(bottomIndex);
 
-            vertices1.push_back(newFaceVertices[face->id][vertex->ID].topVert);
-            vertices2.push_back(newFaceVertices[face->id][vertex->ID].bottomVert);
+            //vertices1.push_back(newFaceVertices[face->id][vertex->ID].topVert);
+            //vertices2.push_back(newFaceVertices[face->id][vertex->ID].bottomVert);
 
             //Aaron commented this out.
 
-            /* int topIndex = newVertices[index].topIndex;
+            int topIndex = newVertices[index].topIndex;
             int bottomIndex = newVertices[index].bottomIndex;
             indexList1.push_back(topIndex);
             indexList2.push_back(bottomIndex);
             vertices1.push_back(newVertexList[topIndex]);
-            vertices2.push_back(newVertexList[bottomIndex]);*/
+            vertices2.push_back(newVertexList[bottomIndex]);
         }
-
-        std::reverse(indexList2.begin(), indexList2.end());
-        std::reverse(vertices2.begin(), vertices2.end());
+        //std::reverse(indexList2.begin(), indexList1.end());
+        //std::reverse(vertices2.begin(), vertices2.end());
+        std::reverse(indexList1.begin(), indexList1.end());
+        std::reverse(vertices1.begin(), vertices1.end());
 
         // offsetFaces.push_back(indexList1);
         // offsetFaces.push_back(indexList2);
@@ -327,14 +370,16 @@ void COffsetRefiner::closeFace(Face* face)
         // check to see if the vertex is on an edge that is on a boundary.. In openMesh,
         // is_boundary() checked if a vertex is adjacent to a boundary edge
 
+        //boundary edge is an edge that only has one face attached to it,.
+
         std::vector<Vertex*> verts = { vertex1Top, vertex1Bottom, vertex2Top, vertex2Bottom };
         std::vector<Edge*> boundaryList = currMesh.boundaryEdgeList();
-        bool allOnBoundary = true;
+        bool allOnBoundary = false;
         for (auto vert : verts)
         {
             bool onBoundary = false;
             std::vector<Edge*> boundaryList = currMesh.boundaryEdgeList();
-            std::vector<Edge*> adjEdges = currMesh.randyedgeTable[vertex1Top];
+            std::vector<Edge*> adjEdges = currMesh.randyedgeTable[vert];
             for (auto adjEdge : adjEdges)
             {
                 if (std::find(boundaryList.begin(), boundaryList.end(), adjEdge)
@@ -344,7 +389,7 @@ void COffsetRefiner::closeFace(Face* face)
                     onBoundary = true;
                 }
             }
-            allOnBoundary = allOnBoundary && onBoundary;
+            allOnBoundary = allOnBoundary || onBoundary;
         }
 
         if (allOnBoundary)
@@ -356,8 +401,10 @@ void COffsetRefiner::closeFace(Face* face)
             // offsetFaces.push_back(faceIndexList);
 
             // Randy added below to replace above lines
+            /*Face* offsetFaceClose =
+                currMesh.addFace({ vertex1Top, vertex1Bottom, vertex2Bottom, vertex2Top });*/
             Face* offsetFaceClose =
-                currMesh.addFace({ vertex1Top, vertex1Bottom, vertex2Bottom, vertex2Top });
+                currMesh.addFace({ vertex2Top, vertex2Bottom, vertex1Bottom, vertex1Top });
             offsetFaces.push_back(offsetFaceClose);
         }
         // if (vertex1Top.is_boundary() && vertex1Bottom.is_boundary() && vertex2Top.is_boundary()

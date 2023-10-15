@@ -30,6 +30,8 @@ private:
         int bottomIndex;
     };
 
+    void generateNewVerticesForFace(Vertex* vertex, float height);
+
     void generateNewVertices(Vertex* vertex, float height);
     void generateNewFaceVertices(Face* face, float width, float height);
     void generateNewFaces(Face* face, bool needGrid, bool needOffset);
