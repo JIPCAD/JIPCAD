@@ -8,6 +8,7 @@
 #include <tuple>
 #undef M_PI
 
+using namespace std;
 namespace Nome::Scene
 {
 
@@ -91,11 +92,66 @@ float COffsetRefiner::AngleBetween(Vector3 a, Vector3 b)
     float dot = a.x * b.x + a.y * b.y + a.z * b.z;
     float maga = std::sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
     float magb = std::sqrt(b.x * b.x + b.y * b.y + b.z * b.z);
-    float angle = std::acos(dot / (maga * magb));
+    if (dot == 0)
+    {
+        return 1000.0;
+    }
+    //std::cout << dot / (maga * magb) << std::endl;
+    float angle = std::acos(max(min(dot / (maga * magb), 1.0f),-1.0f));
     return angle;
 }
 
-void COffsetRefiner::generateNewVerticesForFace(Vertex* vertex, float height) {
+float COffsetRefiner::getNormalizationComponent(std::set<Face*> facesReq, Vector3 sumNormals)
+{
+    float ang = 0.0;
+    for (auto face : facesReq)
+    {
+        float curang = AngleBetween(sumNormals, face->normal);
+        if (curang == 1000.0)
+        {
+            ang = 10000.0;
+            break;
+        }
+        ang = ang + curang;
+    }
+    if (ang != 10000.0)
+    {
+        ang = ang / (facesReq.size());
+        return (1 / abs(cos(ang)));
+        /*std::cout << "This is the angle: "<< ang << std::endl;
+        std::cout << "This is the value multipled to the sumNormals: " 1 / abs(cos(ang)) <<
+        std::endl;
+    */
+    }
+    else
+    {
+        return 4.0f;
+    }
+}
+float COffsetRefiner::getNormalizationComponentV2(std::set<Face*> facesReq, Vector3 sumNormals) {
+    float cosAng = 0.0f;
+    for (auto face : facesReq)
+    {
+        float curang = AngleBetween(sumNormals, face->normal);
+        if (curang == 1000.0)
+        {
+            cosAng = 10000.0f;
+            break;
+        }
+        cosAng = cosAng + cos(curang);
+    }
+    if (cosAng != 10000.0f)
+    {
+        cosAng = cosAng / (facesReq.size());
+        return (1 / abs(cosAng));
+    }
+    else
+    {
+        return 2.0f;
+    }
+}
+    void COffsetRefiner::generateNewVerticesForFace(Vertex* vertex, float height)
+{
     //All of this section is Aaron's code
     Vector3 point = vertex->position;
 
@@ -126,15 +182,9 @@ void COffsetRefiner::generateNewVerticesForFace(Vertex* vertex, float height) {
         sumNormals += face->normal;
     }
     sumNormals.Normalize();
+    // find the extending coefficient
     sumNormals *= height / 2;
-    //find the extending coefficient
-    float ang = 0.0;
-    for (auto face : facesReq)
-    {
-        ang = ang + AngleBetween(sumNormals, face->normal);
-    }
-    ang = ang / (facesReq.size());
-    sumNormals *= 1 / abs(cos(ang));
+    sumNormals *= getNormalizationComponent(facesReq, sumNormals);
 
     Vector3 newPoint1 = point - sumNormals;
     Vector3 newPoint2 = point + sumNormals;

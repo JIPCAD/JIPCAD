@@ -30,6 +30,10 @@ private:
         int bottomIndex;
     };
 
+    float getNormalizationComponent(std::set<Face*> facesReq, Vector3 sumNormals);
+
+    float getNormalizationComponentV2(std::set<Face*> facesReq, Vector3 sumNormals);
+
     void generateNewVerticesForFace(Vertex* vertex, float height);
     float AngleBetween(Vector3 vec1, Vector3 vec2);
     void generateNewVertices(Vertex* vertex, float height);
