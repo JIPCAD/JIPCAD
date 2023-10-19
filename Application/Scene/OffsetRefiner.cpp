@@ -3,6 +3,7 @@
 #include "OffsetRefiner.h"
 #include "qcolor.h"
 #include <set>
+#include <cmath>
 #include <unordered_set>
 #include <tuple>
 #undef M_PI
@@ -83,6 +84,17 @@ void COffsetRefiner::Refine(float height, float width)
     currMesh.computeNormals();
 }
 
+float COffsetRefiner::AngleBetween(Vector3 a, Vector3 b)
+{
+    // FUnction calculate vector between vec1 and vec2
+
+    float dot = a.x * b.x + a.y * b.y + a.z * b.z;
+    float maga = std::sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+    float magb = std::sqrt(b.x * b.x + b.y * b.y + b.z * b.z);
+    float angle = std::acos(dot / (maga * magb));
+    return angle;
+}
+
 void COffsetRefiner::generateNewVerticesForFace(Vertex* vertex, float height) {
     //All of this section is Aaron's code
     Vector3 point = vertex->position;
@@ -115,6 +127,14 @@ void COffsetRefiner::generateNewVerticesForFace(Vertex* vertex, float height) {
     }
     sumNormals.Normalize();
     sumNormals *= height / 2;
+    //find the extending coefficient
+    float ang = 0.0;
+    for (auto face : facesReq)
+    {
+        ang = ang + AngleBetween(sumNormals, face->normal);
+    }
+    ang = ang / (facesReq.size());
+    sumNormals *= 1 / abs(cos(ang));
 
     Vector3 newPoint1 = point - sumNormals;
     Vector3 newPoint2 = point + sumNormals;

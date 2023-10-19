@@ -226,6 +226,7 @@ void CMeshMerger::Catmull()
     {
         currMesh.buildBoundary();
         currMesh.computeNormals();
+        //MergedMesh = merge
         std::cout << "done with everything" << std::endl;
     }
     catch (std::exception& e)
@@ -405,6 +406,7 @@ bool CMeshMerger::offset(DSMesh & _m)
         }
         _m.addFace(newVerts);
     }
+
 
    //_m.buildBoundary(); // Randy added this on 2/26
     //_m.computeNormals();

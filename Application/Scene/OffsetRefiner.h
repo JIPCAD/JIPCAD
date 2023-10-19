@@ -31,7 +31,7 @@ private:
     };
 
     void generateNewVerticesForFace(Vertex* vertex, float height);
-
+    float AngleBetween(Vector3 vec1, Vector3 vec2);
     void generateNewVertices(Vertex* vertex, float height);
     void generateNewFaceVertices(Face* face, float width, float height);
     void generateNewFaces(Face* face, bool needGrid, bool needOffset);

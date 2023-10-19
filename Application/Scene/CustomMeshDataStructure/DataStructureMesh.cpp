@@ -723,6 +723,7 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
         Edge* currEdge = firstEdge;
         Edge* nextEdge;
         Vertex* tempv;
+        // Aaron's notes
         // This code is basically trying to gauge whether the 
         // face is made up of either 3 or 4 vertices
         //I.e., whether the face is a triangle or not.
@@ -789,6 +790,7 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
                     }
                 }
                 vertices.push_back(newMesh.vertList[tempv->ID]);
+                //Aaron's edit
 #if 0
                 if (currEdge == nextEdge)
                 {
