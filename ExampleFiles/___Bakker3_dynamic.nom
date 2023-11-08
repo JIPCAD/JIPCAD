@@ -1,0 +1,238 @@
+#
+# Bakker3_dynamic.nom
+#
+#   The "Illusion" sculpture by Anton Bakker on a BCC-(Body-Centered Cubic)-lattice 
+#   Two identical, but differently-colored sweep segments identify the pieces that make up the "interlinked squares."
+#   Rotate sculpture around y-axis to show the 3 special projections shown in Bakker's art.
+#
+# CHS 2023/11/01
+
+#### Some Surface colors #############################
+surface M  color  (0.9 0.1 1  ) endsurface   # Magenta
+surface Z  color  (1   0   0.6) endsurface   # Zinnober
+surface R  color  (0.9 0.1 0  ) endsurface   # Red
+surface O  color  (1   0.6 0  ) endsurface   # Orange
+surface Y  color  (0.8 0.8 0  ) endsurface   # Yellow
+surface L  color  (0.5 0.8 0  ) endsurface   # Lime
+surface G  color  (0   0.7 0  ) endsurface   # Green
+surface A  color  (0   0.9 0.6) endsurface   # Aqua
+surface C  color  (0   0.8 0.9) endsurface   # Cyan
+surface U  color  (0   0.6 1  ) endsurface   # Uniform
+surface B  color  (0   0.3 1  ) endsurface   # Blue
+surface V  color  (0.6 0.1 0.9) endsurface   # Violet
+surface P  color  (0.7 0   0.8) endsurface   # Purple
+
+surface W  color  (1   1   1  ) endsurface   # White
+surface S  color  (0.6 0.6 0.6) endsurface   # Snow
+surface D  color  (0.2 0.2 0.2) endsurface   # Dark
+
+surface K  color  (0.7 0.4 0.2) endsurface   # Knot-color
+
+backgroundcolor (0.7 0.8 0.9) endbackgroundcolor
+
+
+############  Adjustable Parameters on Sliders  ##################################
+
+bank p            # init  min    max   step 
+  set sclAtom     0.10    0.1    0.5   0.01    # scale of the Atoms in the BCC
+  set sclNode     0.1     0.02   0.6   0.01    # scale of selected Nodes used in the construction of new sculptures
+  set beamWid     0.2     0.05   0.3   0.05    # width of swept beam
+  set azimBeam   30    -180    180     1       # azimuth of swept beam
+  set rotZ        0    -180    180     5       # rot sculpt around Z 
+  set rotY        0    -180     90     5       # rot sculpt around Y  >>> rotation of the Bakker sculpture
+  set rotX        0    -180    180     5       # rot sculpt around X 
+  set speed      10       2     40     1       # rot-Y speed
+  list ( sclAtom  sclNode  beamWid  azimBeam   rotZ rotY rotX  speed )    
+endbank
+
+########  Construct the "Atom"   and the "Node"   in a BCC  #################
+
+point x ( {expr  $p.sclAtom}  0  0 ) endpoint
+point a ( {expr -$p.sclAtom}  0  0 ) endpoint
+point y ( 0  {expr  $p.sclAtom}  0 ) endpoint
+point b ( 0  {expr -$p.sclAtom}  0 ) endpoint
+point z ( 0  0  {expr  $p.sclAtom} ) endpoint
+point c ( 0  0  {expr -$p.sclAtom} ) endpoint
+
+mesh atom
+face fx ( y z b c ) endface
+face fa ( c b z y ) endface
+face fy ( z x c a ) endface
+face fb ( a c x z ) endface
+face fz ( x y a b ) endface
+face fc ( b a y x ) endface
+endmesh  #atom
+
+
+point nx ( {expr  $p.sclNode}  0  0 ) endpoint
+point na ( {expr -$p.sclNode}  0  0 ) endpoint
+point ny ( 0  {expr  $p.sclNode}  0 ) endpoint
+point nb ( 0  {expr -$p.sclNode}  0 ) endpoint
+point nz ( 0  0  {expr  $p.sclNode} ) endpoint
+point nc ( 0  0  {expr -$p.sclNode} ) endpoint
+
+mesh node  ## a tetrahedron
+face n1 ( nx ny nz ) endface
+face n2 ( ny na nz ) endface
+face n3 ( na nb nz ) endface
+face n4 ( nb nx nz ) endface
+face n5 ( ny nx nc ) endface
+face n6 ( na ny nc ) endface
+face n7 ( nb na nc ) endface
+face n8 ( nx nb nc ) endface
+endmesh  #node
+
+group row  ## cubic
+  instance an2 atom   surface R   translate(-2 0 0)    endinstance 
+  instance an1 atom   surface R   translate(-1 0 0)    endinstance 
+  instance a00 atom   surface R   translate( 0 0 0)    endinstance 
+  instance ap1 atom   surface R   translate( 1 0 0)    endinstance 
+  instance ap2 atom   surface R   translate( 2 0 0)    endinstance 
+endgroup
+
+group brow  ## body-centered
+  instance bn2 atom   surface O   translate(-1.5 0 0)    endinstance 
+  instance bn1 atom   surface O   translate(-0.5 0 0)    endinstance 
+  instance bp1 atom   surface O   translate( 0.5 0 0)    endinstance 
+  instance bp2 atom   surface O   translate( 1.5 0 0)    endinstance 
+endgroup
+
+group flat
+  instance rn2 row    translate(0 -2 0)    endinstance 
+  instance rn1 row    translate(0 -1 0)    endinstance 
+  instance r00 row    translate(0  0 0)    endinstance 
+  instance rp1 row    translate(0  1 0)    endinstance 
+  instance rp2 row    translate(0  2 0)    endinstance 
+endgroup
+
+group bflat
+  instance bn2 brow    translate(0 -1.5 0)    endinstance 
+  instance bn1 brow    translate(0 -0.5 0)    endinstance 
+  instance bp1 brow    translate(0  0.5 0)    endinstance 
+  instance bp2 brow    translate(0  1.5 0)    endinstance 
+endgroup
+
+group clatt
+  instance rn2 flat   translate(0 0 -2)    endinstance 
+  instance rn1 flat   translate(0 0 -1)    endinstance 
+  instance r00 flat   translate(0 0  0)    endinstance 
+  instance rp1 flat   translate(0 0  1)    endinstance 
+  instance rp2 flat   translate(0 0  2)    endinstance 
+endgroup
+
+group blatt
+  instance bn2 bflat   translate(0 0 -1.5)    endinstance 
+  instance bn1 bflat   translate(0 0 -0.5)    endinstance 
+  instance bp1 bflat   translate(0 0  0.5)    endinstance 
+  instance bp2 bflat   translate(0 0  1.5)    endinstance 
+endgroup
+
+group BCC
+  instance icl clatt  endinstance 
+  instance ibl blatt  endinstance 
+endgroup
+
+
+#############  Selecting suitable Nodes to make Bakker's central image  ###########
+
+group diag
+  instance inU node   surface C    translate( 0.5  1.5  0.5 )  endinstance 
+  instance inU node   surface U    translate( 0    1    1.0 )  endinstance 
+  instance inU node   surface B    translate(-0.5  0.5  1.5 )  endinstance 
+  instance inU node   surface V    translate(-1    0    1.0 )  endinstance 
+  instance inU node   surface P    translate(-1.5 -0.5  0.5 )  endinstance 
+  instance inU node   surface R    translate(-1   -1    0   )  endinstance 
+endgroup
+
+mesh base  ## optional, to choose good orientation for 3D printing:
+  point ba ( 3  3 -2 )  endpoint 
+  point bb (-3  3 -2 )  endpoint 
+  point bc (-3 -3 -2 )  endpoint 
+  point bd ( 3 -3 -2 )  endpoint 
+
+  face fb  (ba bb bc bd) endface
+endmesh
+
+
+##################  Connecting these nodes into a sweep  #############################
+
+## tria crosssection:
+point ta ( 0    {expr $p.beamWid}         0 )  endpoint 
+point tb ( {expr -0.866*$p.beamWid}  {expr -0.5*$p.beamWid}  0 )  endpoint 
+point tc ( {expr  0.866*$p.beamWid}  {expr -0.5*$p.beamWid}  0 )  endpoint 
+
+polyline tria  (ta tb tc ta)  endpolyline
+
+
+point ryj (-0.5  0.5  0.5 )  endpoint 
+point ryi ( 0    0    1   )  endpoint 
+point ryh ( 0.5 -0.5  0.5 )  endpoint 
+point ryg ( 1   -1    0   )  endpoint 
+point ryf ( 1.5 -0.5 -0.5 )  endpoint 
+point rye ( 1    0   -1.0 )  endpoint 
+point ryd ( 0.5  0.5 -1.5 )  endpoint 
+point ryc ( 0    1   -1.0 )  endpoint  
+point ryb (-0.5  1.5 -0.5 )  endpoint 
+point sa ( 0    2    0   )  endpoint  ## mirror point
+point sb ( 0.5  1.5  0.5 )  endpoint 
+point sc ( 0    1    1.0 )  endpoint  
+point sd (-0.5  0.5  1.5 )  endpoint 
+point se (-1    0    1.0 )  endpoint 
+point sf (-1.5 -0.5  0.5 )  endpoint 
+point sg (-1   -1    0   )  endpoint 
+point sh (-0.5 -0.5 -0.5 )  endpoint 
+point si ( 0    0   -1   )  endpoint 
+point sj ( 0.5  0.5 -0.5 )  endpoint 
+
+# this forms one of the "Illusion squares":
+polyline pathSq  ( ryj ryi ryh ryg ryf  rye ryd ryc ryb  sa  sb sc sd se sf sg sh si sj )  endpolyline 
+ 
+sweep knot  
+    crosssection tria  endcrosssection         ##  begincap  endcap   
+    path  pathSq    mintorsion   azimuth {expr $p.azimBeam}   twist 0  cutbegin  cutend   endpath  # for clean connection!  
+endsweep
+
+(*
+# this may form other possible the Hidden Connectors betwen the two sweeps:
+polyline pathHC  (   ryi ryh ryg ryf rye )  endpolyline
+
+sweep conn  
+    crosssection tria  endcrosssection         ##  begincap  endcap   
+    path  pathHC    mintorsion   azimuth {expr $p.azimBeam}   twist 0   endpath     ##  cutbegin  cutend  
+endsweep
+*)
+
+
+##################  Bakker's knot >> (What is this knot ?)  #######################
+group Bknot
+#  instance iBCC BCC     endinstance 
+
+(* show selected Nodes:
+  instance inB node   surface D      endinstance  # central node
+  instance inL node   surface L    translate( 0  2  0 )  endinstance # top
+  instance inG node   surface L    translate( 0 -2  0 )  endinstance # bottom
+
+  instance id1  diag     endinstance  # 
+  instance id2  diag   rotate(0 1 0)(180)   endinstance  # 
+  instance id3  diag   rotate(0 0 1)(180)   endinstance  # 
+  instance id4  diag   rotate(0 0 1)(180)  rotate(0 1 0)(180)   endinstance  # 
+*)
+
+  instance ikY  knot  surface Y     endinstance 
+  instance ikO  knot  surface O   rotate(0 0 1)(180)   endinstance  # 
+
+#  instance ic2  conn  surface V     endinstance  # 
+#  instance ic4  conn  surface P   rotate(0 0 1)(180)   endinstance  # 
+endgroup
+
+
+########################################  RENDER:  #################################################
+#instance ibase base  surface G  scale( 0.2  0.2  0.2)   endinstance 
+
+instance ia Bknot  scale( 0.2  0.2  0.2)  rotate(0 1 0)({expr $time *$p.speed})  ## dynamic rotation
+##   rotate(0 0 1)({expr $p.rotZ})  rotate(0 1 0)({expr $p.rotY})  rotate(1 0 0)({expr $p.rotX}) ## for manual rotation
+endinstance 
+
+#########################################  END  #####################################################
+
+

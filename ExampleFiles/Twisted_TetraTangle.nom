@@ -1,0 +1,164 @@
+#
+### Twisted_TetraTangle.nom
+#
+#  4 interlinked twisted triangle loops with tetra symmetry
+#  A "playground" for experimentation with interlinked structures
+#
+### CHS 2023/11/06
+
+##################  SURFACES   ######################### 
+
+surface M  color  (0.9 0   1  ) endsurface   # Magenta
+surface Z  color  (1   0   0.6) endsurface   # Zinnober
+surface R  color  (1   0.1 0  ) endsurface   # Red
+surface O  color  (1   0.6 0  ) endsurface   # Orange
+surface Y  color  (1   1   0  ) endsurface   # Yellow
+surface L  color  (0.5 1   0  ) endsurface   # Lime
+surface G  color  (0   0.9 0  ) endsurface   # Green
+surface A  color  (0   0.9 0.7) endsurface   # Aqua
+surface C  color  (0   1   1  ) endsurface   # Cyan
+surface U  color  (0   0.6 1  ) endsurface   # Uniform
+surface B  color  (0   0.3 1  ) endsurface   # Blue
+surface V  color  (0.3 0   1  ) endsurface   # Violet
+surface P  color  (0.6 0   1  ) endsurface   # Purple
+
+surface W  color  (0.9 0.9 0.9) endsurface   # White
+surface D  color  (0.4 0.4 0.4) endsurface   # Dark
+surface K  color  (0   0   0  ) endsurface   # blacK
+
+################ Coordinate axes  ##################
+
+point ooo  ( 0 0 0 ) endpoint 
+point xoo  ( 1 0 0 ) endpoint
+point oyo  ( 0 1 0 ) endpoint
+point ooz  ( 0 0 1 ) endpoint
+
+polyline xaxis (ooo xoo) endpolyline
+polyline yaxis (ooo oyo) endpolyline
+polyline zaxis (ooo ooz) endpolyline
+
+group coord_axes
+  instance ix xaxis surface R endinstance
+  instance iy yaxis surface U endinstance
+  instance iz zaxis surface G endinstance
+endgroup
+
+
+#####################  Wire cube  #################
+
+point Yxyz  ( 1  1  1 ) endpoint
+point Yxyc  ( 1  1 -1 ) endpoint
+point Yxbz  ( 1 -1  1 ) endpoint
+point Yxbc  ( 1 -1 -1 ) endpoint
+point Yayz  (-1  1  1 ) endpoint
+point Yayc  (-1  1 -1 ) endpoint
+point Yabz  (-1 -1  1 ) endpoint
+point Yabc  (-1 -1 -1 ) endpoint
+
+polyline edge3 (Yxbc Yxyc Yxyz Yayz) endpolyline
+
+group wcube
+  instance ea edge3       endinstance
+  instance eb edge3   rotate(0 0 1)(90)   endinstance
+  instance ec edge3   rotate(0 0 1)(180)   endinstance
+  instance ed edge3   rotate(0 0 1)(270)   endinstance
+endgroup
+
+#################################################################
+
+bank p       # init    min     max    step 
+    set rb      2.5      1       5     0.1     #   "big, outer bulge rad"   
+    set rs      1.0      1       5     0.1     #   "negative, inner rad" 
+    set bwid     15        0      30     1       #   "width of outer bulge"
+    set bslic  80        8     200     1       #   "Bsp slices" 
+    set azim   90     -180     180     1       #   "Bsp azimuth"
+    set twst 1080    -1080    1080   180       #   "Bsp twist"
+    set warp    0      -90      90     1       #   "Bsp warp"
+    set wR      0.3      0.1     1     0.01    #   "width Rect"
+    set tR      0.05     0.01    1     0.01    #   "thick Rect"
+    set bend   -0.2     -1       1     0.01    #   "bend Rect"
+    set rslic  24        8      90     1       #   "smooth profile slices"
+    set rotz  -30     -180     180     1       #   "rotz" 
+
+    list  (  rb rs bwid  bslic  azim twst warp  wR tR  bend rslic  rotz )
+endbank
+
+
+###########################  Big triangular loop sweep path  ####################################
+
+point bz  ( 0 -1 1 ) endpoint 
+point ay  ( -1 1 0 ) endpoint 
+point xc  ( 1 0 -1 ) endpoint 
+
+polyline tl  (bz ay xc bz) endpolyline
+
+
+point t9  ( {expr $p.rb*cos(-0.0175*$p.bwid)}        {expr $p.rb*sin(-0.0175*$p.bwid)}  0 )  endpoint
+point t1  ( {expr $p.rb*cos( 0.0175*$p.bwid)}        {expr $p.rb*sin( 0.0175*$p.bwid)}  0 )  endpoint
+point t2  ( {expr $p.rs*0.5}                       {expr $p.rs*0.866}               0 )  endpoint
+point t3  ( {expr $p.rb*cos(0.0175*(-$p.bwid+120))}  {expr $p.rb*sin(0.0175*(-$p.bwid+120))}  0 )  endpoint
+point t4  ( {expr $p.rb*cos(0.0175*( $p.bwid+120))}  {expr $p.rb*sin(0.0175*( $p.bwid+120))}  0 )  endpoint
+point t5  ( {expr -$p.rs}   0  0 )   endpoint
+point t6  ( {expr $p.rb*cos(0.0175*(-$p.bwid-120))}  {expr $p.rb*sin(0.0175*(-$p.bwid-120))}  0 )  endpoint
+point t7  ( {expr $p.rb*cos(0.0175*( $p.bwid-120))}  {expr $p.rb*sin(0.0175*( $p.bwid-120))}  0 )  endpoint
+point t8  ( {expr $p.rs*0.5}                       {expr -$p.rs*0.866}                    0 )  endpoint
+
+polyline tl9  (t1 t2 t3 t4 t5 t6 t7 t8 t9 t1)  endpolyline
+
+controlpoint ct9  point t9  rotate( 0 0 {expr -$p.warp} )  endcontrolpoint 
+controlpoint ct1  point t1  rotate( 0 0 {expr  $p.warp} )  endcontrolpoint 
+controlpoint ct3  point t3  rotate( 0 0 {expr -$p.warp} )  endcontrolpoint 
+controlpoint ct4  point t4  rotate( 0 0 {expr  $p.warp} )  endcontrolpoint 
+controlpoint ct6  point t6  rotate( 0 0 {expr -$p.warp} )  endcontrolpoint 
+controlpoint ct7  point t7  rotate( 0 0 {expr  $p.warp} )  endcontrolpoint 
+
+bspline pathL
+  order 3
+  ( ct9  ct1 t2 ct3 ct4 t5 ct6 ct7 t8 ct9  ct1  )
+  segs {expr $p.bslic}
+endbspline
+
+
+#################  bent rectangular cross section  ####################################
+
+point r1  ( {expr  $p.wR}  {expr  $p.tR}          0 )  endpoint 
+point r2  (  0             {expr  $p.tR+$p.bend}  0 )  endpoint 
+point r3  ( {expr -$p.wR}  {expr  $p.tR}          0 )  endpoint 
+point r4  ( {expr -$p.wR}  {expr -$p.tR}          0 )  endpoint 
+point r5  (  0             {expr -$p.tR+$p.bend}  0 )  endpoint 
+point r6  ( {expr  $p.wR}  {expr -$p.tR}          0 )  endpoint 
+
+polyline xrect (r1 r2 r3 r4 r5 r6 r1) endpolyline
+
+bspline spline6
+  order 4
+  ( r6  r1 r2 r3 r4 r5 r6 r1  r2 )
+  segs {expr $p.rslic}
+endbspline
+
+
+#####################    the SWEEP   ###################
+
+sweep loop
+  crosssection xrect  endcrosssection
+#>  crosssection spline6  endcrosssection  ## smooth cross-section
+
+  path pathL  mintorsion  azimuth {expr $p.azim}  twist {expr  $p.twst}  endpath
+endsweep
+
+
+#################  RENDER  ############################################################
+
+group scene
+  instance icoord coord_axes         scale( 3 3 3 )  endinstance 
+  instance icube  wcube  surface D   scale( 2 2 2 )  endinstance 
+
+  instance ilO loop  surface O   rotate(0 0 1)({expr $p.rotz})  rotate(0 1 0)(54.74)  rotate(0 0 1)(45)    endinstance   
+  instance ilC loop  surface C   rotate(0 0 1)({expr $p.rotz})  rotate(0 1 0)(54.74)  rotate(0 0 1)(45)  rotate(0 0 1)( 90) endinstance   
+  instance ilY loop  surface Y   rotate(0 0 1)({expr $p.rotz})  rotate(0 1 0)(54.74)  rotate(0 0 1)(45)  rotate(0 0 1)(180) endinstance   
+  instance ilL loop  surface L   rotate(0 0 1)({expr $p.rotz})  rotate(0 1 0)(54.74)  rotate(0 0 1)(45)  rotate(0 0 1)(-90) endinstance 
+endgroup
+
+instance iscene scene  scale (0.4 0.4 0.4)  endinstance
+
+######################   END   ##########################################################  
