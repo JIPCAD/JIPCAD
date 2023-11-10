@@ -54,7 +54,8 @@ public:
 private:
     void drawCrossSection(std::vector<Vector3> crossSection, Vector3 center,
                           Vector3 T, Vector3 N, float rotateAngle, float angle,
-                          Vector3 controlScale, int index, bool shouldReverse);
+                          Vector3 controlScale, int index, bool shouldReverse,
+                          bool hasReverseFlag, bool shouldCorrectRotation);
     void drawCap(std::vector<Vector3> crossSection, int crossIndex,
                  int faceIndex, bool shouldFlip);
     CSweepMath Math = CSweepMath();
