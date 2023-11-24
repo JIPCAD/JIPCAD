@@ -24,12 +24,21 @@ public:
 
     void UpdateTransform();
     void UpdateCamera();
+    void CameraScroll(float objectz); 
+    std::string GetCameraType();
 
 public:
     Qt3DRender::QCamera* Camera = nullptr;
     Qt3DCore::QTransform* Transform = nullptr;
     CameraType type;
     std::string name;
+    float left; 
+    float right;
+    float bottom; 
+    float top; 
+    float nearplane;
+    float farplane; 
+    
 
 
 private:

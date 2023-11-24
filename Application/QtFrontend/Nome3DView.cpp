@@ -1249,6 +1249,13 @@ void CNome3DView::wheelEvent(QWheelEvent* ev)
         }
         if (objectZ > 30)
             objectZ = 30;
+        if (InteractiveCameras.size() >= 1) {
+            CInteractiveCamera* camera = *(InteractiveCameras.begin()); 
+            if (camera->GetCameraType() == "PARALLEL") {
+                camera->CameraScroll(numDegrees.y()*0.15);
+                return; 
+            }
+        }
         /* Added by Brian, 06/15/2023, wheelEvent axis should be translated via camera's transformation matrix. */
         QMatrix4x4 qtf{this->camerarotation.ToMatrix4().Data()};
         QVector4D trans = qtf * QVector4D(objectX, objectY, objectZ, 0);

@@ -68,9 +68,12 @@ void CInteractiveCamera::UpdateCamera()
                                         CameraInstance.para[3],
                                         CameraInstance.para[4],
                                         CameraInstance.para[5]);
-
-            
-
+            left = CameraInstance.para[0];
+            right = CameraInstance.para[1];
+            bottom = CameraInstance.para[2]; 
+            top = CameraInstance.para[3]; 
+            nearplane = CameraInstance.para[4]; 
+            farplane = CameraInstance.para[5];  
             type = Orthogonal;
         } else if (CameraInstance.type == "PERSPECTIVE") {
             if (CameraInstance.para[0] == (float)0.5 && 
@@ -97,4 +100,33 @@ void CInteractiveCamera::UpdateCamera()
         }
     }
 }
+
+std::string CInteractiveCamera::GetCameraType() {
+    auto* entity = SceneTreeNode->GetInstanceEntity();
+    if (!entity)
+    {
+        entity = SceneTreeNode->GetOwner()->GetEntity();
+    }
+    if (entity)
+    {
+        auto CameraInstance = dynamic_cast<Scene::CCamera*>(entity)->GetCamera();
+        return CameraInstance.type; 
+    }
+    return NULL; 
 }
+void CInteractiveCamera::CameraScroll(float objectz) {
+    if (left + objectz > right - objectz) return; 
+    if (bottom + objectz > top - objectz) return;
+    left += objectz;
+    right -= objectz;
+    bottom += objectz; 
+    top -= objectz; 
+    this->Camera->lens()->setOrthographicProjection(left,
+                            right,
+                            bottom,
+                            top,
+                            nearplane,
+                            farplane);
+}
+}
+
