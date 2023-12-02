@@ -15,10 +15,6 @@ void CTranslate::RecomputeOutput()
 void CRotate::RecomputeOutput()
 {
     Matrix3x4 prev = Input.GetValue(Matrix3x4::IDENTITY);
-    std::cout << "Rotation Angle: " << Angle.GetValue(0.0f) << std::endl;
-    std::cout << AxisX.GetValue(0.0f) << std::endl;
-    std::cout << AxisY.GetValue(0.0f) << std::endl;
-    std::cout << AxisZ.GetValue(0.0f) << std::endl;
     float angle = Angle.GetValue(0.0f); 
     /* Brian Dec 1 2023, remember JIPCAD uses Right Hand Coordinate System.*/
     Quaternion rot = Quaternion(
