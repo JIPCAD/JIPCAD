@@ -1,6 +1,7 @@
 #pragma once
 #include <Flow/FlowNode.h>
 #include <Matrix3x4.h>
+#include <QQuaternion>
 
 namespace Nome::Scene
 {

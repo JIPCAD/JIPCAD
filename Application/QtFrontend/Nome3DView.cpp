@@ -1249,6 +1249,7 @@ void CNome3DView::wheelEvent(QWheelEvent* ev)
         }
         if (objectZ > 30)
             objectZ = 30;
+        /* Added by Brian, 11/24/2023, Wheelevent should adjust left, right, bottom, top cutoff fields in order to zoom in with Parallel Projection */ 
         if (InteractiveCameras.size() >= 1) {
             CInteractiveCamera* camera = *(InteractiveCameras.begin()); 
             if (camera->GetCameraType() == "PARALLEL") {
@@ -1261,7 +1262,7 @@ void CNome3DView::wheelEvent(QWheelEvent* ev)
         QVector4D trans = qtf * QVector4D(objectX, objectY, objectZ, 0);
         QVector3D objectinput = trans.toVector3D(); 
         sphereTransform->setTranslation(objectinput);
-        //sphereTransform->setTranslation(QVector3D(objectX, objectY, objectZ));
+        //sphereTransform->setTranslation(QVector3D(objectX, objectY, objectZ)); Old Code (Does not rotate camera)
         ev->accept();
     }
 }
