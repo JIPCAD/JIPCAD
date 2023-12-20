@@ -118,8 +118,6 @@ void CSweep::drawCrossSection(std::vector<Vector3> crossSection, Vector3 center,
                               Vector3 T, Vector3 N, float rotateAngle, float angle,
                               Vector3 controlScale, int index, bool shouldReverse,
                               bool hasReverseFlag, bool shouldCorrectRotation) {
-    // TODO: fix CS rotation jumps for reverse off axis file - check rotation bool
-    // TODO: fix closing for 3 klein bottle file
 
     // Flip rotation orientation
     if (shouldReverse ^ hasReverseFlag) {
