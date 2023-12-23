@@ -45,7 +45,7 @@ CNome3DView::CNome3DView()
     // Setup camera
     zPos = 2.73;
     mainCamera = this->camera();
-    mainCamera->lens()->setPerspectiveProjection(45.0f, 1280.f / 720.f, 0.1f, 1000.0f);
+    //mainCamera->lens()->setPerspectiveProjection(45.0f, 1280.f / 720.f, 0.1f, 1000.0f);
     mainCamera->setPosition(QVector3D(0, 0, zPos));
     mainCamera->setViewCenter(QVector3D(0, 0, 0));
 

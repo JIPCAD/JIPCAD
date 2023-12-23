@@ -384,15 +384,20 @@ antlrcpp::Any CFileBuilder::visitArgCameraID(NomParser::ArgCameraIDContext *ctx)
     return result;
 }
 
-antlrcpp::Any CFileBuilder::visitArgCameraFrustum(NomParser::ArgCameraFrustumContext *ctx) {
-    auto* arg = new AST::ANamedArgument(ConvertToken(ctx->getStart()));
-
-
-    auto* list = new AST::AVector(ConvertToken(ctx->LPAREN()), ConvertToken(ctx->RPAREN()));
-    for (auto* expr : ctx->expression())
-        list->AddChild(visit(expr).as<AST::AExpr*>());
-    arg->AddChild(list);
-    return arg;
+antlrcpp::Any CFileBuilder::visitArgCameraFrustum(NomParser::ArgCameraFrustumContext *context) {
+    auto* result = new AST::ANamedArgument(ConvertToken(context->getStart()));
+    auto* list =
+        new AST::AVector(ConvertToken(context->LPAREN(0)), ConvertToken(context->RPAREN(0)));
+    list->AddChild(visit(context->exp1).as<AST::AExpr*>());
+    list->AddChild(visit(context->exp2).as<AST::AExpr*>());
+    list->AddChild(visit(context->exp3).as<AST::AExpr*>());
+    list->AddChild(visit(context->exp4).as<AST::AExpr*>());
+    result->AddChild(list);
+    list = new AST::AVector(ConvertToken(context->LPAREN(1)), ConvertToken(context->RPAREN(1)));
+    list->AddChild(visit(context->exp5).as<AST::AExpr*>());
+    list->AddChild(visit(context->exp6).as<AST::AExpr*>());
+    result->AddChild(list);
+    return result;
 }
 
 antlrcpp::Any CFileBuilder::visitCmdLight(NomParser::CmdLightContext* context)
