@@ -116,7 +116,19 @@ bool CSweepMath::isAtSameDirection(Vector3 vectorA, Vector3 vectorB)
 
 void CSweep::drawCrossSection(std::vector<Vector3> crossSection, Vector3 center,
                               Vector3 T, Vector3 N, float rotateAngle, float angle,
-                              Vector3 controlScale, int index, bool shouldReverse) {
+                              Vector3 controlScale, int index, bool shouldReverse,
+                              bool hasReverseFlag, bool shouldCorrectRotation) {
+
+    // Flip rotation orientation
+    if (shouldReverse ^ hasReverseFlag) {
+        rotateAngle *= -1;
+    }
+
+    // Perform cross-section rotation correction
+    if (shouldCorrectRotation) {
+        rotateAngle += tc::M_PI;
+    }
+
     Vector3 B = Math.crossProduct(T, N);
 
     N.Normalize();
@@ -127,12 +139,12 @@ void CSweep::drawCrossSection(std::vector<Vector3> crossSection, Vector3 center,
     for (size_t i = 0; i < crossSection.size(); i++)
     {
         // make rotations
-        Vector3 point = bReverse ^ shouldReverse ?
+        Vector3 point = bReverse ^ (shouldReverse ^ hasReverseFlag) ?
                         crossSection[crossSection.size() - i - 1] : crossSection[i];
         float x = point.x * controlScale.x * cosf(rotateAngle) -
                   point.y * controlScale.y * sinf(rotateAngle);
         float y = point.x * controlScale.x * sinf(rotateAngle) +
-                  point.y * controlScale.y *cosf(rotateAngle);
+                  point.y * controlScale.y * cosf(rotateAngle);
         // do transform
         Vector3 transformVector = N * x * scaleN + B * y ;
         // add offset
@@ -345,8 +357,6 @@ void CSweep::UpdateEntity()
     // get the result rotation angles
     for (size_t i = numPoints - 2; i >= 1; i--) { angles[i - 1] += angles[i]; }
 
-    bool isReversed = false;
-
     // add rotation
     for (size_t i = 0; i < numPoints; i++)
     {
@@ -358,10 +368,8 @@ void CSweep::UpdateEntity()
             controlScales[i].y *= SI->Scale.y;
             controlReverses[i] = SI->Reverse;
 
-            if (controlReverses[i]) { isReversed = !isReversed; }
-
             float rotAmount = SI->Rotate.z * tc::M_PI / 180;
-            angles[i] += isReversed ? -rotAmount : rotAmount;
+            angles[i] += rotAmount;
 
             if (SI->CrossSection != NULL)
             {
@@ -377,14 +385,12 @@ void CSweep::UpdateEntity()
             }
         }
 
-        angles[i] += isReversed ? -azimuth : azimuth;
+        angles[i] += azimuth;
     }
 
-    isReversed = false;
     // add twist to angles
     for (size_t i = 0; i < numPoints; i++) {
-        if (controlReverses[i]) { isReversed = !isReversed; }
-        angles[i] += isReversed ? -1 * (i * twist) : i * twist;
+        angles[i] += i * twist;
     }
 
     // the count of drawing segments
@@ -412,7 +418,7 @@ void CSweep::UpdateEntity()
 
             // generate points in a circle perpendicular to the curve at the current point
             drawCrossSection(crossSections[0], points[0], T, N, angles[0], angle, controlScales[0],
-                             ++segmentCount, shouldFlip);
+                             ++segmentCount, shouldFlip, controlReverses[0], false);
         }
         else
         {
@@ -434,13 +440,41 @@ void CSweep::UpdateEntity()
             }
 
             drawCrossSection(crossSections[0], points[0], T, N, angles[0], angle, controlScales[0],
-                             ++segmentCount, shouldFlip);
+                             ++segmentCount, shouldFlip, controlReverses[0], false);
         }
     }
 
+    /**
+     * Sweeps with 'reverse' flags may need 180 degree rotations at particular cross-sections.
+     * Let's call the reversed point and the points after it (but before the next reversed point)
+     * a "reversed section".
+     *      e.g. (Sweep 1) A--D--C--B
+     *      For this sweep with points defined in order (A B C D), the reversed section is D--C--B.
+     * For points in a reversed section, once the angle at a point is not 0 or if the reversal is not colinear,
+     * then the need for rotation correction (i.e. shouldCorrectRotation) is flipped from its previous state.
+     * Once this change occurs, all subsequent points in the reversed section will also require
+     * (or not require) a rotation correction.
+     * When the sweep undergoes another reversal and we are in a new reversed section,
+     * the canChangeCorrectRotationBool boolean is reset.
+     *      e.g. (Sweep 2) A---B
+     *                        /
+     *                       C
+     *      For Sweep 1 above, the reversal at B is colinear.
+     *      For Sweep 2 defined with points (A B C), the reversal at B is NOT colinear.
+     *
+     * Edited by Monica Tang
+     */
+    bool shouldCorrectRotation = false;
+    bool canChangeCorrectRotationBool = false;
+    bool isReversalColinear = false;
+
     for (size_t i = 1; i < numPoints; i++)
     {
-        shouldFlip ^= controlReverses[i];
+        // Flip cross-section for points in an "inside-out" reversed section, but not the reversal point
+        shouldFlip ^= controlReverses[i - 1];
+        if (controlReverses[i - 1]) {
+            canChangeCorrectRotationBool = true;
+        }
         // last point
         if (i == numPoints - 1)
         {
@@ -453,6 +487,10 @@ void CSweep::UpdateEntity()
                     float angle = (Math.isAtSameLine(prevVector, curVector))
                         ? 0
                         : Math.getAngle(prevVector, curVector);
+                    if (canChangeCorrectRotationBool && (angle != 0 || !isReversalColinear)) {
+                        shouldCorrectRotation = !shouldCorrectRotation;
+                        canChangeCorrectRotationBool = false;
+                    }
 
                     if (Math.isAtSameLine(prevVector, curVector))
                     {
@@ -467,7 +505,7 @@ void CSweep::UpdateEntity()
 
                     // 0 is perfect.
                     drawCrossSection(crossSections[i], points[i], T, N, angles[i], angle,
-                                     controlScales[i], ++segmentCount, shouldFlip);
+                                     controlScales[i], ++segmentCount, shouldFlip, controlReverses[i], shouldCorrectRotation);
                 }
                 else
                 {
@@ -482,8 +520,13 @@ void CSweep::UpdateEntity()
                         T = pathInfo->BspTangents[1];
                     }
 
+                    if (canChangeCorrectRotationBool && (angle != 0 || !isReversalColinear)) {
+                        shouldCorrectRotation = !shouldCorrectRotation;
+                        canChangeCorrectRotationBool = false;
+                    }
+
                     drawCrossSection(crossSections[i], points[i], T, N, angles[i], angle,
-                                     controlScales[i], ++segmentCount, shouldFlip);
+                                     controlScales[i], ++segmentCount, shouldFlip, controlReverses[i], shouldCorrectRotation);
                 }
             }
         }
@@ -491,8 +534,19 @@ void CSweep::UpdateEntity()
         {
             Vector3 prevVector = (points[i + 1] - points[i]).Normalized();
             Vector3 curVector = (points[i] - points[i - 1]).Normalized();
+            if (controlReverses[i]) {
+                // At the reversal point, negating curVector will generate the cross-section in the correct plane
+                curVector = -curVector;
+            }
             float angle = (Math.isAtSameLine(prevVector, curVector)) ?
                 0 : Math.getAngle(prevVector, curVector);
+            if (controlReverses[i]) {
+                isReversalColinear = Math.isAtSameLine(prevVector, curVector);
+            }
+            if (canChangeCorrectRotationBool && (angle != 0 || !isReversalColinear)) {
+                shouldCorrectRotation = !shouldCorrectRotation;
+                canChangeCorrectRotationBool = false;
+            }
 
             if (Math.isAtSameLine(prevVector, curVector))
             {
@@ -506,7 +560,7 @@ void CSweep::UpdateEntity()
             }
 
             drawCrossSection(crossSections[i], points[i], T, N, angles[i], angle,
-                             controlScales[i], ++segmentCount, shouldFlip);
+                             controlScales[i], ++segmentCount, shouldFlip, controlReverses[i], shouldCorrectRotation);
         }
     }
 

@@ -33,6 +33,7 @@
 #elif __APPLE__
     #define OS_NAME "macOS"
     #define OS_VERSION 1
+    #define __MAC_10_15 101500
 #else
     #define OS_NAME "Unknown"
     #define OS_VERSION 2
@@ -302,6 +303,8 @@ void CMainWindow::on_actionExportAsStl_triggered()
 }
 
 void CMainWindow::on_actionOpenWithTextEditor_triggered() {
+    #ifdef __MAC_OS_X_VERSION_MAX_ALLOWED or _WIN32
+        #if __MAC_OS_X_VERSION_MAX_ALLOWED > 101500 or defined(WIN32)
     //Aaron's code... allows code to be opened with default text editor.
     if (!SourceMgr || SourceMgr->GetMainSourcePath().empty())
     {
@@ -317,9 +320,13 @@ void CMainWindow::on_actionOpenWithTextEditor_triggered() {
         const char* filePath = SourceMgr->GetMainSourcePath().c_str();
         openTextEditor(filePath);
     }
+        #endif
+    #endif
 }
 
-void CMainWindow::openTextEditor(const char* filePath) { 
+void CMainWindow::openTextEditor(const char* filePath) {
+    #ifdef __MAC_OS_X_VERSION_MAX_ALLOWED or _WIN32
+        #if __MAC_OS_X_VERSION_MAX_ALLOWED > 101500 or defined(WIN32)
     if (!std::filesystem::exists(filePath))
     {
         std::ofstream outfile(filePath);
@@ -333,6 +340,8 @@ void CMainWindow::openTextEditor(const char* filePath) {
             std::cout << "New File cannot be created successfully" << std::endl;
         }
     }
+        #endif
+    #endif
     if (OS_VERSION == 0)
     {
         /// <summary>
