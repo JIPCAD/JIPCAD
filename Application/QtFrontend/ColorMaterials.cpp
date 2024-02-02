@@ -96,12 +96,11 @@ CWireframeMaterial::CWireframeMaterial(Qt3DCore::QNode* parent)
     QVector3D(0.1f, 0.1f, 0.1f))); this->addParameter(new QParameter(QStringLiteral("kd"),
     QVector3D(0.7f, 0.7f, 0.7f))); this->addParameter(new QParameter(QStringLiteral("ks"),
     QVector3D(0.95f, 0.95f, 0.95f))); this->addParameter(new QParameter(QStringLiteral("shininess"),
-    150.0f)); this->addParameter(new
+    150.0f)); this->addParameter( new QParameter(QStringLiteral("light.position"), QVector4D(0.0f,
+    0.0f, 0.0f, 1.0f))); this->addParameter( new QParameter(QStringLiteral("light.intensity"),
+    QVector3D(1.0f, 1.0f, 1.0f))); this->addParameter(new
     QParameter(QStringLiteral("line.width"), 1.0f)); this->addParameter( new
     QParameter(QStringLiteral("line.color"), QVector4D(1.0f, 1.0f, 1.0f, 1.0f)));
-    this->addParameter( new QParameter(QStringLiteral("light.position"), QVector4D(0.0f,
-    0.0f, 0.0f, 1.0f))); this->addParameter( new QParameter(QStringLiteral("light.intensity"),
-    QVector3D(1.0f, 1.0f, 1.0f)));
 
     this->setEffect(new CWireframeEffect(this));
        

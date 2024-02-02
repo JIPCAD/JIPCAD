@@ -25,7 +25,7 @@
 #include "Matrix4.h"
 
 #ifdef URHO3D_SSE
-#include <emmintrin.h>
+#include "sse2neon.h"
 #endif
 
 namespace tc

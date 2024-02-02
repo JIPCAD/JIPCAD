@@ -8,6 +8,35 @@ namespace Nome
 CDebugDraw::CDebugDraw(Qt3DCore::QNode* parent)
     : Qt3DCore::QNode(parent)
 {
+#ifdef __ARM_ARCH
+    LineGeometry = std::make_unique<Qt3DCore::QGeometry>(this);
+    auto* lineGeometry = LineGeometry.get();
+
+    PointBuffer = new Qt3DCore::QBuffer(lineGeometry);
+    LineBuffer = new Qt3DCore::QBuffer(lineGeometry);
+
+    auto* posAttr = new Qt3DCore::QAttribute(lineGeometry);
+    posAttr->setName(Qt3DCore::QAttribute::defaultPositionAttributeName());
+    posAttr->setAttributeType(Qt3DCore::QAttribute::VertexAttribute);
+    posAttr->setBuffer(LineBuffer);
+    posAttr->setCount(2); // Subject to updates
+    posAttr->setByteOffset(0);
+    posAttr->setByteStride(sizeof(float) * 6);
+    posAttr->setVertexBaseType(Qt3DCore::QAttribute::Float);
+    posAttr->setVertexSize(3);
+    lineGeometry->addAttribute(posAttr);
+
+    auto* colorAttr = new Qt3DCore::QAttribute(lineGeometry);
+    colorAttr->setName(Qt3DCore::QAttribute::defaultColorAttributeName());
+    colorAttr->setAttributeType(Qt3DCore::QAttribute::VertexAttribute);
+    colorAttr->setBuffer(LineBuffer);
+    colorAttr->setCount(2); // Subject to updates
+    colorAttr->setByteOffset(sizeof(float) * 3);
+    colorAttr->setByteStride(sizeof(float) * 6);
+    colorAttr->setVertexBaseType(Qt3DCore::QAttribute::Float);
+    colorAttr->setVertexSize(3);
+    lineGeometry->addAttribute(colorAttr);
+#else
     LineGeometry = std::make_unique<Qt3DRender::QGeometry>(this);
     auto* lineGeometry = LineGeometry.get();
 
@@ -35,6 +64,7 @@ CDebugDraw::CDebugDraw(Qt3DCore::QNode* parent)
     colorAttr->setVertexBaseType(Qt3DRender::QAttribute::Float);
     colorAttr->setVertexSize(3);
     lineGeometry->addAttribute(colorAttr);
+#endif
 }
 
 void CDebugDraw::Reset()

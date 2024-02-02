@@ -27,14 +27,22 @@ private:
     Scene::CSceneTreeNode* SceneTreeNode = nullptr;
 
     Qt3DCore::QTransform* Transform = nullptr;
+    #ifdef __ARM_ARCH
+    Qt3DCore::QGeometry* Geometry = nullptr;
+    #else 
     Qt3DRender::QGeometry* Geometry = nullptr;
+    #endif
     Qt3DRender::QGeometryRenderer* GeometryRenderer = nullptr;
     Qt3DRender::QMaterial* Material = nullptr;
     Qt3DRender::QMaterial* LineMaterial = nullptr;
 
     Qt3DCore::QEntity* PointEntity;
     Qt3DRender::QMaterial* PointMaterial;
+    #ifdef __ARM_ARCH
+    Qt3DCore::QGeometry* PointGeometry;
+    #else
     Qt3DRender::QGeometry* PointGeometry;
+    #endif
     Qt3DRender::QGeometryRenderer* PointRenderer;
 
     std::array<float, 3> InstanceColor;

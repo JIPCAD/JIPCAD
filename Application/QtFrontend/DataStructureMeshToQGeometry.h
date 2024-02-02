@@ -8,8 +8,13 @@
 
 
 #include <QByteArray>
+#ifdef __ARM_ARCH
+#include <Qt3DRender>
+#include <Qt3DCore>
+#else
 #include <Qt3DRender/QAttribute>
 #include <Qt3DRender/QGeometry>
+#endif
 #include <unordered_set>
 #include <vector>
 
@@ -24,9 +29,21 @@ public:
     QByteArray& Buffer;
     uint32_t ByteOffset;
     uint32_t ByteStride;
+    #ifdef __ARM_ARCH
+    Qt3DCore::QAttribute::VertexBaseType Type;
+    #else
     Qt3DRender::QAttribute::VertexBaseType Type;
+    #endif
     uint32_t Size;
-
+    #ifdef __ARM_ARCH
+    CAttribute2(QByteArray& buffer, uint32_t byteOffset, uint32_t byteStride,
+               Qt3DCore::QAttribute::VertexBaseType type, uint32_t size)
+        : Buffer(buffer)
+        , ByteOffset(byteOffset)
+        , ByteStride(byteStride)
+        , Type(type)
+        , Size(size)
+    #else
     CAttribute2(QByteArray& buffer, uint32_t byteOffset, uint32_t byteStride,
                Qt3DRender::QAttribute::VertexBaseType type, uint32_t size)
         : Buffer(buffer)
@@ -34,12 +51,16 @@ public:
         , ByteStride(byteStride)
         , Type(type)
         , Size(size)
+    #endif
     {
     }
 
     [[nodiscard]] int GetAbsByteOffset(uint32_t i) const { return ByteOffset + ByteStride * i; }
-
+    #ifdef __ARM_ARCH
+    void FillInQAttribute(Qt3DCore::QAttribute* attr) const
+    #else
     void FillInQAttribute(Qt3DRender::QAttribute* attr) const
+    #endif
     {
         attr->setByteOffset(ByteOffset);
         attr->setByteStride(ByteStride);
@@ -60,7 +81,11 @@ public:
         auto* target = Attributes[CurrAttrIndex];
 
         // Type check for target
+        #ifdef __ARM_ARCH
+        assert(target->Type == Qt3DCore::QAttribute::Float);
+        #else
         assert(target->Type == Qt3DRender::QAttribute::Float);
+        #endif
         assert(target->Size == 3);
 
         // Append the buffer pointed to by target
@@ -82,7 +107,11 @@ public:
         auto* target = Attributes[CurrAttrIndex];
 
         // Type check for target
+        #ifdef __ARM_ARCH
+        assert(target->Type == Qt3DCore::QAttribute::Int);
+        #else
         assert(target->Type == Qt3DRender::QAttribute::Int);
+        #endif
         assert(target->Size == 1);
 
         // Append the buffer pointed to by target
@@ -133,14 +162,19 @@ public:
     CDataStructureMeshToQGeometry(CDataStructureMeshToQGeometry&&) = delete;
     CDataStructureMeshToQGeometry& operator=(const CDataStructureMeshToQGeometry&) = delete;
     CDataStructureMeshToQGeometry& operator=(CDataStructureMeshToQGeometry&&) = delete;
-
+#ifdef __ARM_ARCH
+    [[nodiscard]] Qt3DCore::QGeometry* GetGeometry() const { return Geometry; }
+    [[nodiscard]] Qt3DCore::QGeometry* GetPointGeometry() const { return PointGeometry; }
+private:
+    Qt3DCore::QGeometry* Geometry = nullptr;
+    Qt3DCore::QGeometry* PointGeometry = nullptr;
+#else
     [[nodiscard]] Qt3DRender::QGeometry* GetGeometry() const { return Geometry; }
     [[nodiscard]] Qt3DRender::QGeometry* GetPointGeometry() const { return PointGeometry; }
-
-
 private:
     Qt3DRender::QGeometry* Geometry = nullptr;
     Qt3DRender::QGeometry* PointGeometry = nullptr;
+#endif
 };
 
 }

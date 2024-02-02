@@ -1,5 +1,10 @@
 #include "DataStructureMeshToQGeometry.h"
+#ifdef __ARM_ARCH
+#include <Qt3DRender>
+#include <Qt3DCore>
+#else
 #include <Qt3DRender/QBuffer>
+#endif
 #include <iostream>
 
 namespace Nome
@@ -32,13 +37,21 @@ CDataStructureMeshToQGeometry::CDataStructureMeshToQGeometry(
     const uint32_t stride = sizeof(CVertexData);
     static_assert(stride == 36, "Vertex data size isn't as expected");
     QByteArray bufferArray;
+    #ifdef __ARM_ARCH
+    CAttribute2 attrPos { bufferArray, offsetof(CVertexData, Pos), stride,
+                         Qt3DCore::QAttribute::Float, 3 };
+    CAttribute2 attrNor { bufferArray, offsetof(CVertexData, Normal), stride,
+                         Qt3DCore::QAttribute::Float, 3 };
+    CAttribute2 attrfaceColor { bufferArray, offsetof(CVertexData, faceColor), stride,
+                               Qt3DCore::QAttribute::Float, 3 };
+    #else 
     CAttribute2 attrPos { bufferArray, offsetof(CVertexData, Pos), stride,
                          Qt3DRender::QAttribute::Float, 3 };
     CAttribute2 attrNor { bufferArray, offsetof(CVertexData, Normal), stride,
                          Qt3DRender::QAttribute::Float, 3 };
     CAttribute2 attrfaceColor { bufferArray, offsetof(CVertexData, faceColor), stride,
                                Qt3DRender::QAttribute::Float, 3 };
-
+    #endif
     CGeometryBuilder2 builder;
     builder.AddAttribute(&attrPos);
     builder.AddAttribute(&attrNor);
@@ -152,9 +165,42 @@ CDataStructureMeshToQGeometry::CDataStructureMeshToQGeometry(
             faceVCount++;
         } while (currEdge != firstEdge);
     }
+    #ifdef __ARM_ARCH
+    Geometry = new Qt3DCore::QGeometry();
+    auto* buffer = new Qt3DCore::QBuffer(Geometry);
+    buffer->setData(bufferArray);
 
+    auto* posAttr = new Qt3DCore::QAttribute(Geometry);
+    posAttr->setName(
+        Qt3DCore::QAttribute::defaultPositionAttributeName()); // default is vertexPosition. This
+                                                                 // is used as input in the .vert
+                                                                 // shader
+    posAttr->setAttributeType(Qt3DCore::QAttribute::VertexAttribute);
+    posAttr->setBuffer(buffer);
+    posAttr->setCount(builder.GetVertexCount());
+    attrPos.FillInQAttribute(posAttr);
+    Geometry->addAttribute(posAttr);
+
+    auto* normAttr = new Qt3DCore::QAttribute(Geometry);
+    //std::cout << Qt3DRender::QAttribute::defaultNormalAttributeName().toStdString() << std::endl;
+    normAttr->setName(Qt3DCore::QAttribute::defaultNormalAttributeName()); // default is vertexNormal. This is
+                                                               // used as input in the .vert shader
+    normAttr->setAttributeType(Qt3DCore::QAttribute::VertexAttribute);
+    normAttr->setBuffer(buffer);
+    normAttr->setCount(builder.GetVertexCount());
+    attrNor.FillInQAttribute(normAttr);
+    Geometry->addAttribute(normAttr);
+
+
+    auto* faceColorAttr = new Qt3DCore::QAttribute(Geometry);
+    faceColorAttr->setName(Qt3DCore::QAttribute::defaultColorAttributeName());
+    faceColorAttr->setAttributeType(Qt3DCore::QAttribute::VertexAttribute);
+    faceColorAttr->setBuffer(buffer);
+    faceColorAttr->setCount(builder.GetVertexCount());
+    attrfaceColor.FillInQAttribute(faceColorAttr);
+    Geometry->addAttribute(faceColorAttr);
+    #else
     Geometry = new Qt3DRender::QGeometry();
-
     auto* buffer = new Qt3DRender::QBuffer(Geometry);
     buffer->setData(bufferArray);
 
@@ -187,10 +233,14 @@ CDataStructureMeshToQGeometry::CDataStructureMeshToQGeometry(
     faceColorAttr->setCount(builder.GetVertexCount());
     attrfaceColor.FillInQAttribute(faceColorAttr);
     Geometry->addAttribute(faceColorAttr);
-
+    #endif
     if (bGenPointGeometry)
     {
+        #ifdef __ARM_ARCH
+        PointGeometry = new Qt3DCore::QGeometry();
+        #else 
         PointGeometry = new Qt3DRender::QGeometry();
+        #endif
 
         std::vector<float> pointBufferData;
         uint32_t vertexCount = 0;
@@ -223,6 +273,32 @@ CDataStructureMeshToQGeometry::CDataStructureMeshToQGeometry(
         }
         QByteArray copyOfBuffer { reinterpret_cast<const char*>(pointBufferData.data()),
                                   static_cast<int>(pointBufferData.size() * sizeof(float)) };
+        #ifdef __ARM_ARCH
+        auto* buffer = new Qt3DCore::QBuffer(PointGeometry);
+        buffer->setData(copyOfBuffer);
+
+        posAttr = new Qt3DCore::QAttribute(PointGeometry);
+        posAttr->setName(Qt3DCore::QAttribute::defaultPositionAttributeName());
+        posAttr->setAttributeType(Qt3DCore::QAttribute::VertexAttribute);
+        posAttr->setBuffer(buffer);
+        posAttr->setCount(vertexCount);
+        posAttr->setByteOffset(0);
+        posAttr->setByteStride(24);
+        posAttr->setVertexBaseType(Qt3DCore::QAttribute::Float);
+        posAttr->setVertexSize(3);
+        PointGeometry->addAttribute(posAttr);
+
+        auto* colorAttr = new Qt3DCore::QAttribute(PointGeometry);
+        colorAttr->setName(Qt3DCore::QAttribute::defaultColorAttributeName());
+        colorAttr->setAttributeType(Qt3DCore::QAttribute::VertexAttribute);
+        colorAttr->setBuffer(buffer);
+        colorAttr->setCount(vertexCount);
+        colorAttr->setByteOffset(12);
+        colorAttr->setByteStride(24);
+        colorAttr->setVertexBaseType(Qt3DCore::QAttribute::Float);
+        colorAttr->setVertexSize(3);
+        PointGeometry->addAttribute(colorAttr);
+        #else
         auto* buffer = new Qt3DRender::QBuffer(Qt3DRender::QBuffer::VertexBuffer, PointGeometry);
         buffer->setData(copyOfBuffer);
 
@@ -247,6 +323,7 @@ CDataStructureMeshToQGeometry::CDataStructureMeshToQGeometry(
         colorAttr->setVertexBaseType(Qt3DRender::QAttribute::Float);
         colorAttr->setVertexSize(3);
         PointGeometry->addAttribute(colorAttr);
+        #endif
     }
 }
 
