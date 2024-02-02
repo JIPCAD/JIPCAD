@@ -26,7 +26,11 @@
 #include "Vector3.h"
 
 #ifdef URHO3D_SSE
+#ifdef __ARM_ARCH
 #include "sse2neon.h"
+#else
+#include <xmmintrin.h>
+#endif
 #endif
 
 namespace tc
