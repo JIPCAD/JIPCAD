@@ -1,6 +1,7 @@
 #include "DataStructureMeshToQGeometry.h"
 #ifdef __ARM_ARCH
 #include <Qt3DRender>
+#include <QBuffer>
 #include <Qt3DCore>
 #else
 #include <Qt3DRender/QBuffer>
