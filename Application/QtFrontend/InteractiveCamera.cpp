@@ -17,7 +17,6 @@ CInteractiveCamera::CInteractiveCamera(Scene::CSceneTreeNode* node)
 void CInteractiveCamera::UpdateTransform() {
     const auto &tf = SceneTreeNode->L2WTransform.GetValue(tc::Matrix3x4::IDENTITY);
     if (tf.ToMatrix4().Data()) {
-        //UpdateCamera(); 
         QMatrix4x4 qtf{tf.ToMatrix4().Data()};
         if (!qtf.isIdentity()) {
             Camera->setViewCenter(QVector3D(0, 0, 0));
@@ -47,7 +46,6 @@ void CInteractiveCamera::UpdateTransform() {
 /* Brian add on Jun 7 2023 for Parallel, Perspective Projection with user defined frustum. */
 void CInteractiveCamera::UpdateCamera()
 {
-    std::cout << "updating camera..." << std::endl;
     auto* entity = SceneTreeNode->GetInstanceEntity();
     if (!entity)
     {
@@ -73,13 +71,12 @@ void CInteractiveCamera::UpdateCamera()
             top = CameraInstance.para[3]; 
             nearplane = CameraInstance.para[4]; 
             farplane = CameraInstance.para[5]; 
-            std::cout << nearplane << std::endl;
-            std::cout << farplane << std::endl; 
             type = Orthogonal;
         } else if (CameraInstance.type == "PERSPECTIVE") {
+
             float aspect_ratio = (float)(CameraInstance.para[3] - CameraInstance.para[2])/(float)(CameraInstance.para[1] - CameraInstance.para[0]);
             float fov = (float)(std::atan(CameraInstance.para[3]/CameraInstance.para[4]) * 2); 
-            std::cout << aspect_ratio << std::endl;
+
             Camera->lens()->setPerspectiveProjection(45.0f, 
                                                         (1280.f / 720.f)* aspect_ratio,
                                                         CameraInstance.para[4],
