@@ -17,6 +17,7 @@ CInteractiveCamera::CInteractiveCamera(Scene::CSceneTreeNode* node)
 void CInteractiveCamera::UpdateTransform() {
     const auto &tf = SceneTreeNode->L2WTransform.GetValue(tc::Matrix3x4::IDENTITY);
     if (tf.ToMatrix4().Data()) {
+        //UpdateCamera(); 
         QMatrix4x4 qtf{tf.ToMatrix4().Data()};
         if (!qtf.isIdentity()) {
             Camera->setViewCenter(QVector3D(0, 0, 0));
@@ -32,8 +33,6 @@ void CInteractiveCamera::UpdateTransform() {
             QVector3D u = QVector3D::crossProduct(line_of_sight, QVector3D(0, 1, 0)).normalized();
             QVector3D v = QVector3D::crossProduct(u, line_of_sight).normalized();
             QVector3D updatednewupvec = newupvec.toVector3D().normalized(); 
-            //std::cout << mult_vec.x() << " " << mult_vec.y() << " " << mult_vec.z() << std::endl;
-            //std::cout << updatednewupvec.x() << " " << updatednewupvec.y() << " " << updatednewupvec.z() << std::endl;
             Camera->setUpVector(updatednewupvec);
             //Camera->setUpVector(qtf.column(3).toVector3D().normalized());
             // Camera->setProjectionMatrix(qtf);
@@ -44,11 +43,11 @@ void CInteractiveCamera::UpdateTransform() {
             Camera->setUpVector(QVector3D(0, 1, 0));
         }
     }
-
 }
 /* Brian add on Jun 7 2023 for Parallel, Perspective Projection with user defined frustum. */
 void CInteractiveCamera::UpdateCamera()
 {
+    std::cout << "updating camera..." << std::endl;
     auto* entity = SceneTreeNode->GetInstanceEntity();
     if (!entity)
     {
@@ -73,7 +72,9 @@ void CInteractiveCamera::UpdateCamera()
             bottom = CameraInstance.para[2]; 
             top = CameraInstance.para[3]; 
             nearplane = CameraInstance.para[4]; 
-            farplane = CameraInstance.para[5];  
+            farplane = CameraInstance.para[5]; 
+            std::cout << nearplane << std::endl;
+            std::cout << farplane << std::endl; 
             type = Orthogonal;
         } else if (CameraInstance.type == "PERSPECTIVE") {
             float aspect_ratio = (float)(CameraInstance.para[3] - CameraInstance.para[2])/(float)(CameraInstance.para[1] - CameraInstance.para[0]);

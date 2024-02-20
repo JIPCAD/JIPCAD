@@ -241,6 +241,7 @@ void CMeshMerger::Catmull()
 
 void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
 {
+    std::cout << "MERGE" << std::endl;
     auto tf = meshInstance.GetSceneTreeNode()->L2WTransform.GetValue(
         tc::Matrix3x4::IDENTITY); // The transformation matrix is the identity matrix by default
     auto& otherMesh = meshInstance.GetDSMesh(); // Getting OpeshMesh implementation of a mesh. This

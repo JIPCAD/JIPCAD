@@ -9,8 +9,8 @@ namespace Nome::Scene
         BindNamedArgument(&CCamera::right, "frustum", 0, 1);
         BindNamedArgument(&CCamera::bottom, "frustum", 0, 2);
         BindNamedArgument(&CCamera::top, "frustum", 0, 3);
-        BindNamedArgument(&CCamera::nearPlane, "frustum", 0, 4);
-        BindNamedArgument(&CCamera::farPlane, "frustum", 0, 5);
+        BindNamedArgument(&CCamera::nearPlane, "frustum", 1, 0);
+        BindNamedArgument(&CCamera::farPlane, "frustum", 1, 1);
     }
 
     void CCamera::MarkDirty()
