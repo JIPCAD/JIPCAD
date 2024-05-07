@@ -32,6 +32,7 @@ public:
     void AddEntity(TAutoPtr<CEntity> entity);
     void RemoveEntity(const std::string& name, bool bAlsoRemoveChildren = false);
     bool RenameEntity(const std::string& oldName, const std::string& newName);
+    void AdjustSubdivisionLevel(const std::string& name, int newlevel); 
 
     // Finds an entity by its name
     TAutoPtr<CEntity> FindEntity(const std::string& name) const;
@@ -42,7 +43,12 @@ public:
     TAutoPtr<CSceneNode> CreateMerge(const std::string& name);
     // Finds a group by its name
     TAutoPtr<CSceneNode> FindGroup(const std::string& name) const;
-
+    // Finds a merge by its name
+    std::pair<TAutoPtr<CSceneNode>, int> FindMerge(const std::string& name) const;
+    //copies a merge instance for subdivision
+    bool CopyMerge(const std::string& name, const std::string& newname); 
+    // Check if name merge exists
+    bool ExistMerge(const std::string& name) const;
     // Locate in the scene a point output (could be a point or a mesh vertex) by its path
     Flow::TOutput<CVertexInfo*>* FindPointOutput(const std::string& id) const;
 
@@ -105,8 +111,9 @@ private:
     // Every generator or group in the nom file is declared with a name
     // The following two maps enable looking up objects by their names
     std::map<std::string, TAutoPtr<CEntity>> EntityLibrary;
+    std::map<std::string, CScene*> SceneSaver; 
     std::map<std::string, TAutoPtr<CSceneNode>> Groups;
-    std::map<std::string, TAutoPtr<CSceneNode>> Merges;
+    std::map<std::string, std::pair<TAutoPtr<CSceneNode>, int>> Merges;
 
     // Used to help figure out which scope to use when using points. Useful, for example, for
     // defining and using points in a mesh

@@ -195,7 +195,6 @@ void CMeshMerger::Catmull()
     bool needOffset = offsetIdent;
     // std::cout << std::to_string(Width.GetValue(0)).c_str() << '\n' << std::endl;
     // std::cout << std::to_string(Height.GetValue(0)).c_str() << std::endl;
-
     if ((!needSubdivision && !needOffset) || MergedMesh.vertList.empty() && currMesh.isEmpty())//.vertices_empty()) Randy changed the commented out method
     {
         //nothing to do
@@ -227,7 +226,6 @@ void CMeshMerger::Catmull()
         currMesh.buildBoundary();
         currMesh.computeNormals();
         //MergedMesh = merge
-        std::cout << "done with everything" << std::endl;
     }
     catch (std::exception& e)
     {
@@ -241,7 +239,6 @@ void CMeshMerger::Catmull()
 
 void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
 {
-    std::cout << "MERGE" << std::endl;
     auto tf = meshInstance.GetSceneTreeNode()->L2WTransform.GetValue(
         tc::Matrix3x4::IDENTITY); // The transformation matrix is the identity matrix by default
     auto& otherMesh = meshInstance.GetDSMesh(); // Getting OpeshMesh implementation of a mesh. This
@@ -343,7 +340,7 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
             std::cerr << "When try to merge in sharpness the edges don't match" << e << '\n';
         }
     }
-    otherMesh.visible = false;
+    //otherMesh.visible = false;
     MergedMesh.buildBoundary();
     MergedMesh.computeNormals();
     currMesh = MergedMesh.newMakeCopy();

@@ -57,6 +57,7 @@ public:
     antlrcpp::Any visitArgCameraID(NomParser::ArgCameraIDContext* ctx) override;
     antlrcpp::Any visitArgBotCap(NomParser::ArgBotCapContext* context) override;
     antlrcpp::Any visitArgTopCap(NomParser::ArgTopCapContext* context) override;
+    antlrcpp::Any visitArgSubdivisionID(NomParser::ArgSubdivisionIDContext* ctx) override; 
 
     antlrcpp::Any visitCmdExprListOne(NomParser::CmdExprListOneContext* context) override;
     antlrcpp::Any visitCmdGeneral(NomParser::CmdGeneralContext* context) override; // Brandon's gen shape generator
@@ -96,8 +97,9 @@ public:
     antlrcpp::Any visitIdList(NomParser::IdListContext *context) override;
     antlrcpp::Any visitCmdOffset(NomParser::CmdOffsetContext* context) override;
     antlrcpp::Any visitCmdSubdivision(NomParser::CmdSubdivisionContext* context) override;
-    antlrcpp::Any visitCmdInitColor(NomParser::CmdInitColorContext* context) override;
+    antlrcpp::Any visitCmdInitSubdivide(NomParser::CmdInitSubdivideContext* context) override;
 
+    antlrcpp::Any visitCmdInitColor(NomParser::CmdInitColorContext* context) override;
     antlrcpp::Any visitVector3(NomParser::Vector3Context *context) override;
 
 

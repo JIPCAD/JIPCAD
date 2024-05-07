@@ -38,6 +38,7 @@ id
 	| HEIGHT
 	| WIDTH
 	| HIDDENC
+	| MERGEINSTANCE
 	| BEGINCAP
 	| ENDCAP
 	| SURFACE
@@ -50,6 +51,7 @@ id
 	| PROJECTION
 	| CAMERAID
 	| FRUSTUM
+	| LEVEL
 	| ROTATE
 	| SCALE
 	| TRANSLATE
@@ -98,6 +100,10 @@ id
 	| ENDMESH
 	| GROUP
 	| ENDGROUP
+	| MERGE
+	| ENDMERGE
+	| SUBDIVIDE
+	| ENDSUBDIVIDE
 	| CIRCLE
 	| ENDCIRCLE
 	| SPIRAL
@@ -209,6 +215,7 @@ argLightVector : DIRECTION vector3;
 argCameraProjection : PROJECTION ident;
 argCameraID : CAMERAID ident;
 argCameraFrustum : FRUSTUM LPAREN exp1=expression exp2=expression exp3=expression exp4=expression RPAREN LPAREN exp5=expression exp6=expression RPAREN;
+argSubdivisionID : MERGEINSTANCE ident;
 argTransform
    : ROTATE LPAREN exp1=expression exp2=expression exp3=expression RPAREN LPAREN exp4=expression RPAREN # argTransformTwo
    | SCALE LPAREN expression expression expression RPAREN # argTransformOne
@@ -250,6 +257,8 @@ command
    | open=MESH name=ident command* end=ENDMESH # CmdSubCmds
    | open=GROUP name=ident command* end=ENDGROUP # CmdSubCmds
    | open=CIRCLE name=ident LPAREN expression expression RPAREN end=ENDCIRCLE # CmdExprListOne
+   | open=MERGE name=ident command* end=ENDMERGE # CmdSubCmds
+   | open=SUBDIVIDE name=ident argSubdivisionID LPAREN expression RPAREN end=ENDSUBDIVIDE # CmdInitSubdivide
    | open=SPIRAL name=ident LPAREN expression expression expression RPAREN end=ENDSPIRAL # CmdExprListOne
    | open=SPHERE name=ident LPAREN expression expression expression expression expression expression RPAREN end=ENDSPHERE # CmdExprListOne
    | open=ELLIPSOID name=ident LPAREN expression expression expression expression expression expression expression RPAREN end=ENDELLIPSOID # CmdExprListOne
@@ -313,6 +322,7 @@ OFFSET_TYPE : 'offset_type';
 HEIGHT : 'height';
 WIDTH : 'width';
 HIDDENC : 'hidden';
+MERGEINSTANCE : 'mergeinstance';
 BEGINCAP : 'begincap';
 ENDCAP : 'endcap';
 SURFACE : 'surface';
@@ -325,6 +335,7 @@ DIRECTION : 'direction';
 PROJECTION : 'projection';
 CAMERAID : 'cameraID';
 FRUSTUM : 'frustum';
+LEVEL : 'level';
 ROTATE : 'rotate';
 SCALE : 'scale';
 TRANSLATE : 'translate';
@@ -369,6 +380,10 @@ MESH : 'mesh';
 ENDMESH : 'endmesh';
 GROUP : 'group';
 ENDGROUP : 'endgroup';
+MERGE : 'merge';
+ENDMERGE : 'endmerge';
+SUBDIVIDE : 'subdivide';
+ENDSUBDIVIDE : 'endsubdivide';
 CIRCLE : 'circle';
 ENDCIRCLE : 'endcircle';
 SPIRAL : 'spiral';

@@ -86,16 +86,6 @@ TAutoPtr<CSceneNode> CScene::CreateGroup(const std::string& name)
     return node;
 }
 
-TAutoPtr<CSceneNode> CScene::CreateMerge(const std::string& name)
-{
-    if (Merges.find(name) != Merges.end())
-        return {};
-
-    auto* node = new CSceneNode(this, name, false, true, true);
-    Merges[name] = node;
-    return node;
-}
-
 TAutoPtr<CSceneNode> CScene::FindGroup(const std::string& name) const
 {
     auto iter = Groups.find(name);
@@ -104,6 +94,55 @@ TAutoPtr<CSceneNode> CScene::FindGroup(const std::string& name) const
     return nullptr;
 }
 
+TAutoPtr<CSceneNode> CScene::CreateMerge(const std::string& name)
+{
+    if (Merges.find(name) != Merges.end())
+        return {};
+
+    auto* node = new CSceneNode(this, name, false, true, true);
+    SceneSaver[name] = this; /* What we have to do. */
+    Merges[name] = {node, 0};
+    return node;
+}
+bool CScene::CopyMerge(const std::string& name, const std::string& newname) {
+    if (Merges.find(newname) != Merges.end()) {
+        return false; 
+    } else {
+        if (Merges.find(name) != Merges.end()) {
+            auto it = Merges.find(name); 
+            TAutoPtr<CSceneNode> node = new CSceneNode(SceneSaver[name], newname, false, true, true);
+            //std::memcpy((void*)node, (void*)it->second.first, sizeof(it->second.first));
+            Merges[newname] = std::make_pair(node, it->second.second); 
+        } else {
+            return false; 
+        }
+    }
+    return true; 
+}
+
+
+std::pair<TAutoPtr<CSceneNode>, int> CScene::FindMerge(const std::string& name) const
+{
+    auto iter = Merges.find(name);
+    if (iter != Merges.end())
+        return iter->second;
+    return {};
+}
+
+bool CScene::ExistMerge(const std::string& name) const
+{
+    auto iter = Merges.find(name);
+    if (iter == Merges.end())
+        return false;
+    return true;
+}
+
+void CScene::AdjustSubdivisionLevel(const std::string& name, int newlevel) {
+    auto iter = Merges.find(name); 
+    if (iter != Merges.end()) {
+        iter->second.second = newlevel;
+    }
+}
 Flow::TOutput<CVertexInfo*>* CScene::FindPointOutput(const std::string& id) const
 {
     /* Find the point that is being referenced using the following naming convetions:
@@ -304,12 +343,12 @@ void CScene::Update()
     {
         for (auto & Merge : Merges)
         {
-            auto* ent = dynamic_cast<Scene::CMeshMerger*>(Merge.second->GetEntity());
+            auto* ent = dynamic_cast<Scene::CMeshMerger*>(Merge.second.first->GetEntity());
             if (ent != nullptr)
             {
                 ent->MarkDirty();
                 ent->MergeClear();
-                for (auto &child : Merge.second->GetSceneNodeChildren())
+                for (auto &child : Merge.second.first->GetSceneNodeChildren())
                 {
                     child->ForEachTreeNode([&](Scene::CSceneTreeNode* node) {
                         auto* entity = node->GetInstanceEntity(); // Else, get the instance
@@ -323,6 +362,7 @@ void CScene::Update()
 
                     });
                 }
+                ent->setSubLevel(Merge.second.second); 
                 ent->Catmull();
             }
         }

@@ -340,6 +340,16 @@ antlrcpp::Any CFileBuilder::visitArgLightType(NomParser::ArgLightTypeContext* ct
     return result;
 }
 
+antlrcpp::Any CFileBuilder::visitArgSubdivisionID(NomParser::ArgSubdivisionIDContext* ctx)
+{
+    std::cout << "TEST" << std::endl;
+    AST::ANamedArgument* arg = new AST::ANamedArgument(ConvertToken(ctx->getStart()));
+    std::cout << "TEST2" << std::endl;
+    arg->AddChild(visit(ctx->ident()).as<AST::AExpr*>());
+    std::cout << "TEST3" << std::endl;
+    return arg;
+}
+
 // Brandon's gen shape generator
 antlrcpp::Any CFileBuilder::visitArgFunc(NomParser::ArgFuncContext* ctx)
 {
@@ -486,6 +496,15 @@ antlrcpp::Any CFileBuilder::visitCmdSharp(NomParser::CmdSharpContext* context)
         subCmd->PushPositionalArgument(visit(arg));
         cmd->AddSubCommand(subCmd);
     }
+    return cmd;
+}
+
+antlrcpp::Any CFileBuilder::visitCmdInitSubdivide(NomParser::CmdInitSubdivideContext* context)
+{
+    auto* cmd = new AST::ACommand(ConvertToken(context->open), ConvertToken(context->end));
+    cmd->PushPositionalArgument(visit(context->name));
+    cmd->AddNamedArgument(visit(context->argSubdivisionID()));
+    cmd->PushPositionalArgument(static_cast<AST::AExpr*>(new AST::AWrappedExpr(ConvertToken(context->LPAREN()), ConvertToken(context->RPAREN()), nullptr, visit(context->expression()))));
     return cmd;
 }
 

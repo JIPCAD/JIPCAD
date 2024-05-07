@@ -232,6 +232,7 @@ int ACommand::GetPositionalNumber(size_t index) const
 
 AExpr* ACommand::GetPositionalArgument(size_t index) const
 {
+    std::cout << PositionalArguments.size() << std::endl;
     if (index >= PositionalArguments.size())
         return nullptr;
     return static_cast<AExpr*>(PositionalArguments[index]);
