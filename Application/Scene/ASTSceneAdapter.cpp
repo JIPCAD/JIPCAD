@@ -452,7 +452,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
         else if (auto group = GEnv.Scene->FindGroup(entityName)) { // If the entityName is a group identifier
             group->AddParent(sceneNode);
         }
-        else if (GEnv.Scene->ExistMerge(entityName)) {
+        else if (GEnv.Scene->ExistMerge(entityName)) { //Merge Section.
             std::pair<TAutoPtr<CSceneNode>, int> merge_obj = GEnv.Scene->FindMerge(entityName);
             auto merge = merge_obj.first;
             tc::TAutoPtr<Scene::CMeshMerger> merger = new Scene::CMeshMerger(entityName);
