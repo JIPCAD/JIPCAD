@@ -274,13 +274,31 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
         { // this is to check for cases where there is an overlap (two vertices lie in the exact
             // same world space coordinate). We only want to create one merger vertex at this
             // location!
-            vertMap[otherVert] =
-                closestVert; // just set vi to the closestVert (which is a merger vertex
-            // in the same location added in a previous iteration)
-            closestVert->sharpness =
-                std::max(closestVert->sharpness, otherVert->sharpness);
-            printf("set sharpness: %f\n", closestVert->sharpness);
+            if (otherVert->selected) // if otherVert (current overlapper we are checking) is selected, the merged point should be selected (green) [-Russell]
+            {
+                vertMap[otherVert] = otherVert;
+                closestVert = otherVert; // ensure we use otherVert as the closest vertex
+
+            }
+            else
+            {
+                // check if closestVert is not yet set or if closestVert is selected
+                if (!closestVert || closestVert->selected)
+                {
+                    // Choose otherVert as the merged point
+                    vertMap[otherVert] = otherVert;
+                    closestVert = otherVert;
+                }
+                else
+                {
+                    // otherwise, set the closestVert (merger vertex in the same location)
+                    vertMap[otherVert] = closestVert;
+                    closestVert->sharpness = std::max(closestVert->sharpness, otherVert->sharpness);
+                    printf("set sharpness: %f\n", closestVert->sharpness);
+                }
+            }
         }
+
         else // Else, we haven't added a vertex at this location yet. So lets add_vertex to the
             // merger mesh.
         {

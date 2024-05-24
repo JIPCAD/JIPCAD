@@ -871,10 +871,19 @@ void CNome3DView::PickVertexWorldRay(tc::Ray& ray, bool sharpSelection)
         mousePressEnabled =
             false; // Randy added this to fix annoying Windows bug where mousePressEvent is not
                    // triggered when clicking on a pop-up NOME window (e.g., sharpness)
+
         // Show a dialog for the user to choose one vertex
         auto* dialog = new QDialog(GFrtCtx->MainWindow);
         dialog->setModal(true);
-        auto* layout1 = new QHBoxLayout(dialog);
+        dialog->setWindowTitle("Select Vertex");
+
+        auto* layout1 = new QVBoxLayout(dialog); //QV for search bar
+
+        auto* searchBar = new QLineEdit(); //Create search bar
+        searchBar->setPlaceholderText("Search...");
+
+        layout1->addWidget(searchBar); //Add search bar to the layout
+    
         auto* table = new QTableWidget();
         table->setRowCount(hits.size());
         table->setColumnCount(2);
@@ -882,6 +891,25 @@ void CNome3DView::PickVertexWorldRay(tc::Ray& ray, bool sharpSelection)
         titles.append(QString::fromStdString("Closeness Rank"));
         titles.append(QString::fromStdString("Vertex Name"));
         table->setHorizontalHeaderLabels(titles);
+
+        // counts "." and "_" for approximation of hierarchy
+        auto countSpecialChars = [](const std::string& s) {
+            return std::count(s.begin(), s.end(), '.') + std::count(s.begin(), s.end(), '_');
+        };
+
+        std::sort(hits.begin(), hits.end(), [&countSpecialChars](const auto& a, const auto& b) {
+            const auto& [distA, meshInstA, vertNameA] = a;
+            const auto& [distB, meshInstB, vertNameB] = b;
+            int rankA = round(distA * 100);
+            int rankB = round(distB * 100);
+
+            if (rankA != rankB) {
+                return rankA < rankB; // Ascending order of closeness rank
+            }
+            // Descending order of special characters count
+            return countSpecialChars(vertNameA) < countSpecialChars(vertNameB);
+        });
+
         int closenessRank = 1;
         for (size_t i = 0; i < hits.size(); i++)
         {
@@ -902,6 +930,10 @@ void CNome3DView::PickVertexWorldRay(tc::Ray& ray, bool sharpSelection)
             table->setItem(i, 0, distWidget); // i is row num, and 0 is col num
             table->setItem(i, 1, item);
         }
+
+        // Resize the column to fit the contents
+        table->resizeColumnsToContents();
+
         layout1->addWidget(table);
         auto* layout2 = new QVBoxLayout();
         auto* btnOk = new QPushButton();
@@ -965,6 +997,21 @@ void CNome3DView::PickVertexWorldRay(tc::Ray& ray, bool sharpSelection)
         layout2->addWidget(btnOk);
         layout2->addWidget(btnCancel);
         layout1->addLayout(layout2);
+
+        // Resize the dialog to fit the contents
+        dialog->resize(table->sizeHint().width() * 2, table->sizeHint().height() * 1.5);
+
+        // Slot function to filter table based on search query
+        auto filterTable = [table](const QString& query) {
+            for (int i = 0; i < table->rowCount(); ++i) {
+                bool match = table->item(i, 1)->text().contains(query, Qt::CaseInsensitive);
+                table->setRowHidden(i, !match);
+            }
+        };
+
+        // Connect the search bar's textChanged signal to the filter function
+        connect(searchBar, &QLineEdit::textChanged, filterTable); // Change 4: Connect search bar to filter function
+
         dialog->show();
     }
     else
@@ -972,6 +1019,7 @@ void CNome3DView::PickVertexWorldRay(tc::Ray& ray, bool sharpSelection)
         GFrtCtx->MainWindow->statusBar()->showMessage("No point hit.");
     }
 }
+
 // typedef struct
 //{
 //    double x, y, z;
