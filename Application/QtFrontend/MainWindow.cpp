@@ -774,6 +774,7 @@ void CMainWindow::on_actionAddFace_triggered()
     }
     TemporaryMeshManager->AddFace(verts);
     Nome3DView->ClearSelectedVertices(); // Randy added 9/27
+    std::cout << "CLEARED" << std::endl;
 }
 
 void CMainWindow::on_actionAddPolyline_triggered()

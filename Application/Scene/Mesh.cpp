@@ -648,18 +648,29 @@ void CMeshInstance::MarkVertAsSelected(const std::set<std::string>& vertNames, f
         if (iter == currMesh.nameToVert.end())
             continue;
         auto DSvert = iter->second;
+        std::cout << "SelectedVertices:" << std::endl;
+        for (std::string vert: CurrSelectedVertNamesWithPrefix) {
+            std::cout << vert << ", ";
+        }
+        std::cout << std::endl;
         if (std::find(CurrSelectedVertNamesWithPrefix.begin(), CurrSelectedVertNamesWithPrefix.end(), name) == CurrSelectedVertNamesWithPrefix.end())
         { // if hasn't been selected before
+            std::cout << "[PARENT] GREEN I am: " << name << std::endl;
             if (sharpness >= 0)
                 DSvert->sharpness = sharpness;
             DSvert->selected = true;
             CurrSelectedVertNames.push_back(name.substr(prefixLen));
             CurrSelectedVertNamesWithPrefix.push_back(name);
+            for (std::string vert: CurrSelectedVertNamesWithPrefix) {
+                std::cout << vert << ", ";
+            }
             CurrSelectedDSVerts.push_back(DSvert);
         }
         else // it has already been selected, then reset to default color
         {
+            std::cout << "[PARENT] GRAY I am: " << name << std::endl;
             DSvert->selected = false;
+            std::cout << "[PARENT] fakeSelected? " << DSvert->fakeSelected << std::endl;
             auto iter1 = std::find(CurrSelectedVertNames.begin(), CurrSelectedVertNames.end(),
                                     name.substr(prefixLen));
             if (iter1 != CurrSelectedVertNames.end())
@@ -676,11 +687,56 @@ void CMeshInstance::MarkVertAsSelected(const std::set<std::string>& vertNames, f
     }
     GetSceneTreeNode()->SetEntityUpdated(true);
 }
+//// "Follower" selection
+void CMeshInstance::MarkVertAsFollower(const std::string& name,
+                                       const std::string& parentName, CMeshInstance *parentMesh) {
+    auto instPrefix = GetSceneTreeNode()->GetPath() + ".";
+    size_t prefixLen = instPrefix.length();
+    auto iter = currMesh.nameToVert.find(name.substr(prefixLen));
+    auto DSvert = iter->second;
+    bool currSelected = DSvert->selected;
+
+    auto instPrefix0 = parentMesh->GetSceneTreeNode()->GetPath() + ".";
+    size_t prefixLen0 = instPrefix0.length();
+    auto iter0 = parentMesh->GetDSMesh().nameToVert.find(parentName.substr(prefixLen0));
+    auto DSvert0 = iter0->second;
+    bool parentSelected = DSvert0->selected;
+
+    std::cout << "I am: " << name << ", my parent is " << parentName;
+    if (currSelected && parentSelected) {
+        std::cout << ", and I am staying green and fake green." << std::endl;
+        // assert
+        DSvert->fakeSelected = true;
+    }
+    else if (currSelected && !parentSelected) {
+        std::cout << ", and I am staying green and marking my parent." << std::endl;
+        parentMesh->MarkVertAsFollower(parentName, name, this);
+    }
+    else if (!currSelected && parentSelected) {
+        std::cout << ", and I am becoming fake green." << std::endl;
+        DSvert->fakeSelected = true;
+    }
+    else { // everything should be gray
+        std::cout << ", and I am staying gray." << std::endl;
+        // assert
+        DSvert0->fakeSelected = false;
+        DSvert->fakeSelected = false;
+    }
+    GetSceneTreeNode()->SetEntityUpdated(true);
+}
 
 void CMeshInstance::DeselectAll()
 {
+    auto instPrefix = GetSceneTreeNode()->GetPath() + ".";
+    size_t prefixLen = instPrefix.length();
+
+    CurrSelectedVertNamesWithPrefix.clear();
+    CurrSelectedVertNames.clear();
+    CurrSelectedDSVerts.clear();
+    
     for (auto vert : currMesh.vertList) {
         vert->selected = false;
+        vert->fakeSelected = false;
         GetSceneTreeNode()->SetEntityUpdated(true);
     }
 

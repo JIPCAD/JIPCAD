@@ -202,6 +202,8 @@ public:
     std::vector<std::pair<float, std::vector<std::string>>>
     PickEdges(const tc::Ray& localRay); // Randy added on 10/29 for edge selection
     void MarkVertAsSelected(const std::set<std::string>& vertNames, float sharpness = -1);
+    void MarkVertAsFollower(const std::string& vertName,
+                            const std::string& parentName, CMeshInstance *parentMesh);
     void MarkFaceAsSelected(const std::set<std::string>& faceNames,
                             bool bSel, float sharpness = -1); // Randy added on 10/10 for face selection
     void MarkEdgeAsSelected(const std::set<std::string>& vertNames,

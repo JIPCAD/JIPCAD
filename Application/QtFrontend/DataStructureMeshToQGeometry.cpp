@@ -258,8 +258,9 @@ CDataStructureMeshToQGeometry::CDataStructureMeshToQGeometry(
             pointBufferData.push_back(pos.z);
 
             tc::Vector3 pointColor;
-            if (currVert->selected)
+            if (currVert->selected || currVert->fakeSelected)
             {
+                std::cout << "[RENDER] " << currVert->name << " set to GREEN" << std::endl;
                 pointColor = { VERT_SEL_COLOR };
             }
             else

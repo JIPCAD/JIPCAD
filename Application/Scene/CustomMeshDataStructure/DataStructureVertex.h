@@ -65,6 +65,8 @@ public:
     Vertex* source_vertex;
     /* Indicator of whether this vertex is selected.*/
     bool selected;
+    /* Indicator of whether this vertex is selected. (follower) */
+    bool fakeSelected;
     /* Indicator of whether this vertex is parametric. */
     bool isParametric;
     /* The string expression of its position x. */

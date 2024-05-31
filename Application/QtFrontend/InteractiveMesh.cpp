@@ -47,7 +47,7 @@ void CInteractiveMesh::UpdateTransform()
     Transform->setMatrix(qtf);
 }
 
-void CInteractiveMesh::UpdateGeometry(bool showVertBox, bool showBackFace, bool showFrontFace, std::vector<std::string> selectedVerts)
+void CInteractiveMesh::UpdateGeometry(bool showVertBox, bool showBackFace, bool showFrontFace)
 {
 
     auto* entity = SceneTreeNode->GetInstanceEntity();

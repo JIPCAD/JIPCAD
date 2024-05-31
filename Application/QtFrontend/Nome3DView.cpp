@@ -330,7 +330,7 @@ void CNome3DView::PostSceneUpdate()
                             {
                                 // WireFrameMode
                                 mesh->UpdateMaterial();
-                                mesh->UpdateGeometry(PickVertexBool, BackFaceBool, FrontFaceBool, selectedVerts);
+                                mesh->UpdateGeometry(PickVertexBool, BackFaceBool, FrontFaceBool);
                                 node->SetEntityUpdated(false);
                             }
                         }
@@ -809,6 +809,7 @@ void CNome3DView::PickPolylineWorldRay(tc::Ray& ray)
             "No edge hit or more than one edge hit. Please select again");
 }
 
+// vertex selection
 void CNome3DView::PickVertexWorldRay(tc::Ray& ray, bool sharpSelection)
 {
     rotateRay(ray);
@@ -969,6 +970,15 @@ void CNome3DView::PickVertexWorldRay(tc::Ray& ray, bool sharpSelection)
                             SelectedVertices.erase(position);
                             GFrtCtx->MainWindow->statusBar()->showMessage(
                                 QString::fromStdString("Deselected " + vertName));
+
+                            if (sharpSelection)
+                            {
+                                meshInst->MarkVertAsSelected({ vertName }, InputSharpness());
+                            }
+                            else
+                            {
+                                meshInst->MarkVertAsSelected({ vertName }, 0);
+                            }
                         }
 
                         float selected_dist = round(dist * 100);
@@ -978,18 +988,17 @@ void CNome3DView::PickVertexWorldRay(tc::Ray& ray, bool sharpSelection)
                         {
                             if (i != rowNum)
                             {
-                                const auto& [dist, meshInst, overlapvertName] = hits[i];
+                                const auto& [dist, meshInst0, overlapVertName] = hits[i];
                                 if (round(dist * 100) == selected_dist)
                                 {
-                                    std::cout << "mark overlap vert: " << overlapvertName
-                                              << std::endl;
-                                    meshInst->MarkVertAsSelected(
-                                        { overlapvertName },
-                                        1); // TODO: Fix this -1 sharpness logic. Should
-                                             // overlapping vertices have the same sharpness?
+//                                    std::cout << "mark overlap vert: " << overlapVertName
+//                                              << std::endl;
+                                    meshInst0->MarkVertAsFollower(overlapVertName, vertName, meshInst);
                                 }
                             }
                         }
+
+
                     }
                     dialog->close();
                 });
