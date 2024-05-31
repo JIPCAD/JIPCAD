@@ -10,6 +10,10 @@ int main(int argc, char** argv)
 {
     //QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     //QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+    // BELOW 2 LINES ARE TO FORCE OPENGL (M3 PRO FORCES RHI BACKEND TO METAL)
+    qputenv("QT3D_RENDERER", "opengl");
+    qputenv("QSG_RHI_BACKEND", "opengl");
+
     // Setup Qt and set up rendering API
     QApplication application(argc, argv);
     QCoreApplication::setApplicationName("Nome");
