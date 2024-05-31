@@ -47,7 +47,7 @@ void CInteractiveMesh::UpdateTransform()
     Transform->setMatrix(qtf);
 }
 
-void CInteractiveMesh::UpdateGeometry(bool showVertBox, bool showBackFace, bool showFrontFace)
+void CInteractiveMesh::UpdateGeometry(bool showVertBox, bool showBackFace, bool showFrontFace, std::vector<std::string> selectedVerts)
 {
 
     auto* entity = SceneTreeNode->GetInstanceEntity();
@@ -93,7 +93,7 @@ void CInteractiveMesh::UpdateGeometry(bool showVertBox, bool showBackFace, bool 
                 std::string xmlPath = "";
                 if (!showVertBox)
                     xmlPath = CResourceMgr::Get().Find("DebugDrawLine.xml");
-                else
+                else // render vertex box
                     xmlPath = CResourceMgr::Get().Find("DebugDrawLineWITHVERTBOX.xml");
                 // May need to optimize this in the future. Cause we're parsing the file everytime the node is marked dirty, even though we could keep the material the same if that was not changed
                 PointEntity = new Qt3DCore::QEntity(this);

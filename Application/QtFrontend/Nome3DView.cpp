@@ -292,6 +292,8 @@ void CNome3DView::PostSceneUpdate()
             }
         });
 
+    std::vector<std::string> selectedVerts = this->GetSelectedVertices();
+
     Scene->ForEachSceneTreeNode(
         [&](CSceneTreeNode* node)
         {
@@ -328,7 +330,7 @@ void CNome3DView::PostSceneUpdate()
                             {
                                 // WireFrameMode
                                 mesh->UpdateMaterial();
-                                mesh->UpdateGeometry(PickVertexBool, BackFaceBool, FrontFaceBool);
+                                mesh->UpdateGeometry(PickVertexBool, BackFaceBool, FrontFaceBool, selectedVerts);
                                 node->SetEntityUpdated(false);
                             }
                         }
