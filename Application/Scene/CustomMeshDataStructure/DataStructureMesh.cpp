@@ -845,6 +845,9 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
         newMesh.faceList[newMesh.faceList.size() - 1]->color = (*fIt)->color;
         newMesh.faceList[newMesh.faceList.size() - 1]->backcolor = (*fIt)->backcolor;
         newMesh.faceList[newMesh.faceList.size() - 1]->name = (*fIt)->name;
+        newMesh.faceList[newMesh.faceList.size() - 1]->is_merge = (*fIt)->is_merge;
+        newMesh.faceList[newMesh.faceList.size() - 1]->mergecolor = (*fIt)->mergecolor;
+
         newMesh.faceList[newMesh.faceList.size() - 1]->surfaceName =
             (*fIt)->surfaceName; // Randy added this
         newMesh.faceList[newMesh.faceList.size() - 1]->backfaceName =

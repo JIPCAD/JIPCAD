@@ -8,6 +8,7 @@
 #include "DataStructureFace.h"
 Face::Face()
 {
+    is_merge = false;
     oneEdge = NULL;
     facePoint = NULL;
     selected = false;
@@ -20,6 +21,7 @@ Face::Face()
 
 Face::Face(std::vector<Vertex*> vertices) // Randy changed Vertex to Vertex* here
 {
+    is_merge = false;
     oneEdge = NULL;
     facePoint = NULL;
     selected = false;

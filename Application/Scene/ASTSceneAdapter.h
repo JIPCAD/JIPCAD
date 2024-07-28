@@ -31,6 +31,7 @@ public:
     std::string VisitInclude(AST::ACommand* cmd, CScene& scene); // Randy added this on 11/30 for include files
 
     std::vector<AST::ACommand*> CmdTraverseStack;
+    std::map<std::string, AST::ACommand*> MergeCommandMap; 
     CSceneNode* InstanciateUnder = nullptr;
     std::string EntityNamePrefix;
     CEntity* ParentEntity = nullptr;

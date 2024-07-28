@@ -35,6 +35,10 @@ public:
     Vertex* facePoint;
     /* Indicator of whether this face is selected.*/
     bool selected;
+    /* Indicates if the face is a result of a merge */
+    bool is_merge;
+    /* Indication if the face is already colored */
+    bool already_colored; 
     /* FaceID, is the index from the global face list.*/
     int id;
     /* The name of this face.*/
@@ -42,6 +46,8 @@ public:
     /* The color of this face. */
     std::vector<int> v_ids;
     std::array<float, 3> color; // QColor color; 1/28 randy updated this to std::aray<float, 3> so easily usable in DataStructureMeshToQGeometry
+    std::array<float, 3> mergecolor; // QColor color; 1/28 randy updated this to std::aray<float, 3> so easily usable in DataStructureMeshToQGeometry
+
     std::array<float, 3> backcolor;
     std::vector<Vertex*> vertices; // Randy noticed this wasn't being used before? Randy changed it from Vertex to Vertex*
     /* Indicate if this face has user defined color. */

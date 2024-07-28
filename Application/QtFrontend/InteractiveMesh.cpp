@@ -144,6 +144,7 @@ void CInteractiveMesh::UpdateMaterial()
             InstanceBackColor[1] = (backface->ColorG.GetValue(1.0f));
             InstanceBackColor[2] = (backface->ColorB.GetValue(1.0f));
         }
+
     }
     else // else, the scenetreenode is within a group, and we keep bubbling up from where we are
          // (going up the tree) UNTIL we get to an instance scene node that has a surface color
@@ -171,20 +172,10 @@ void CInteractiveMesh::UpdateMaterial()
                 InstanceBackColor[2] = (backface->ColorB.GetValue(1.0f));
                 setBackColor = true;
                 break;
-            }
+            } 
+            
             /* Fix by Brian Kim, Jul 2 2023. We have to */
             currNode = currNode->GetParent();
-            
-            //Aaron's fix, no need double currNode = GetParent() instances
-            //This code doesn't work for non-group specific nodes,
-            // like offsetting and subdivision
-            //currNode = currNode->GetParent();
-
-            if (!currNode->GetOwner()->IsSubdivision())
-            {
-                currNode = currNode->GetParent();
-            }
-
         }
 
         if (!setColor || !setBackColor) // If the surface color hasn't been set yet
@@ -352,6 +343,8 @@ void CInteractiveMesh::SetDebugDraw(const CDebugDraw* debugDraw)
                     break;
                 }
                 currNode = currNode->GetParent();
+                currNode = currNode->GetParent();
+
             }
 
             if (!setColor) // If the surface color hasn't been set yet

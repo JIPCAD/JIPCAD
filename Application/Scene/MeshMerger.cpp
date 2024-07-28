@@ -242,11 +242,9 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
     auto tf = meshInstance.GetSceneTreeNode()->L2WTransform.GetValue(
         tc::Matrix3x4::IDENTITY); // The transformation matrix is the identity matrix by default
     auto& otherMesh = meshInstance.GetDSMesh(); // Getting OpeshMesh implementation of a mesh. This
-
     // allows us to traverse the mesh's vertices/faces
     auto meshClass =
         meshInstance.GetSceneTreeNode()->GetOwner()->GetEntity()->GetMetaObject().ClassName();
-
     if (meshClass == "CPolyline")
     {
         std::cout << "found Polyline entity" << std::endl;
@@ -257,7 +255,6 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
         std::cout << "found Bspline entity" << std::endl;
         return; // skip for now, dont merge polyline related entities
     }
-
     // Copy over all the vertices and check for overlapping
     std::unordered_map<Vertex*, Vertex*> vertMap;
     for (auto otherVert : otherMesh.vertList) // Iterate through all the vertices in the mesh (the non-merger mesh,
@@ -296,6 +293,47 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
             copiedVert->sharpness = otherVert->sharpness;
         }
     }
+    std::array<float, 3> merge_color = { 250.0 / 255.0, 166.0 / 255.0, 25.0 / 255.0 };
+    bool color_set = false; 
+    auto currNode = meshInstance.GetSceneTreeNode();
+    if (!currNode->GetParent()->GetOwner()->IsGroup()) {
+        if (auto surface = currNode->GetOwner()->GetSurface())
+        {
+            merge_color = {
+                surface->ColorR.GetValue(1.0f), 
+                surface->ColorG.GetValue(1.0f), 
+                surface->ColorB.GetValue(1.0f)
+            }; 
+        }
+    } else {
+        while (currNode->GetParent()->GetOwner()->IsGroup()) {
+            if (auto surface = currNode->GetOwner()->GetSurface()) {
+                merge_color = {
+                    surface->ColorR.GetValue(1.0f), 
+                    surface->ColorG.GetValue(1.0f), 
+                    surface->ColorB.GetValue(1.0f)
+                }; 
+                color_set = true; 
+                break;
+            }
+            currNode = currNode->GetParent();
+            currNode = currNode->GetParent();
+        }
+        if (!color_set) {
+            currNode = currNode->GetParent(); 
+            if (auto surface = currNode->GetOwner()->GetSurface()) {
+
+                merge_color = {
+                    surface->ColorR.GetValue(1.0f), 
+                    surface->ColorG.GetValue(1.0f), 
+                    surface->ColorB.GetValue(1.0f),
+                }; 
+                color_set = true; 
+            }
+        }
+    } 
+    
+
 
     // Add faces and create a face mesh for each
     for (auto otherFace : otherMesh.faceList) // Iterate through all the faces in the mesh (that is, the non-merger
@@ -306,7 +344,14 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
         { // iterate through all the vertices on this face
             verts.emplace_back(vertMap[vert]);
         } // Add the vertex handles
-        MergedMesh.addFace(verts); // Project AddOffset
+        Face* newface = MergedMesh.addFace(verts); // Project AddOffset
+        //CScene* scene = meshInstance.GetSceneTreeNode()->GetOwner()->GetScene();
+        CSurface* surface = meshInstance.GetSceneTreeNode()->GetOwner()->GetSurface(); 
+        newface->mergecolor = merge_color;
+        if (!otherFace->surfaceName.empty()) {
+            newface->mergecolor = otherFace->color;
+        }
+        newface->is_merge = true;
         std::string fName = "v" + std::to_string(FaceCount);
         FaceCount++;
     }
@@ -458,6 +503,14 @@ void CMeshMerger::MergeClear() {
 
 bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
 {
+    vector<array<float, 3UL>> old_faces; 
+    for (int i = 0; i < _m.faces().size(); i++) {
+        old_faces.push_back({
+            _m.faces()[i]->mergecolor[0], 
+            _m.faces()[i]->mergecolor[1], 
+            _m.faces()[i]->mergecolor[2]
+        }); 
+    }
     // Instantiate a Far::TopologyRefiner from the descriptor
     Far::TopologyRefiner * refiner = GetRefiner(_m, isSharp);
 
@@ -487,7 +540,6 @@ bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
         Far::TopologyLevel const & refLastLevel = refiner->GetLevel(n);
         int nverts = refLastLevel.GetNumVertices();
         int nfaces = refLastLevel.GetNumFaces();
-
         // Print vertex positions
         int firstOfLastVerts = refiner->GetNumVerticesTotal() - nverts;
 
@@ -495,11 +547,9 @@ bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
             float const * pos = verts[vert + firstOfLastVerts].GetPosition();
             _m.addVertex(pos[0], pos[1], pos[2]);
         }
-
         // Print faces
         for (int face = 0; face < nfaces; ++face) {
             Far::ConstIndexArray fverts = refLastLevel.GetFaceVertices(face);
-
             // all refined Catmark faces should be quads
             assert(fverts.size()==4);
             std::vector<Vertex*> vertices;
@@ -507,7 +557,10 @@ bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
             {
                 vertices.push_back(_m.vertList.at(fverts[i]));
             }
-            _m.addFace(vertices);
+            Face* newface = _m.addFace(vertices);
+            int splitfactor = nfaces/old_faces.size(); 
+            newface->mergecolor = old_faces[face/splitfactor]; 
+            newface->is_merge = true; 
             WireFrames.push_back(vertices);
         }
     }

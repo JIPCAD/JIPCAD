@@ -76,6 +76,11 @@ TAutoPtr<CEntity> CScene::FindEntity(const std::string& name) const
     return nullptr;
 }
 
+TAutoPtr<CSceneNode> CScene::CreateNode(const std::string& name) {
+    auto node = new CSceneNode(this, name, false, true);
+    return node; 
+}
+
 TAutoPtr<CSceneNode> CScene::CreateGroup(const std::string& name)
 {
     if (Groups.find(name) != Groups.end())
@@ -110,7 +115,7 @@ bool CScene::CopyMerge(const std::string& name, const std::string& newname) {
     } else {
         if (Merges.find(name) != Merges.end()) {
             auto it = Merges.find(name); 
-            TAutoPtr<CSceneNode> node = new CSceneNode(SceneSaver[name], newname, false, true, true);
+            TAutoPtr<CSceneNode> node = new CSceneNode(this, newname, false, true, true);
             //std::memcpy((void*)node, (void*)it->second.first, sizeof(it->second.first));
             Merges[newname] = std::make_pair(node, it->second.second); 
         } else {
@@ -344,6 +349,7 @@ void CScene::Update()
         for (auto & Merge : Merges)
         {
             auto* ent = dynamic_cast<Scene::CMeshMerger*>(Merge.second.first->GetEntity());
+            //std::cout << "Merge node we are actively merging: " << Merge.second.first->GetName() << std::endl;
             if (ent != nullptr)
             {
                 ent->MarkDirty();
@@ -351,17 +357,22 @@ void CScene::Update()
                 for (auto &child : Merge.second.first->GetSceneNodeChildren())
                 {
                     child->ForEachTreeNode([&](Scene::CSceneTreeNode* node) {
+                        //std::cout << "name of merge in node" << " " << node->GetOwner()->GetName() << std::endl;
                         auto* entity = node->GetInstanceEntity(); // Else, get the instance
                         if (!entity) // Check to see if the an entity is instantiable (e.g., polyline, funnel, mesh, etc.), and not just an instance identifier.
                             entity = node->GetOwner()->GetEntity(); // If it's not instantiable, get entity instead of instance entity
 
-                        if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity)) { // set "auto * mesh" to this entity. Call MergeIn to set merger's vertices based on mesh's vertices. Reminder: an instance identifier is NOT a Mesh, so only real entities get merged.
-                            ent->MergeIn(*mesh, true); // Merge adjacent vertices
-                            entity->isMerged = true;
+                        if (Scene::CMeshInstance* mesh = dynamic_cast<Scene::CMeshInstance*>(entity)) { // set "auto * mesh" to this entity. Call MergeIn to set merger's vertices based on mesh's vertices. Reminder: an instance identifier is NOT a Mesh, so only real entities get merged.
+                            if (!entity->isMerged) {
+                                //std::cout << "merging in new" << std::endl;
+                                ent->MergeIn(*mesh, true); // Merge adjacent vertices
+                                entity->isMerged = true;
+                            }
                         }
 
                     });
                 }
+                //std::cout << "done merging in for: " << Merge.second.first->GetName() << std::endl;
                 ent->setSubLevel(Merge.second.second); 
                 ent->Catmull();
             }

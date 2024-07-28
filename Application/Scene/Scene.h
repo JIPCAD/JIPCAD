@@ -36,7 +36,8 @@ public:
 
     // Finds an entity by its name
     TAutoPtr<CEntity> FindEntity(const std::string& name) const;
-
+    // Creates a scenenode that is represented by a scene node with the specified name
+    TAutoPtr<CSceneNode> CreateNode(const std::string& name);
     // Creates a group that is represented by a scene node with the specified name
     TAutoPtr<CSceneNode> CreateGroup(const std::string& name);
     // Creates a merge that is represented by a scene node with the specified name

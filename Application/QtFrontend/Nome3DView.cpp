@@ -314,6 +314,8 @@ void CNome3DView::PostSceneUpdate()
                         mesh = iter->second;
                         if (entity->isMerged)
                         {
+                            // std::cout << "updating material from merge" << std::endl;
+                            // mesh->UpdateMaterial();
                             auto iterr = aliveSetMesh.find(mesh);
                             if (iterr != aliveSetMesh.end())
                             {
@@ -342,6 +344,7 @@ void CNome3DView::PostSceneUpdate()
                     }
                     if (!entity->isMerged)
                     {
+
                         // Create a DebugDraw for the CEntity if not already
                         auto eIter = EntityDrawData.find(entity);
                         if (eIter == EntityDrawData.end())
@@ -356,6 +359,7 @@ void CNome3DView::PostSceneUpdate()
                             aliveEntityDrawData[entity] = eIter->second;
                             mesh->SetDebugDraw(eIter->second);
                         }
+                        mesh->UpdateMaterial();
                     }
                 }
             }

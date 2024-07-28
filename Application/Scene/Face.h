@@ -36,7 +36,6 @@ public:
     // AST Handling
     AST::ACommand* MakeCommandNode(AST::CASTContext& ctx, AST::ACommand* parent);
 
-
     std::string faceSurfaceIdent = ""; // Randy added this on 12/12
     std::string faceBackfaceIdent = "";
 //

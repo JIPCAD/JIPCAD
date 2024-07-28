@@ -455,34 +455,11 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
         else if (GEnv.Scene->ExistMerge(entityName)) { //Merge Section.
             std::pair<TAutoPtr<CSceneNode>, int> merge_obj = GEnv.Scene->FindMerge(entityName);
             auto merge = merge_obj.first;
-            tc::TAutoPtr<Scene::CMeshMerger> merger = new Scene::CMeshMerger(entityName);
-            for (auto node : merge->GetTreeNodes()) {
-                std::queue<CSceneTreeNode*> q;
-                q.push(node);
-                while (!q.empty()) {
-                    CSceneTreeNode* candidate = q.front(); 
-                    if (candidate->GetOwner()->GetName() == "globalMergeNode") {
-                        continue;
-                    }
-                    auto* entity = candidate->GetInstanceEntity(); // Else, get the instance
-                    if (!entity) // Check to see if the an entity is instantiable
-                    {
-                        entity = candidate->GetOwner()->GetEntity(); // If it's not instantiable, get entity instead
-                    } 
-                    if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
-                    {
-                        merger->MergeIn(*mesh, true);
-                        //entity->isMerged = true;
-                    }
-                    const auto& childNodes = q.front()->GetChildren();
-                    for (CSceneTreeNode* child : childNodes)
-                        q.push(child);
-                    q.pop();
-                }
+            if (!merge->GetEntity()) {
+                tc::TAutoPtr<Scene::CMeshMerger> merger = new Scene::CMeshMerger(entityName + cmd->GetName());
+                merge->SetEntity(merger.Get());
             }
-            GEnv.Scene->AddEntity(tc::static_pointer_cast<Scene::CEntity>(merger)); 
-            auto* sn = GEnv.Scene->GetRootNode()->FindOrCreateChildNode(cmd->GetName()); 
-            merge->SetEntity(merger.Get());
+            //std::cout << "num of tree nodes in merge: " << merge->CountTreeNodes() << std::endl;
             merge->AddParent(sceneNode);
             //sceneNode->AddEntity(tc::static_pointer_cast<Scene::CEntity>(merger)); // Merger now has all the vertices set, so we can add it into the scene as a new
         }
@@ -501,29 +478,34 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
         InstanciateUnder = GEnv.Scene->GetRootNode();
     }
     else if (cmd->GetCommand() == "merge") {
+        MergeCommandMap[cmd->GetName()] = cmd;
         InstanciateUnder = GEnv.Scene->CreateMerge(cmd->GetName());
         InstanciateUnder->SyncFromAST(cmd, scene);
         for (auto* sub : cmd->GetSubCommands())
             VisitCommandSyncScene(sub, scene, false);
         InstanciateUnder = GEnv.Scene->GetRootNode();
     } else if (cmd->GetCommand() == "subdivide") {
-        auto id = cmd->GetPositionalIdentAsString(0);
-        std::string entityName; 
+        std::string id = cmd->GetPositionalIdentAsString(0);
         auto* typeinfo = cmd->GetNamedArgument("mergeinstance");
         auto* args = typeinfo->GetArgument(0);
+        std::string entityName; 
         if (!args) {
             std::cout << "[Subdivision Error] Subdivision Parsing Error" << std::endl;
         }
         else {
             entityName = static_cast<const AST::AIdent*>(args)->ToString();
         }
-        auto* expr = cmd->GetPositionalArgument(1);
-        CExprEvalDirect eval;
-        auto items = static_cast<AST::AVector*>(expr)->GetItems();
-        auto level = std::any_cast<float>(items.at(0)->Accept(&eval));
         if (GEnv.Scene->ExistMerge(entityName)) {   
-            std::pair<TAutoPtr<CSceneNode>, int> merge_obj = GEnv.Scene->FindMerge(entityName);
-            GEnv.Scene->CopyMerge(entityName, id); 
+            AST::ACommand* savedmergecmd = MergeCommandMap[entityName]; 
+            InstanciateUnder = GEnv.Scene->CreateMerge(id);
+            InstanciateUnder->SyncFromAST(cmd, scene);
+            for (auto* sub : savedmergecmd->GetSubCommands())
+                VisitCommandSyncScene(sub, scene, false);
+            InstanciateUnder = GEnv.Scene->GetRootNode();
+            auto* expr = cmd->GetPositionalArgument(1);
+            CExprEvalDirect eval;
+            auto items = static_cast<AST::AVector*>(expr)->GetItems();
+            auto level = std::any_cast<float>(items.at(0)->Accept(&eval));
             GEnv.Scene->AdjustSubdivisionLevel(id, level); 
         } else {
             std::cout << "[Subdivision Error] objects not merged" << std::endl;

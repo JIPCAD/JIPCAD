@@ -74,6 +74,9 @@ CDataStructureMeshToQGeometry::CDataStructureMeshToQGeometry(
         {
             backFaceColor = currFace->backcolor;
         }
+        if (currFace->is_merge) {
+            potentialFaceColor = currFace->mergecolor; 
+        }
 
         Edge* firstEdge = currFace->oneEdge;
         Edge* currEdge = firstEdge;
