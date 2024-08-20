@@ -18,12 +18,12 @@ void CRotate::RecomputeOutput()
     float angle = Angle.GetValue(0.0f); 
     /* Brian Dec 1 2023, remember JIPCAD uses Right Hand Coordinate System.*/
     Quaternion rot = Quaternion(
-        angle, { -AxisX.GetValue(0.0f), AxisY.GetValue(0.0f), -AxisZ.GetValue(0.0f) });
+        angle, { AxisX.GetValue(0.0f), AxisY.GetValue(0.0f), AxisZ.GetValue(0.0f) });
     Matrix3x4 rotMat;
     rotMat.SetRotation(rot.RotationMatrix());
 
 
-    Output.UpdateValue(rotMat);
+    Output.UpdateValue(rotMat * prev);
 }
 
 void CScale::RecomputeOutput()
