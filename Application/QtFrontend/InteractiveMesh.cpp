@@ -172,18 +172,9 @@ void CInteractiveMesh::UpdateMaterial()
                 setBackColor = true;
                 break;
             }
-            /* Fix by Brian Kim, Jul 2 2023. We have to */
+            /* Fix by Brian Kim, Jul 2 2023. Fixing hierarchicals coloring */
             currNode = currNode->GetParent();
-            
-            //Aaron's fix, no need double currNode = GetParent() instances
-            //This code doesn't work for non-group specific nodes,
-            // like offsetting and subdivision
-            //currNode = currNode->GetParent();
-
-            if (!currNode->GetOwner()->IsSubdivision())
-            {
-                currNode = currNode->GetParent();
-            }
+            currNode = currNode->GetParent();
 
         }
 
