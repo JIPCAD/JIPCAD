@@ -260,7 +260,7 @@ command
    | open=MERGE name=ident command* end=ENDMERGE # CmdSubCmds
    | open=SUBDIVIDE name=ident argSubdivisionID LPAREN expression RPAREN end=ENDSUBDIVIDE # CmdInitSubdivide
    | open=SPIRAL name=ident LPAREN expression expression expression RPAREN end=ENDSPIRAL # CmdExprListOne
-   | open=SPHERE name=ident LPAREN expression expression expression expression expression expression RPAREN end=ENDSPHERE # CmdExprListOne
+   | open=SPHERE name=ident LPAREN expression expression expression expression expression expression expression RPAREN end=ENDSPHERE # CmdExprListOne
    | open=ELLIPSOID name=ident LPAREN expression expression expression expression expression expression expression RPAREN end=ENDELLIPSOID # CmdExprListOne
    | open=CYLINDER name=ident LPAREN expression expression expression expression (argBotCap | argTopCap)* RPAREN end=ENDCYLINDER # CmdExprListOne
    | open=HYPERBOLOID name=ident LPAREN expression expression expression expression expression expression RPAREN end=ENDHYPERBOLOID # CmdExprListOne
