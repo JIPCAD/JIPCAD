@@ -211,7 +211,7 @@ void CMainWindow::on_actionOpen_triggered()
 
     QString fileName = QFileDialog::getOpenFileName(this, tr("Open Nome File"),
                                                     appSettings.value(kDefaultDir).toString(),
-                                                    tr("Nome Code (*.nom);;All Files (*)"));
+                                                    tr("Nome Code (*.nom *.jip);;All Files (*)"));
     if (fileName.isEmpty())
         return;
 
