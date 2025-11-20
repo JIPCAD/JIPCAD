@@ -1,0 +1,118 @@
+###########  Soapy_Rainbow_Trefoil.nom  ###############
+### Demonstrates updated generators: 
+### Merge, Subdivision, Offset, Normal Vectors
+### with a colorful trefoil soap film
+#####################################################
+
+surface M  color  (0.9 0.1 1  ) endsurface   # Magenta
+surface Z  color  (1   0   0.6) endsurface   # Zinnober
+surface R  color  (0.9 0.1 0  ) endsurface   # Red
+surface O  color  (1   0.6 0  ) endsurface   # Orange
+surface Y  color  (0.8 0.8 0  ) endsurface   # Yellow
+surface L  color  (0.5 0.8 0  ) endsurface   # Lime
+surface G  color  (0.1 0.8 0  ) endsurface   # Green
+surface A  color  (0   0.9 0.6) endsurface   # Aqua
+surface C  color  (0   0.8 0.9) endsurface   # Cyan
+surface U  color  (0   0.6 1  ) endsurface   # Uniform
+surface B  color  (0   0.3 1  ) endsurface   # Blue
+surface V  color  (0.5 0.1 1  ) endsurface   # Violet
+surface P  color  (0.7 0   0.9) endsurface   # Purple
+
+surface W  color  (1   1   1  ) endsurface   # White
+surface D  color  (0.2 0.2 0.2) endsurface   # Dark
+surface K  color  (0   0   0  ) endsurface   # blacK
+
+backgroundcolor (0.6 0.7 0.8) endbackgroundcolor 
+
+##################  Coordinate System  ################
+point co (0 0 0 ) endpoint
+point cx (2 0 0 ) endpoint
+point cy (0 2 0 ) endpoint
+point cz (0 0 2 ) endpoint
+
+polyline xax ( co cx ) endpolyline
+polyline yax ( co cy ) endpolyline
+polyline zax ( co cz ) endpolyline
+
+group coord_axes
+  instance ix  xax  surface R  endinstance
+  instance iy  yax  surface B  endinstance
+  instance iz  zax  surface G  endinstance
+endgroup
+###   instance iax coord_axes   endinstance  
+
+############  Adjustable Parameters on Sliders  ##################################
+bank p
+   set radi      1.5   0.1     2    0.1    ## radi
+   set rado      3       1       5    0.1    ## rado
+   set wida     30       1      90    1      ## width-angle
+   set dz        1       0       3    0.1    ## delta z
+   set twst      0    -180     180    1      ## overall twist for end alignments
+   set segC     60      30      90    3      ## segments in curve
+
+   list ( radi  rado  wida  dz segC ) 
+endbank
+
+################################  Trefoil Path  #############################
+
+point pa  ( {expr  $p.radi}        0                      0 ) endpoint
+point pb  ( {expr  $p.rado*cos(0.01745*(120-$p.wida))}  {expr $p.rado*sin(0.01745*(120-$p.wida))}  {expr  $p.dz} ) endpoint
+point pc  ( {expr  $p.rado*cos(0.01745*(120+$p.wida))}  {expr $p.rado*sin(0.01745*(120+$p.wida))}  {expr -$p.dz} ) endpoint
+
+point pd  ( {expr $p.radi*cos(0.01745*240)}  {expr $p.radi*sin(0.01745*240)}  0 ) endpoint
+point pe  ( {expr  $p.rado*cos(0.01745*(0-$p.wida))}  {expr $p.rado*sin(0.01745*(0-$p.wida))}  {expr  $p.dz} ) endpoint
+point pf  ( {expr  $p.rado*cos(0.01745*(0+$p.wida))}  {expr $p.rado*sin(0.01745*(0+$p.wida))}  {expr -$p.dz} ) endpoint
+
+point pg  ( {expr $p.radi*cos(0.01745*120)}  {expr $p.radi*sin(0.01745*120)}  0 ) endpoint
+point ph  ( {expr  $p.rado*cos(0.01745*(240-$p.wida))}  {expr $p.rado*sin(0.01745*(240-$p.wida))}  {expr  $p.dz} ) endpoint
+point pi  ( {expr  $p.rado*cos(0.01745*(240+$p.wida))}  {expr $p.rado*sin(0.01745*(240+$p.wida))}  {expr -$p.dz} ) endpoint
+
+polyline  tref  ( pa pb pc pd pe pf pg ph pi pa )  endpolyline
+### instance itref tref  surface K    endinstance  
+
+bspline curve  order 4  ( pi  pa pb pc pd pe pf pg ph pi pa  pb )    segs {expr $p.segC}  endbspline
+instance icurve curve  surface Y    endinstance       # scale(0.2 0.2 0.2)
+
+##########################  Soap Film Faces   #####################################
+mesh TempMesh0
+ face new0 ( .icurve.v1  .icurve.v0  .icurve.v30 .icurve.v32 )  surface Y   endface
+ face new1 ( .icurve.v2  .icurve.v1  .icurve.v32 .icurve.v34 )  surface O   endface
+ face new2 ( .icurve.v3  .icurve.v2  .icurve.v34 .icurve.v36 )  surface R   endface
+ face new3 ( .icurve.v60 .icurve.v59 .icurve.v28 .icurve.v30 )  surface L   endface
+ face new4 ( .icurve.v59 .icurve.v58 .icurve.v26 .icurve.v28 )  surface C   endface
+ face new5 ( .icurve.v58 .icurve.v57 .icurve.v24 .icurve.v26 )  surface B   endface
+ face new6 ( .icurve.v57 .icurve.v56 .icurve.v23 .icurve.v24 )  surface P   endface
+endmesh
+
+###### Uncomment the following sections one at a time to see the results
+
+###### 1. Basic Trefoil Instances
+instance instTempMesh0a TempMesh0 endinstance
+instance instTempMesh0b TempMesh0   rotate(0 0 1)(120)  endinstance
+instance instTempMesh0c TempMesh0   rotate(0 0 1)(240)  endinstance
+
+###### 2. Full Pipeline: Merge, Subdivision, Offset
+###### NOTE: Sliders do not work after merge
+### merge merge_trefoil
+###     instance instTempMesh0a TempMesh0 endinstance
+###     instance instTempMesh0b TempMesh0   rotate(0 0 1)(120)  endinstance
+###     instance instTempMesh0c TempMesh0   rotate(0 0 1)(240)  endinstance
+### endmerge
+### instance imerge_trefoil merge_trefoil endinstance
+
+### subdivision subdiv_trefoil
+###   sd_type NOME_SD_CC_sharp
+###   sd_level 3 ### or use a custom variable such as {expr $p.varLevel}
+###   instance imerge_trefoil merge_trefoil  endinstance
+### endsubdivision
+### instance isubdiv_trefoil subdiv_trefoil endinstance
+
+### offset offset_trefoil
+###     offset_type NOME_OFFSET_DEFAULT
+###     height 0.1 ### or use a custom variable such as {expr $p.varHeight}
+###     width 0.1  ### or use a custom variable such as {expr $p.varWidth}
+###     instance imerge_trefoil merge_trefoil endinstance
+### endoffset
+### instance ioffset_trefoil offset_trefoil endinstance
+
+##############################  END  ############################################
