@@ -73,9 +73,9 @@ endmesh
 ### endmerge
 ### instance imerge_pyramid merge_pyramid endinstance
 
-### normals norm_pyramid vertexnormal 0.5
+### vertexnormal norm_pyramid 0.5
 ###   instance imerge_pyramid merge_pyramid  endinstance
-### endnormals
+### endvertexnormal
 ### instance inorm_pyramid norm_pyramid endinstance
 
 ###### 4. In-code Subdivision Generator, with color preservation
