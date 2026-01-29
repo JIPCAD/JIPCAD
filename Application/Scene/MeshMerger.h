@@ -44,7 +44,7 @@ public:
     void doShell(DSMesh& _m, Face* f);
 
     bool subdivide(DSMesh& _m, unsigned int n);
-
+    
     void setSubLevel(int level) {
         subdivisionLevel = level;
     }
@@ -72,6 +72,16 @@ public:
     void ExportAsStl(QString filename);
 
     std::vector<std::string> splitString(const std::string& str, const char delim);
+    
+    void CreateNormals(DSMesh& ds, bool faceNormals, float faceNormalMultiplier, bool vertexNormals, float vertexNormalMultiplier);
+    void CreateNormalsCurr(bool faceNormals, float faceNormalMultiplier, bool vertexNormals,
+                       float vertexNormalMultiplier);
+    DSMesh getCurrMesh();
+    tc::Matrix3x4 getMergedMeshTf();
+    void MergeCurr();
+    void changeColors(std::string surfaceName, std::string backfaceName);
+    std::shared_ptr<CMeshInstance> currMeshInstance;
+    Nome::Scene::CSceneTreeNode* treeNode;
 
 private:
     DSMesh MergedMesh;
@@ -102,6 +112,7 @@ private:
     // true == NOME_OFFSET_DEFAULT, false == NOME_OFFSET_GRID
     bool offsetFlag = true;
 
+    tc::Matrix3x4 MergedMeshTf;
 };
 }
 

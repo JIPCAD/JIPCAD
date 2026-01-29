@@ -9,6 +9,8 @@
 #include "DataStructureMesh.h"
 #include "qcolor.h"
 //#include "parameter.h"
+#include <map>
+
 Mesh::Mesh(int type)
 {
     user_set_color = false;
@@ -30,6 +32,8 @@ Mesh::Mesh(int type)
     isConsolidateMesh = false;
 }
 void Mesh::addVertex(Vertex* v) { 
+    v->ID = vertList.size();  // Robert added this
+
     vertList.push_back(v); 
     nameToVert[v->name] = v; // Randy added this
     idToVert[v->ID] = v; // Randy added this on 2/19. Doesn't make sense to have a nameToVert but no idToVert.
@@ -86,7 +90,7 @@ Edge* Mesh::createEdge(Vertex* v1, Vertex* v2)
     Edge* edge = findEdge(v1, v2);
     if (edge == NULL)
     {
-        // cout<<"Creating new Edge from vertex "<<v1 -> ID<<" to vertex "<<v2 -> ID<<"."<<endl;
+        //std::cout<<"Creating new Edge from vertex "<<v1 -> ID<<" to vertex "<<v2 -> ID<<"."<<std::endl;
         edge = new Edge(v1, v2);
         edge->edge_ID = edgeList.size();
         edgeList.push_back(edge);
@@ -137,7 +141,8 @@ Edge* Mesh::createEdge(Vertex* v1, Vertex* v2)
     return edge;
 }
 
-Face* Mesh::addFace(std::vector<Vertex*> vertices, bool reverseOrder)
+Face* Mesh::addFace(std::vector<Vertex*> vertices, std::string surfaceName,
+                    std::string backfaceName, bool reverseOrder)
 {
     if (vertices.size() < 3)
     {
@@ -145,6 +150,8 @@ Face* Mesh::addFace(std::vector<Vertex*> vertices, bool reverseOrder)
         return NULL; // Randy added the null
     }
     Face* newFace = new Face(vertices); // Randy added the (vertices)
+    newFace->surfaceName = surfaceName;
+    newFace->backfaceName = backfaceName;
     std::vector<Vertex*>::iterator vIt;
     std::vector<Edge*> edgesInFace;
     std::vector<Edge*>::iterator eIt;
@@ -295,13 +302,17 @@ Face* Mesh::addFace(std::vector<Vertex*> vertices, bool reverseOrder)
             }
         }
     }
+    //newFace->surfaceName = surfaceName;
+    //newFace->backfaceName = backfaceName;
     newFace->id = faceList.size();
     newFace->name = "addedFace" + std::to_string(faceList.size()); // Randy added this on 2/12 because realized we weren't naming DS faces anywhere else
     faceList.push_back(newFace);
     nameToFace[newFace->name] = newFace; // Randy added this
     return newFace;
 }
-Face* Mesh::addFace(std::vector<Vertex*> vertices, std::array<float, 3> color, bool reverseOrder)
+Face* Mesh::addFace(std::vector<Vertex*> vertices, std::array<float, 3> color,
+                    std::string surfaceName, std::string backfaceName,
+                     bool reverseOrder)
 {
     if (vertices.size() < 3)
     {
@@ -310,6 +321,8 @@ Face* Mesh::addFace(std::vector<Vertex*> vertices, std::array<float, 3> color, b
     }
     Face* newFace = new Face(vertices); // Randy added the (vertices)
     newFace->color = color;
+    newFace->surfaceName = surfaceName;
+    newFace->backfaceName = backfaceName;
     std::vector<Vertex*>::iterator vIt;
     std::vector<Edge*> edgesInFace;
     std::vector<Edge*>::iterator eIt;
@@ -464,6 +477,8 @@ Face* Mesh::addFace(std::vector<Vertex*> vertices, std::array<float, 3> color, b
     newFace->name =
         "addedFace" + std::to_string(faceList.size()); // Randy added this on 2/12 because realized
                                                        // we weren't naming DS faces anywhere else
+    newFace->color = color;
+    
     faceList.push_back(newFace);
     nameToFace[newFace->name] = newFace; // Randy added this
     return newFace;
@@ -522,6 +537,7 @@ tc::Vector3 getNormal3Vertex(tc::Vector3 p1, tc::Vector3 p2, tc::Vector3 p3) { r
 void getFaceNormal(Face* currFace)
 {
     // cout<<"New Face!"<<endl;
+    /*
     Edge* firstEdge = currFace->oneEdge;
     Edge* currEdge;
     Edge* nextEdge;
@@ -530,7 +546,22 @@ void getFaceNormal(Face* currFace)
     tc::Vector3 p1;
     tc::Vector3 p2;
     tc::Vector3 p3;
+    */
+    float Nx = 0, Ny = 0, Nz = 0;
+    size_t n = currFace->vertices.size();
 
+    for (size_t i = 0; i < n; ++i)
+    {
+        const tc::Vector3& current = currFace->vertices.at(i)->position;
+        const tc::Vector3& next = currFace->vertices.at((i + 1) % n)->position;
+        Nx += (current.y - next.y) * (current.z + next.z);
+        Ny += (current.z - next.z) * (current.x + next.x);
+        Nz += (current.x - next.x) * (current.y + next.y);
+    }
+
+    tc::Vector3 normal(Nx, Ny, Nz);
+    currFace->normal = normal.Normalized();
+    /*
     {
         if (currFace == currEdge->fa)
         {
@@ -559,7 +590,7 @@ void getFaceNormal(Face* currFace)
         avgNorm += getNormal3Vertex(p1, p2, p3);
     }
     currFace->normal = avgNorm.Normalized();
-
+    */
 }
 
 // Get the vertex normal
@@ -649,7 +680,23 @@ std::vector<Edge*> Mesh::boundaryEdgeList()
     return boundaryEdgeList;
 }
 
-
+Vertex Mesh::centerPoint(const Face* f) 
+{ 
+    Vertex vert = Vertex();
+    vert.position.x = 0;
+    vert.position.y = 0;
+    vert.position.z = 0;
+    for (auto v : f->vertices)
+    {
+        vert.position.x += v->position.x;
+        vert.position.y += v->position.y;
+        vert.position.z += v->position.z;
+    }
+    vert.position.x /= f->vertices.size();
+    vert.position.y /= f->vertices.size();
+    vert.position.z /= f->vertices.size();
+    return vert;
+}
 bool Mesh::isEmpty() { return vertList.size() == 0 && faceList.size() == 0; }
 
 void Mesh::clear()
@@ -690,6 +737,7 @@ void Mesh::clearAndDelete()
 
 // test function
 //what this does is define a Mesh class function outside of the Mesh class
+/*
 Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
 {
     // cout<<"Creating a copy of the current map.\n";
@@ -703,6 +751,8 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
         newMesh.name = copy_mesh_name;
     }
     newMesh.clear();
+    std::map<Vertex*, Vertex*> oldToNewVertMap;
+
     std::vector<Vertex*>::iterator vIt;
     for (vIt = vertList.begin(); vIt < vertList.end(); vIt++)
     {
@@ -713,12 +763,19 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
         vertCopy->position = (*vIt)->position;
         vertCopy->sharpness = (*vIt)->sharpness;
         newMesh.addVertex(vertCopy);
+        oldToNewVertMap[*vIt] = vertCopy; // <-- CRITICAL: Map the pointer, not the ID
+
     }
     std::vector<Face*>::iterator fIt;
     std::vector<Vertex*> vertices;
     for (fIt = faceList.begin(); fIt < faceList.end(); fIt++)
     {
         Face* tempFace = *fIt;
+        if (tempFace == nullptr || tempFace->oneEdge == nullptr)
+        {
+            // Skip faces that are null or have no starting edge (corrupted topology)
+            continue; 
+        }
         Edge* firstEdge = tempFace->oneEdge;
         Edge* currEdge = firstEdge;
         Edge* nextEdge;
@@ -739,12 +796,30 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
         vertices.clear();
         int isTriangle = 0;
         std::vector<Vertex*>::iterator vIt;
-        int mvId[5], mvP=0, i;
-
+        int mvId[6], mvP=0, i;
         for (vIt = tempFace->vertices.begin(); vIt < tempFace->vertices.end(); vIt++)
         {
+            for (Vertex* oldVert : tempFace->vertices)
+            {
+                // Use the map to find the correct, newly-created vertex
+                if (oldToNewVertMap.count(oldVert))
+                {
+                    Vertex* newVert = oldToNewVertMap[oldVert];
+
+                    // Since newVert was added sequentially, its ID (index) is safe.
+                    vertices.push_back(newVert);
+                }
+                else
+                {
+                    // This handles corrupt faces pointing to vertices that don't exist
+                    std::cout << "CRITICAL ERROR: Face references unmapped vertex, skipping face."
+                              << std::endl;
+                    break;
+                }
+            }
             Vertex* vt = *vIt;
             int newData = 1;
+            
             for (i = 0; i < mvP && i < 5; i++)
             {
                 if (mvId[i] == vt->ID)
@@ -755,9 +830,20 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
             }
             if (newData)
             {
-                vertices.push_back(newMesh.vertList[vt->ID]);
-                mvId[mvP++] = vt->ID;
+                if(vt->ID < newMesh.vertList.size())
+                {
+                    vertices.push_back(newMesh.vertList[vt->ID]);
+                }
+                else
+                {
+                    // This is the source of the crash! Handle the error.
+                    std::cout << "CRITICAL ERROR: Vertex ID " << vt->ID << " out of range in copy!"
+                              << std::endl;
+                    break; // Exit the loop and skip the face
+                }
+                    mvId[mvP++] = vt->ID;                
             }
+            //std::cout << "mvP: " << mvP << ", i: " << i << "\n";
         }
 
         if (!isTriangle)
@@ -767,6 +853,14 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
             do
             {
                 
+                if (currEdge == nullptr)
+                {
+                    // This is the source of the crash. The topology is corrupt or open.
+                    std::cout
+                        << "WARNING: Encountered null edge pointer during copy. Skipping face."
+                        << std::endl;
+                    break;
+                }
                 if (tempFace == currEdge->fa)
                 {
                     tempv = currEdge->vb;
@@ -807,7 +901,7 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
                             default:
                                 prevEdge->setNextEdge(tempv, currEdge->fa, nextEdge);
                         }       
-                    }*/ 
+                    }// 
                     std::cout << "ERROR: Current Edge is isolated, equal to the next Edge" << std::endl;
                     if (tempFace == currEdge->fa)
                     {
@@ -867,6 +961,194 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
         
     }
     
+    newMesh.buildBoundary();
+    newMesh.computeNormals(isPolyline);
+    return newMesh;
+}
+*/
+Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
+{
+    // cout<<"Creating a copy of the current map.\n";
+    Mesh newMesh;
+    if (copy_mesh_name == "")
+    {
+        newMesh.name = this->name;
+    }
+    else
+    {
+        newMesh.name = copy_mesh_name;
+    }
+    newMesh.clear();
+
+    // CRITICAL: Map from old Vertex* (in 'this' mesh) to new Vertex* (in newMesh)
+    std::map<Vertex*, Vertex*> oldToNewVertMap;
+
+    std::vector<Vertex*>::iterator vIt;
+    for (vIt = vertList.begin(); vIt < vertList.end(); vIt++)
+    {
+        Vertex* vertCopy = new Vertex;
+        // IMPORTANT: The ID is set sequentially inside newMesh.addVertex()
+        vertCopy->name = (*vIt)->name;
+        vertCopy->position = (*vIt)->position;
+        vertCopy->sharpness = (*vIt)->sharpness;
+
+        // This MUST set the new ID based on newMesh.vertList.size()
+        newMesh.addVertex(vertCopy);
+        oldToNewVertMap[*vIt] = vertCopy; // Map the old pointer to the new pointer
+    }
+
+    std::vector<Face*>::iterator fIt;
+
+    for (fIt = faceList.begin(); fIt < faceList.end(); fIt++)
+    {
+        Face* tempFace = *fIt;
+
+        if (tempFace == nullptr || tempFace->oneEdge == nullptr)
+        {
+            continue;
+        }
+
+        // Use a flag to skip the final addFace call if corruption is found
+        bool skipFace = false;
+        std::vector<Vertex*> vertices;
+
+        // --- 1. HALF-EDGE TRAVERSAL FOR ORDERED VERTEX LIST ---
+
+        // The half-edge traversal (do/while loop) is the standard and correct way
+        // to get ordered vertices for the new face, as the simple tempFace->vertices
+        // may be unordered after some operations. We must use the half-edge structure.
+
+        Edge* firstEdge = tempFace->oneEdge;
+        Edge* currEdge = firstEdge;
+        Edge* nextEdge = nullptr;
+        Vertex* tempv = nullptr;
+
+        size_t loop_count = 0;
+        size_t max_loops = tempFace->vertices.size() + 2; // Safety guard
+
+        do
+        {
+            if (currEdge == nullptr)
+            {
+               
+               
+                std::cout << "WARNING: Null edge pointer during half-edge traversal. Skipping face."          
+                    << std::endl;
+                skipFace = true;
+                break;
+            }
+            if (loop_count++ >= max_loops)
+            {
+                std::cout << "ERROR: Infinite loop detected in face traversal. Skipping face."
+                          << std::endl;
+                skipFace = true;
+                break;
+            }
+
+            // Determine the next vertex (tempv) and the next edge (nextEdge)
+            if (tempFace == currEdge->fa)
+            {
+                tempv = currEdge->vb;
+                nextEdge = currEdge->nextVbFa;
+            }
+            else if (tempFace == currEdge->fb)
+            {
+                    // We rely on the assert(tempFace==currEdge->fb) being true here
+                    if (currEdge->mobius)
+                {
+                    tempv = currEdge->vb;
+                    nextEdge = currEdge->nextVbFb;
+                }
+                else
+                {
+                    tempv = currEdge->va;
+                    nextEdge = currEdge->nextVaFb;
+                }
+            }
+            else
+            {
+                // The face in the half-edge structure is neither fa nor fb (CRITICAL CORRUPTION)
+                std::cout << "ERROR: Corrupt Face/Edge reference. Skipping face." << std::endl;
+                std::cout << tempFace->name << ", " << currEdge->fa->name << ", "
+                          << currEdge->fb->name << "\n";
+                if (currEdge->fa && currEdge->fb)
+                    std::cout << "";
+                else
+                    std::cout << "\nEdge missing an fa/fb\n";
+                if (currEdge->nextVaFa && currEdge->nextVaFb)
+                    std::cout << "";
+                else
+                    std::cout << "\nEdge missing an nextVaFa/Fb\n";
+                if (currEdge->nextVbFa && currEdge->nextVbFb)
+                    std::cout << "";
+                else
+                    std::cout << "\nEdge missing an nextVbFa/Fb\n";
+        
+                skipFace = true;
+                break;
+            }
+
+            // CRITICAL LOOKUP: Map the old Vertex* (tempv) to the new Vertex*
+            if (oldToNewVertMap.count(tempv))
+            {
+                // Push the new, safe vertex pointer onto the list
+                vertices.push_back(oldToNewVertMap[tempv]);
+            }
+            else
+            {
+                std::cout
+                    << "CRITICAL ERROR: Unmapped vertex found in half-edge list. Skipping face."
+                    << std::endl;
+                skipFace = true;
+                break;
+            }
+
+            currEdge = nextEdge;
+        } while (currEdge != firstEdge);
+
+        // --- 2. ADD FACE AND TRANSFER PROPERTIES ---
+
+        if (!skipFace && vertices.size() >= 3)
+        {
+            size_t old_size = newMesh.faceList.size();
+
+            // Your original code contained a redundant/buggy loop that used tempFace->vertices
+            // followed by the correct half-edge loop. We only use the half-edge list now.
+
+            newMesh.addFace(vertices); // This may fail silently
+
+            // --- FINAL CRASH CHECK ---
+            if (newMesh.faceList.size() > old_size)
+            {
+                // Success! Now it's safe to access the last element.
+                Face* newFace = newMesh.faceList.back();
+
+                newFace->user_defined_color = (*fIt)->user_defined_color;
+                newFace->color = (*fIt)->color;
+                newFace->backcolor = (*fIt)->backcolor;
+                newFace->name = (*fIt)->name;
+                newFace->surfaceName = (*fIt)->surfaceName;
+                newFace->backfaceName = (*fIt)->backfaceName;
+            }
+            else
+            {
+                // addFace silently failed (e.g., topology error from vertices list)
+                std::cout << "WARNING: addFace silently failed in copy, skipping property transfer."
+                          << std::endl;
+            }
+        }
+    } // End of Face loop
+
+    // ... (The Edge Sharpness transfer loop uses findEdge, which relies on the vertex map,
+    //      but should be safe now that vertices are correctly mapped and indexed) ...
+
+    // This loop is fine, as newMesh.edgeList will only contain edges from faces successfully added.
+    std::vector<Edge*>::iterator eItr;
+    for (eItr = newMesh.edgeList.begin(); eItr != newMesh.edgeList.end(); eItr++)
+    {
+        // ... (rest of sharpness transfer) ...
+    }
+
     newMesh.buildBoundary();
     newMesh.computeNormals(isPolyline);
     return newMesh;

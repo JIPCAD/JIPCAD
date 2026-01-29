@@ -5,9 +5,8 @@
 namespace Nome::Scene
 {
 
-class CTorus : public CSweepPath
+class CArc : public CSweepPath
 {
-
     DEFINE_INPUT(float, maj_rad) { MarkDirty(); }
     DEFINE_INPUT(float, min_rad) { MarkDirty(); }
     DEFINE_INPUT(float, theta_max) { MarkDirty(); }
@@ -15,19 +14,18 @@ class CTorus : public CSweepPath
     DEFINE_INPUT(float, phi_max) { MarkDirty(); }
     DEFINE_INPUT(float, theta_segs) { MarkDirty(); }
     DEFINE_INPUT(float, phi_segs) { MarkDirty(); }
-    DEFINE_OUTPUT_WITH_UPDATE(CSweepPathInfo*, Torus) { UpdateEntity(); }//
-
+    DEFINE_OUTPUT_WITH_UPDATE(CSweepPathInfo*, Arc) { UpdateEntity(); }
 
 public:
-    DECLARE_META_CLASS(CTorus, CSweepPath);//
-    CTorus() = default;
-    CTorus(const std::string& name)
-        : CSweepPath(name)//
+    DECLARE_META_CLASS(CArc, CSweepPath);
+    CArc() = default;
+    CArc(const std::string& name)
+        : CSweepPath(name)
     {
     }
 
-    void MarkDirty() override;//
     void UpdateEntity() override;
+    void MarkDirty() override;
 };
 
 }

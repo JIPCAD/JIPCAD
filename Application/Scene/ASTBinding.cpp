@@ -8,6 +8,7 @@
 #include "BezierSpline.h"
 #include "TorusKnot.h" // Randy added
 #include "Polyline.h" // Randy added on 12/29
+#include "Arc.h";
 #include "SweepControlPoint.h"
 #include "SweepMorph.h"
 #include <Flow/FlowNode.h>
@@ -337,6 +338,11 @@ bool TBindingTranslator<Flow::TInput<CSweepPathInfo*>>::FromASTToValue(
     {
         CTorusKnot* torusknot = dynamic_cast<CTorusKnot*>(path);
         value.Connect(torusknot->TorusKnot);
+    }
+    else if (typeid(e) == typeid(CArc))
+    {
+        CArc* arc = dynamic_cast<CArc*>(path);
+        value.Connect(arc->Arc);
     }
     else
     {

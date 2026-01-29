@@ -111,5 +111,4 @@ AST::ACommand* CFace::MakeCommandNode(AST::CASTContext& ctx, AST::ACommand* pare
     faceNode->PushPositionalArgument(ctx.MakeVector(identList));
     return faceNode;
 }
-
 }

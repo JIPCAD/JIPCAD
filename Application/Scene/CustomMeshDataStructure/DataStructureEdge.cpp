@@ -57,6 +57,7 @@ Edge* Edge::nextEdge(Vertex* v, Face* f)
     }
     std::cout << "Error: Invalid search of edge at vertex " << v->ID << "." << std::endl;
     //exit(0);
+    return nullptr;
 }
 
 void Edge::setNextEdge(Vertex* v, Face* f, Edge* nextEdge)
@@ -73,6 +74,12 @@ void Edge::setNextEdge(Vertex* v, Face* f, Edge* nextEdge)
             nextVaFb = nextEdge;
             return;
         }
+        else if (f == NULL) // Add explicit support for boundary linking
+        {
+            // Assuming boundary links use the Fb slots when Fb is NULL
+            nextVaFb = nextEdge;
+            return;
+        }
     }
     else if (v == vb)
     {
@@ -82,6 +89,11 @@ void Edge::setNextEdge(Vertex* v, Face* f, Edge* nextEdge)
             return;
         }
         else if (f == fb)
+        {
+            nextVbFb = nextEdge;
+            return;
+        }
+        else if (f == NULL) // Add explicit support for boundary linking
         {
             nextVbFb = nextEdge;
             return;

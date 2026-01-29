@@ -27,6 +27,8 @@
 
 #include <QTableWidget> // Steven's Add Point
 
+#include <cstdio> // Robert added for running Python scripts
+
 #ifdef _WIN32
     #define OS_NAME "Windows"
     #define OS_VERSION 0
@@ -118,11 +120,18 @@ void CMainWindow::on_actionFaceColorChange_triggered() {
             Scene->ForEachSceneTreeNode(
                 [&](Scene::CSceneTreeNode* node)
                 {
+                    std::cout << "face color ? \n";
                 if (node->GetOwner()->GetName() == "globalMergeNode")
                 {
+                    std::cout << "merged\n";
                     return;
                 }
                 auto* entity = node->GetInstanceEntity();
+                if (!entity) // Check to see if the an entity is instantiable
+                {
+                    entity = node->GetOwner()
+                                 ->GetEntity(); // If it's not instantiable, get entity instead
+                } 
                 if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
                 {
                     DSMesh dsMesh =
@@ -140,10 +149,18 @@ void CMainWindow::on_actionFaceColorChange_triggered() {
                     }
                     dsMesh.buildBoundary();
                 }
+                else
+                {
+                    std::cout << "failed\n";
+                }
                     
             node->SetEntityUpdated(true);
                 });
         }
+    }
+    else
+    {
+        std::cout << "color not found\n";
     }
     Scene->Update();
 }
@@ -443,14 +460,48 @@ void CMainWindow::on_actionMerge_triggered()
         {
             entity = node->GetOwner()->GetEntity(); // If it's not instantiable, get entity instead
         } 
-        if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
+        //if (entity!=nullptr && entity->IsMesh() && entity->IsEntityValid()){
+        // add any of the above arguments back in if issues arise
+        if ( auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
         {
             // set "auto * mesh" to this entity. Call MergeIn to set merger's vertices based on mesh's
             // vertices. Reminder: an instance identifier is NOT a Mesh, so only real entities get
             // merged.
+
+            // Preserve coloring after merge - Robert May 6th, 2025
+            std::string sn = "";
+            std::string bn = "";
+            if (node->GetOwner()->GetSurface().Get())
+                sn = node->GetOwner()->GetSurface().Get()->GetName();
+            if (node->GetOwner()->GetBackface().Get())
+                bn = node->GetOwner()->GetBackface().Get()->GetName();
+            //std::cout << "\nColors:" << sn << "\t" << bn << "\n";
+            std::vector<Face*> myFaceList = mesh->GetDSMesh().faceList;
+            if (!sn.empty())
+            {
+                for (Face* f : myFaceList)
+                {
+                    if (f->surfaceName.empty())
+                        f->surfaceName = sn;
+                }
+            }
+            if (!bn.empty())
+            {
+                for (Face* f : myFaceList)
+                {
+                    if (f->backfaceName.empty())
+                        f->backfaceName = bn;
+                }
+            }
+            //mesh->GetDSMesh().faceList = myFaceList;
+            //merger->Catmull();
             merger->MergeIn(*mesh, true);
+            //merger->changeColors(sn, bn);
             entity->isMerged = true;
+
+
         }
+        //}
     });
 
     Scene->Update();
@@ -1090,16 +1141,51 @@ void CMainWindow::LoadNomeFile(const std::string& filePath, bool includeAxes) {
             *Scene); // randy added includeFileNames variable on 11/30. Currently assumes included
                      // file names are in same directory as original
 
+        std::string result = "";
         // TODO: In the future, allow included files to be in different directories
         for (auto fileName : includeFileNames)
         {
-            auto nofileNamepath = filePath.substr(0, filePath.find_last_of("/") + 1);
-            auto testSourceMgr = std::make_shared<CSourceManager>(nofileNamepath + fileName);
-            // ParseMainSource is the one that creates the entire AST from scratch.
-            bool testparseSuccess = testSourceMgr->ParseMainSource();
-            adapter.TraverseFile(testSourceMgr->GetASTContext().GetAstRoot(), *Scene);
-        }
+            if (fileName.at(0) == ':')
+            {
+                // Robert 4/8/2025 - Allows you to retrieve .nom files from the ExampleFiles folder of the GitHub repository
+                // Sample input: subdivision/sharp_specs.nom
+                // Note that the .nom is optional and its prescence will not have any affect (and neither if you were not to have it)
+                fileName.erase(0, 1);
+                std::string command = "python retrieveFile.py " + fileName;
+                FILE* pipe = _popen(command.c_str(), "r");
+                std::string tempResult = "";
+                if (!pipe)
+                {
+                    std::cerr << "Error opening pipe!" << std::endl;
+                    continue;
+                }
 
+                // Read the output from the Python script
+                char buffer[128];
+                while (fgets(buffer, sizeof(buffer), pipe))
+                {
+                    tempResult += buffer; // Append the output from Python
+                }
+
+                // Close the pipe
+                fclose(pipe);
+                
+                if (result != "Link failed, returning...")
+                {
+                    result += tempResult;
+                    result += "\n";
+                }
+            }
+            else
+            {
+                auto nofileNamepath = filePath.substr(0, filePath.find_last_of("/") + 1);
+                auto testSourceMgr = std::make_shared<CSourceManager>(nofileNamepath + fileName);
+                // ParseMainSource is the one that creates the entire AST from scratch.
+                bool testparseSuccess = testSourceMgr->ParseMainSource();
+                adapter.TraverseFile(testSourceMgr->GetASTContext().GetAstRoot(), *Scene);
+            }
+        }
+        SourceMgr->ParseMainSource(includeAxes, result);
         adapter.TraverseFile(SourceMgr->GetASTContext().GetAstRoot(), *Scene);
     }
     catch (const AST::CSemanticError& e)

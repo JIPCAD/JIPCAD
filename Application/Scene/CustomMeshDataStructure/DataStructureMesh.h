@@ -106,9 +106,11 @@ public:
      * @brief Add a triangle face to a mesh, with three vertices.
      * @param v1, v2, v3 are the three vertices of the face.
      */
-    Face* addFace(std::vector<Vertex*> vertices,
+    Face* addFace(std::vector<Vertex*> vertices, std::string surfaceName = "",
+                  std::string backfaceName = "",
                   bool reverseOrder = false); // Randy changed this on 1/22
     Face* addFace(std::vector<Vertex*> vertices, std::array<float, 3> color,
+                  std::string surfaceName = "", std::string backfaceName = "",
                   bool reverseOrder = false);
     /**
      * @brief delelteFace: Delete a face from this mesh.
@@ -153,6 +155,8 @@ public:
     void setBoundaryEdgeToNull(Vertex* v);
     // Compute the vertex normals for every face and vertex of the mesh.
     void computeNormals(bool isPolyline = false);
+    // Compute center point of face
+    Vertex Mesh::centerPoint(const Face* selectedFace);
     // Return the list of edges on the boarders
     std::vector<Edge*> boundaryEdgeList();
     /* The color of this mesh.*/

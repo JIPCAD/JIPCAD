@@ -108,6 +108,7 @@ public:
     void AddFace(const std::string& name, const std::vector<Vertex*>& faceDSVerts, std::string faceSurfaceIdent = "", std::string faceBackfaceIdent = ""); // Randy added faceSurfaceIdent on 12/12
     void AddLineStrip(const std::string& name, const std::vector<Vertex*>& points);
     void ClearMesh();
+    void ClearLineStrips();
 
     void SetFromData(CMeshImpl mesh, std::map<std::string, Vertex*> vnames,
                      std::map<std::string, Face* > fnames);
@@ -194,7 +195,7 @@ public:
     DSMesh& GetDSMesh() { return currMesh; }
    
 
-
+    Vector3 CalculateFaceNormal(const Face* selectedFace);
     std::vector<std::pair<float, std::string>> PickVertices(const tc::Ray& localRay);
     std::vector<std::pair<float, std::string>> PickFaces(const tc::Ray& localRay); // Randy added on 10/10 for face selection
     std::vector<std::pair<float, Vector3>> GetHitPoint(const tc::Ray& localRay); // Randy added on 3/10 for intersection point
@@ -217,7 +218,7 @@ public:
         std::vector<std::string> faceNames); // Randy added on 10/19 to return face vert names
 
     void DeselectAll();
-    
+    DSMesh currMesh; // Project SwitchDS. changed to pointer on 1/29
 
 
 private:
@@ -231,7 +232,7 @@ private:
     std::map<Face* , std::array<float, 3>> DSFaceWithColorVector; // Randy added on 12/12 for face entity coloring
     std::set<std::string> FacesToDelete;
 
-    DSMesh currMesh; // Project SwitchDS. changed to pointer on 1/29
+    
     CMeshImpl Mesh;
     // std::map<std::string, std::pair<CMeshInstancePoint*, uint32_t>> PickingVerts; Randy commented
     // this out on 10/10 . I dont think it does anything???

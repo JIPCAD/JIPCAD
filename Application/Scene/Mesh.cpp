@@ -150,7 +150,7 @@ void CMesh::AddFace(const std::string& name, const std::vector<std::string>& fac
 void CMesh::AddFace(const std::string& name, const std::vector<Vertex*>& faceDSVerts,
                     std::string faceSurfaceIdent, std::string faceBackfaceIdent)
 {
-    Face * newFace = currMesh.addFace(faceDSVerts, false); // Project SwitchDS . Check if need to reverseOrder = true or false?
+    Face * newFace = currMesh.addFace(faceDSVerts, faceSurfaceIdent, faceBackfaceIdent); // Project SwitchDS . Check if need to reverseOrder = true or false?
     newFace->surfaceName = faceSurfaceIdent;
     newFace->backfaceName = faceBackfaceIdent;
 }
@@ -164,6 +164,12 @@ void CMesh::AddLineStrip(const std::string& name,
 void CMesh::ClearMesh()
 {
     currMesh.clear();
+    LineStrips.clear();
+    WireFrames.clear();
+}
+
+void CMesh::ClearLineStrips()
+{
     LineStrips.clear();
     WireFrames.clear();
 }
@@ -284,17 +290,38 @@ void CMeshInstance::CopyFromGenerator()
 
     // Bit weird, but we assign face coloring for mesh instances here. These colors are directly used in DSMeshToQGeometry.cpp.
     CScene* scene = GetSceneTreeNode()->GetOwner()->GetScene();
-
+    std::string sn = "";
+    std::string bn = "";
+    if (GetSceneTreeNode()->GetOwner()->GetSurface().Get())
+        sn = GetSceneTreeNode()->GetOwner()->GetSurface().Get()->GetName();
+    if (GetSceneTreeNode()->GetOwner()->GetBackface().Get())
+        bn = GetSceneTreeNode()->GetOwner()->GetBackface().Get()->GetName();
+    std::array<float, 3> arr = { 0.0f, 0.0f, 0.0f };
     for (auto currFace : currMesh.faceList) {
+        //std::cout << currFace->color[0] << currFace->color[1] << currFace->color[2] << " ---\n";
+        //std::cout << currFace->surfaceName<<" --surf\n";
         if (currFace->surfaceName != "") {
             CSurface* surface = dynamic_cast<CSurface*>(scene->FindEntity(currFace->surfaceName).Get());
             currFace->color = {surface->ColorR.GetValue(0.f), surface->ColorG.GetValue(0.f),
                                 surface->ColorB.GetValue(0.f)};
         }
+        else if (!sn.empty()){
+            CSurface* surface =
+                dynamic_cast<CSurface*>(scene->FindEntity(sn).Get());
+            currFace->color = { surface->ColorR.GetValue(0.f), surface->ColorG.GetValue(0.f),
+                                surface->ColorB.GetValue(0.f) };
+            std::cout << "color:" << surface->ColorR.GetValue(0.f);
+        }
         if (currFace->backfaceName != "") {
             CBackface* backface = dynamic_cast<CBackface*>(scene->FindEntity(currFace->backfaceName).Get());
             currFace->backcolor = {backface->ColorR.GetValue(0.f), backface->ColorG.GetValue(0.f),
                                backface->ColorB.GetValue(0.f)};
+        }
+        else if (!bn.empty()){
+            CBackface* backface =
+                dynamic_cast<CBackface*>(scene->FindEntity(bn).Get());
+            currFace->backcolor = { backface->ColorR.GetValue(0.f), backface->ColorG.GetValue(0.f),
+                                    backface->ColorB.GetValue(0.f) };
         }
     }
 }
@@ -740,4 +767,25 @@ std::string CVertexSelector::GetPath() const
     return mi->GetSceneTreeNode()->GetPath() + "." + TargetName;
 }
 
+Vector3 CMeshInstance::CalculateFaceNormal(const Face* f)
+{ 
+    std::vector<Vertex*> vertexList = f->vertices;
+    // std::vector<Vertex*> vertexList = f->normal;
+    Vector3 v0 = vertexList.at(0)->position - vertexList.at(2)->position;
+    Vector3 v1 = vertexList.at(1)->position - vertexList.at(2)->position;
+    Vector3 n = v0.CrossProduct(v1);
+    //crossProduct(v0, v1);
+    return n.Normalized();
+}
+
+Vector3 crossProduct(const Vector3 A, const Vector3 B)
+{
+    Vector3 result;
+
+    result.x = A.y * B.z - A.z * B.y;
+    result.y = A.z * B.x - A.x * B.z;
+    result.z = A.x * B.y - A.y * B.x;
+
+    return result;
+}
 }

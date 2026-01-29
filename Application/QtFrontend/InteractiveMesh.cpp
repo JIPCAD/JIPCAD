@@ -60,6 +60,7 @@ void CInteractiveMesh::UpdateGeometry(bool showVertBox, bool showBackFace, bool 
     {
         auto* meshInstance = dynamic_cast<Scene::CMeshInstance*>(entity);
         if (meshInstance)
+        if (meshInstance)
         {
             delete GeometryRenderer;
             delete Geometry;
@@ -130,6 +131,7 @@ void CInteractiveMesh::UpdateGeometry(bool showVertBox, bool showBackFace, bool 
 void CInteractiveMesh::UpdateMaterial()
 {
     // If the scene tree node is not within a group, then we can directly use its surface color, if it has one
+    
     if (!SceneTreeNode->GetParent()->GetOwner()->IsGroup())
     {
         if (auto surface = SceneTreeNode->GetOwner()->GetSurface())
@@ -162,7 +164,7 @@ void CInteractiveMesh::UpdateMaterial()
                 InstanceColor[1] = (surface->ColorG.GetValue(1.0f));
                 InstanceColor[2] = (surface->ColorB.GetValue(1.0f));
                 setColor = true;
-                break;
+                break;  
             }
             if (auto backface = currNode->GetOwner()->GetBackface())
             {
@@ -174,8 +176,9 @@ void CInteractiveMesh::UpdateMaterial()
             }
             /* Fix by Brian Kim, Jul 2 2023. Fixing hierarchicals coloring */
             currNode = currNode->GetParent();
-            currNode = currNode->GetParent();
-
+            //currNode = currNode->GetParent(); <<- This single line of code somehow broke the group and mesh coloring system, 
+                                                //  fixed by commenting it out - Robert Meli April 23rd, 2025
+                                                //  This took way too long to find :(
         }
 
         if (!setColor || !setBackColor) // If the surface color hasn't been set yet
