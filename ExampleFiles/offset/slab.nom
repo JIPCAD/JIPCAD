@@ -56,7 +56,7 @@ instance imerge_slab merge_slab endinstance
 offset offset_slab
     offset_type NOME_OFFSET_DEFAULT
     height 0.3
-    width 1.0
+    hole 1.0
     instance imerge_slab merge_slab endinstance
 endoffset
 instance ioffset_slab offset_slab endinstance

@@ -22,7 +22,7 @@ surface W  color  (1   1   1  ) endsurface   # White
 surface D  color  (0.2 0.2 0.2) endsurface   # Dark
 surface K  color  (0   0   0  ) endsurface   # blacK
 
-backgroundcolor (0.6 0.7 0.8) endbackgroundcolor 
+### backgroundcolor (0.6 0.7 0.8) endbackgroundcolor 
 
 ##################  Coordinate System  ################
 point co (0 0 0 ) endpoint
@@ -110,7 +110,7 @@ instance instTempMesh0c TempMesh0   rotate(0 0 1)(240)  endinstance
 ### offset offset_trefoil
 ###     offset_type NOME_OFFSET_DEFAULT
 ###     height 0.1 ### or use a custom variable such as {expr $p.varHeight}
-###     width 0.1  ### or use a custom variable such as {expr $p.varWidth}
+###     hole 0.1  ### or use a custom variable such as {expr $p.varHole}
 ###     instance imerge_trefoil merge_trefoil endinstance
 ### endoffset
 ### instance ioffset_trefoil offset_trefoil endinstance

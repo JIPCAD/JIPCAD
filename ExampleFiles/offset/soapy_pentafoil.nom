@@ -19,7 +19,7 @@ surface M color (1 0 1) endsurface          # Magenta
 surface W color (1 1 1) endsurface          # White
 surface S color (0.8 0.8 0.8) endsurface    # Snow(dirty)
 
-backgroundcolor  (0.6 0.7 0.8)  endbackgroundcolor
+### backgroundcolor  (0.6 0.7 0.8)  endbackgroundcolor
 
 ############  Adjustable Parameters on Sliders  ##################################
 bank p
@@ -136,7 +136,7 @@ instance mM  cross   surface M   rotate(0 0 1)(288)   endinstance
 ### offset offset_pentafoil
 ###     offset_type NOME_OFFSET_DEFAULT
 ###     height 0.1 ### or use a custom variable such as {expr $p.varHeight}
-###     width 0.1  ### or use a custom variable such as {expr $p.varWidth}
+###     hole 0.1  ### or use a custom variable such as {expr $p.varHole}
 ###     instance imerge_pentafoil merge_pentafoil endinstance
 ### endoffset
 ### instance ioffset_pentafoil offset_pentafoil endinstance
