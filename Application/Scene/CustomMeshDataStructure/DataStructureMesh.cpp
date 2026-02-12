@@ -606,6 +606,14 @@ void getVertexNormal(Vertex* currVert)
         return;
     }
     Edge* currEdge = firstEdge;
+    if (currEdge == nullptr)
+    {
+        std::cout << currVert->name
+                + " is a lonely vertex without any adjacent edges. This error message  also appear "
+                  "for shapes with non-manifold verts and for polylines"
+                  << std::endl;
+        return;
+    }
     Face* currFace = currEdge->fa;
     tc::Vector3 avgNorm(0, 0, 0);
     int mobiusCounter = 0;
@@ -651,6 +659,10 @@ void Mesh::computeNormals(bool isPolyline)
         for (vIt = vertList.begin(); vIt != vertList.end(); vIt++)
         {
             //std::cout <<"Now calculating vertex with ID: "<< *vIt <<std::endl;
+            if ((*vIt)->oneEdge == nullptr)
+            {
+                continue;
+            }
             getVertexNormal(*vIt);
         }
     }

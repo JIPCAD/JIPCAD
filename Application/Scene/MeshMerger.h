@@ -40,6 +40,9 @@ public:
 
     // sd_flag can be set to sharp and plain cc to have different types of subdivision
     void Catmull();
+    void Catmull(CMeshInstance& meshInstance, bool shouldMergePoints);
+    void Catmull2(CMeshInstance& meshInstance, bool shouldMergePoints);
+
     void Shell(std::string f);
     void doShell(DSMesh& _m, Face* f);
 

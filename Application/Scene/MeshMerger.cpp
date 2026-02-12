@@ -189,6 +189,93 @@ void CMeshMerger::doShell(DSMesh & _m, Face* f) {
     //_m.computeNormals();
 
 }
+void CMeshMerger::Catmull2(CMeshInstance& meshInstance, bool shouldMergePoints = true)
+{
+    bool needSubdivision = subdivisionLevel != 0;
+    // bool needOffset = (Width.GetValue(0) != 0 || Height.GetValue(0) != 0);
+    bool needOffset = offsetIdent;
+    // std::cout << std::to_string(Width.GetValue(0)).c_str() << '\n' << std::endl;
+    // std::cout << std::to_string(Height.GetValue(0)).c_str() << std::endl;
+    if ((!needSubdivision && !needOffset)
+        || MergedMesh.vertList.empty()
+            && currMesh.isEmpty()) //.vertices_empty()) Randy changed the commented out method
+    {
+        // nothing to do
+        return;
+    }
+    WireFrames.clear();
+    ClearLineStrips();
+
+    // OpenMesh::Subdivider::Uniform::CatmullClarkT<CMeshImpl> catmull; //
+    // https://www.graphics.rwth-aachen.de/media/openmesh_static/Documentations/OpenMesh-4.0-Documentation/a00020.html
+    // Execute 2 subdivision steps
+    DSMesh otherMesh = MergedMesh.newMakeCopy();
+    // catmull.attach(otherMesh);
+    // prepare(otherMesh);
+    bool didOffset = false;
+    if (needSubdivision)
+    {
+        // std::cout << "\nsubdivLevel again: " << subdivisionLevel << "\n";
+        subdivide(otherMesh, 1); //, isSharp); // Randy commented this out for now. add back asap
+        // 4/30/2025 - Robert made this 1 level at a time, see note at the end of the Catmull
+        // function.
+        std::cout << "Apply catmullclark subdivision, may take some time..." << std::endl;
+        subdivisionLevel--;
+    }
+    if (needOffset)
+    {
+        //offset(otherMesh);
+        offset(otherMesh, h, w);
+        std::cout << "Apply offset, may take some time..." << std::endl;
+        didOffset = true;
+    }
+    currMesh = otherMesh.newMakeCopy();
+
+    if (didOffset)
+    {
+        // currMeshInstance->GetDSMesh().faceList = currMesh.faceList;
+        // currMeshInstance->GetDSMesh().edgeList = currMesh.edgeList;
+        // currMeshInstance->GetDSMesh().edgeTable = currMesh.edgeTable;
+        // CMeshInstance cmi = CMeshInstance();
+        // currMeshInstance->currMesh = otherMesh;
+        // MergedMesh = currMesh.newMakeCopy();
+        // MergeCurr();
+        // MergeIn(*currMeshInstance, true);
+    }
+    MergedMesh = currMesh.newMakeCopy();
+
+    // MergeCurr();
+    // std::cout << "";
+    // MergedMesh = otherMesh.newMakeCopy();
+
+    // subdivide(currMesh, subdivisionLevel);
+    //  ccSubdivision(3);
+    try
+    {
+        currMesh.buildBoundary();
+        currMesh.computeNormals();
+        // MergedMesh = currMesh.newMakeCopy();
+
+        // MergeIn(currMesh.newMakeCopy(), false);
+    }
+    catch (std::exception& e)
+    {
+        std::cout << "catmul clark subdivision failed: Please do one of the following:"
+                  << std::endl;
+    }
+
+    // MergeCurr();
+
+    // Added by Robert - 4/30/2025
+    // This in combination with just doing 1 subdivision level at a time
+    // allows for the coloring to be consistent throughout the mesh.
+    // When applying multiple levels at once, you will have coloring clipping between faces
+    // and other undefined coloring behavior.
+    if (subdivisionLevel > 0)
+        Catmull2(meshInstance, shouldMergePoints);
+    MergeIn(meshInstance, shouldMergePoints);
+}
+
 void CMeshMerger::Catmull()
 {
     bool needSubdivision = subdivisionLevel != 0;
@@ -221,8 +308,8 @@ void CMeshMerger::Catmull()
     }
     if (needOffset)
     {
-        offset(otherMesh);
-        //offset(otherMesh, h, w);
+        //offset(otherMesh);
+        offset(otherMesh, h, w);
         std::cout << "Apply offset, may take some time..." << std::endl;
         didOffset = true;
     }
@@ -270,6 +357,7 @@ void CMeshMerger::Catmull()
     // and other undefined coloring behavior.
     if (subdivisionLevel > 0)
         Catmull();
+    //MergeIn(meshInstance, shouldMergePoints);
 }
 
 
@@ -679,22 +767,10 @@ std::pair<Vertex*, float> CMeshMerger::FindClosestVertex(const tc::Vector3& pos)
 }
 
 
-/*
-bool CMeshMerger::offset(DSMesh& _m)
-{
-
-    double height = Height.GetValue(h);
-    double width = Width.GetValue(w);
-    if (height <= 0 && width <= 0)
-    {
-        return true;
-    }
-}
-*/
 // offset only added here
 // Randy changed it to use DSMesh
-// working without color
-
+// working with color
+/*
 bool CMeshMerger::offset(DSMesh& _m)
 {
     double height = Height.GetValue(h);
@@ -728,12 +804,225 @@ bool CMeshMerger::offset(DSMesh& _m)
         _m.addFace(newVerts,face->surfaceName, face->backfaceName);
     }
 
-   //_m.buildBoundary(); // Randy added this on 2/26
-    //_m.computeNormals();
+   _m.buildBoundary(); // Randy added this on 2/26
+    _m.computeNormals();
     return true;
 }
-
+*/
 //New Version that fixes subdivision chaining (ie offset and then subdiv)
+#include <algorithm>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
+
+bool CMeshMerger::offset(DSMesh& _m, double height, double width)
+{
+    //double height = Height.GetValue(h);
+    //double width = Width.GetValue(w);
+    if (height <= 0 && width <= 0)
+        return true;
+
+    COffsetRefiner offsetRefiner(_m, offsetFlag);
+    offsetRefiner.Refine(height, width);
+
+    std::vector<Face*> rawFaces = offsetRefiner.GetFaces();
+    std::sort(rawFaces.begin(), rawFaces.end(),
+              [](Face* a, Face* b)
+              {
+                  return a->vertices.size() > b->vertices.size();
+              });
+    _m.clear();
+
+    // Welding Cache
+    std::map<std::string, Vertex*> uniqueVerts;
+
+    // Face Deduplication
+    std::set<std::vector<int>> existingFaces;
+
+    // Ensures we never add a 3rd face to an edge, preventing Non-Manifold errors.
+    std::map<std::pair<int, int>, int> edgeUsage;
+
+    printf("============ output verts and faces with MANIFOLD GUARD ======\n");
+
+    int addedFaceCount = 0;
+    int skippedCount = 0;
+
+    for (auto face : rawFaces)
+    {
+        std::vector<Vertex*> faceVerts;
+        std::vector<int> faceIndices;
+
+        // Merge vertices in the same position
+        for (int i = 0; i < face->vertices.size(); i++)
+        {
+            auto sourceVert = face->vertices[i];
+
+            char buffer[64];
+            snprintf(buffer, sizeof(buffer), "%.4f_%.4f_%.4f", sourceVert->position.x,
+                     sourceVert->position.y, sourceVert->position.z);
+            std::string key = buffer;
+
+            Vertex* finalVert = nullptr;
+            if (uniqueVerts.find(key) != uniqueVerts.end())
+            {
+                finalVert = uniqueVerts[key];
+            }
+            else
+            {
+                finalVert = new Vertex(sourceVert->position.x, sourceVert->position.y,
+                                       sourceVert->position.z, _m.vertList.size());
+                finalVert->name = "offsetVert" + std::to_string(_m.vertList.size());
+                _m.addVertex(finalVert);
+                uniqueVerts[key] = finalVert;
+            }
+            faceVerts.push_back(finalVert);
+            faceIndices.push_back(finalVert->ID);
+        }
+
+        
+        bool isDegenerate = false;
+        for (size_t i = 0; i < faceIndices.size(); ++i)
+        {
+            if (faceIndices[i] == faceIndices[(i + 1) % faceIndices.size()])
+            {
+                isDegenerate = true;
+                break;
+            }
+        }
+        if (isDegenerate)
+            continue;
+        WireFrames.push_back(faceVerts);
+        std::vector<int> sortedIndices = faceIndices;
+        std::sort(sortedIndices.begin(), sortedIndices.end());
+        if (existingFaces.count(sortedIndices))
+            continue;
+
+        Vector3 v0 = faceVerts[0]->position;
+        Vector3 v1 = faceVerts[1]->position;
+        Vector3 v2 = faceVerts[2]->position;
+
+        // We check squared length against a tiny epsilon
+        float e0Sq = (v1 - v0).LengthSquared();
+        float e1Sq = (v2 - v1).LengthSquared();
+        float e2Sq = (v0 - v2).LengthSquared();
+
+        if (e0Sq < 1e-8f || e1Sq < 1e-8f || e2Sq < 1e-8f)
+        {
+            skippedCount++;
+            continue;
+        }
+
+        // Previous check was scale dependent. This one is consistent.
+        // We reject anything below 0.005 (approx 1:10 aspect ratio).
+        Vector3 edgeA = v1 - v0;
+        Vector3 edgeB = v2 - v0;
+        Vector3 cross = edgeA.CrossProduct(edgeB);
+        float doubleArea = cross.Length();
+        float perimeter = sqrt(e0Sq) + sqrt(e1Sq) + sqrt(e2Sq);
+
+        if (perimeter < 1e-9f)
+        {
+            skippedCount++;
+            continue;
+        } // Prevent divide by zero
+
+        // Ratio = Area / Perimeter^2
+        // A sliver has a very small area relative to its perimeter squared.
+        float aspect = doubleArea / (perimeter * perimeter);
+
+        if (aspect < 0.005f)
+        {
+            skippedCount++;
+            continue;
+        }
+
+        // Ensure strictly positive facing.
+        if (face->normal.LengthSquared() > 0.001f)
+        {
+            if (cross.DotProduct(face->normal) < 1e-4f)
+            {
+                skippedCount++;
+                continue;
+            }
+        }
+        // Check if adding this face would overload any edge ( > 2 faces)
+        bool isManifold = true;
+        for (size_t i = 0; i < faceIndices.size(); ++i)
+        {
+            int u = faceIndices[i];
+            int v = faceIndices[(i + 1) % faceIndices.size()];
+
+            std::pair<int, int> edgeKey = std::minmax(u, v);
+
+            if (edgeUsage[edgeKey] >= 2)
+            {
+                isManifold = false;
+                break;
+            }
+        }
+
+        if (!isManifold)
+        {
+            skippedCount++;
+            continue;
+        }
+
+        for (size_t i = 0; i < faceIndices.size(); ++i)
+        {
+            int u = faceIndices[i];
+            int v = faceIndices[(i + 1) % faceIndices.size()];
+            edgeUsage[std::minmax(u, v)]++;
+        }
+
+        existingFaces.insert(sortedIndices);
+
+        _m.addFace(faceVerts, face->surfaceName, face->backfaceName);
+        addedFaceCount++;
+    }
+    std::vector<bool> vertIsUsed(_m.vertList.size(), false);
+    for (auto face : _m.faceList)
+    {
+        for (auto v : face->vertices)
+        {
+            vertIsUsed[v->ID] = true;
+        }
+    }
+
+    // 2. Create a compact list and delete unused vertices
+    std::vector<Vertex*> packedVerts;
+    packedVerts.reserve(_m.vertList.size()); // Reserve max potential size
+
+    for (size_t i = 0; i < _m.vertList.size(); ++i)
+    {
+        Vertex* v = _m.vertList[i];
+        if (vertIsUsed[i])
+        {
+            // Update ID to match the new contiguous index
+            v->ID = (int)packedVerts.size();
+            packedVerts.push_back(v);
+        }
+        else
+        {
+            // Vertex was created but its face was rejected. Delete it.
+            delete v;
+        }
+    }
+
+    // 3. Swap the clean list back into the mesh
+    _m.vertList = packedVerts;
+    printf("Rebuild Complete: Added %d faces, Skipped %d non-manifold faces.\n", addedFaceCount,
+           skippedCount);
+
+    _m.buildBoundary();
+
+    if (addedFaceCount > 0)
+    {
+        _m.computeNormals();
+    }
+
+    return true;
+}
 
 std::pair<Vertex*, float> FindClosestVert(const tc::Vector3& pos, std::vector<Vertex*> list)
 {
@@ -757,224 +1046,11 @@ std::pair<Vertex*, float> FindClosestVert(const tc::Vector3& pos, std::vector<Ve
     }
     return { result, minDist };
 }
-/*
-bool CMeshMerger::offset(DSMesh& _m, double height, double width)
-{
-    if (height <= 0 && width <= 0)
-    {
-        return true;
-    }
-    if (width >= 0.9)
-    {
-        width = 0.9;
-    }
-    
-    COffsetRefiner offsetRefiner(_m, offsetFlag);
-    offsetRefiner.Refine(height, width);
-    _m.clear();
 
-    std::vector<Vertex*> sourceVertices = offsetRefiner.GetVertices();
-    std::vector<Face*> sourceFaces = offsetRefiner.GetFaces();
-    
-    std::map<Vertex*, Vertex*> vertexMap;
-    std::unordered_map<Vertex*, Vertex*> vertMap;
-       
-    _m.edgeList.clear();
-    _m.edgeTable.clear();
-   
-    std::vector<Vertex*> vertsMap;
-    const double VERTEX_TOLERANCE = 1e-4;
-    _m.edges().clear();
-    
-    for (auto newVert : sourceVertices)
-    {
-            auto [closestVert, distance] = FindClosestVert(newVert->position, vertsMap);
-            if (closestVert != NULL && distance <= VERTEX_TOLERANCE)
-            {
-                vertMap[newVert] = closestVert;
-                continue;
-            }
-            _m.addVertex(newVert);
-            vertsMap.push_back(newVert);
-            vertMap[newVert] = newVert;
-    }
-    // 5. FINALIZE TOPOLOGY
-    // Re-enable these functions now that faces are either fully linked or deleted/cleaned up.
-    //_m.buildBoundary();
-    //_m.computeNormals();
-    int FaceCount = 0;
-    for (auto otherFace : sourceFaces)
-    {
-        std::vector<Vertex*> verts;
-        
-        for (auto vert : otherFace->vertices) // otherMesh vertices
-        { // iterate through all the vertices on this face
-            verts.emplace_back(vertMap[vert]);
-        } // Add the vertex handles
-        //otherFace->vertices = verts;
-        // MergedMesh.addFace(verts, otherFace->color, otherFace->surfaceName); // Project AddOffset
-        if (verts.empty())
-            continue;
-        auto last = std::unique(verts.begin(), verts.end());
-        verts.erase(last, verts.end());
-
-        // 2. Check for closed loops (V_M, V_C, V_M) -> (V_M, V_C)
-        if (verts.size() > 1 && verts.front() == verts.back())
-        {
-            std::cout << "loop\n";
-            verts.pop_back();
-        }
-
-        // 3. Check for total collapse (e.g., all vertices mapped to the same point)
-        if (verts.size() < 3)
-        {
-            std::cout << "degen face\n";
-            continue; // SKIP THE DEGENERATE FACE
-        }
-        _m.addFace(verts, otherFace->surfaceName, otherFace->backfaceName);
-        //std::cout << "facenames:" << otherFace->surfaceName << "\n";
-        //std::string fName = "v" + std::to_string(FaceCount);
-        FaceCount++;
-    }
-    
-    return true;
-}
-*/
-
-// this one
-/*
-bool CMeshMerger::offset(DSMesh& _m, double height, double width)
-{
-    // 1. INPUT VALIDATION
-    if (height <= 0 && width <= 0)
-        return true;
-    if (width >= 0.9)
-        width = 0.9;
-
-    // 2. GENERATE OFFSET DATA
-    COffsetRefiner offsetRefiner(_m, offsetFlag);
-    offsetRefiner.Refine(height, width);
-
-    // Clear the destination mesh to rebuild it from refined data
-    _m.clear();
-    _m.edgeList.clear();
-    _m.edgeTable.clear();
-
-    std::vector<Vertex*> sourceVertices = offsetRefiner.GetVertices();
-    std::vector<Face*> sourceFaces = offsetRefiner.GetFaces();
-
-    // Map to track old pointer -> new pointer (welded)
-    std::unordered_map<Vertex*, Vertex*> vertMap;
-    // Helper list to track unique vertices added to the mesh
-    std::vector<Vertex*> addedVerts;
-
-    const double VERTEX_TOLERANCE = 1e-6; // Slightly tighter tolerance
-
-    // 3. VERTEX WELDING (Merging close points)
-    for (auto newVert : sourceVertices)
-    {
-        // Search for an existing vertex within tolerance
-        auto [closestVert, distance] = FindClosestVert(newVert->position, addedVerts);
-
-        if (closestVert != nullptr && distance <= VERTEX_TOLERANCE)
-        {
-            vertMap[newVert] = closestVert;
-        }
-        else
-        {
-            _m.addVertex(newVert);
-            addedVerts.push_back(newVert);
-            vertMap[newVert] = newVert;
-        }
-    }
-
-    // 4. FACE RECONSTRUCTION
-    int faceCount = 0;
-    for (auto sourceFace : sourceFaces)
-    {
-        std::vector<Vertex*> faceVerts;
-        std::unordered_set<Vertex*> seenInFace;
-
-        // Map original vertices to their welded counterparts
-        for (auto v : sourceFace->vertices)
-        {
-            Vertex* weldedV = vertMap[v];
-
-            // Avoid adding the same welded vertex twice in a single face (Degeneracy check)
-            if (seenInFace.find(weldedV) == seenInFace.end())
-            {
-                faceVerts.push_back(weldedV);
-                seenInFace.insert(weldedV);
-            }
-        }
-
-        // 5. VALIDATE FACE TOPOLOGY
-        // A valid face must have at least 3 unique vertices
-        if (faceVerts.size() < 3)
-        {
-            // This is likely where your missing faces were going;
-            // they were being collapsed by the tolerance.
-            continue;
-        }
-
-        // Add the face to the mesh
-        _m.addFace(faceVerts, sourceFace->surfaceName, sourceFace->backfaceName);
-        faceCount++;
-    }
-
-    // 6. FINAL TOPOLOGY REBUILD
-    // Ensure the mesh knows how its edges and normals work after the merge
-    _m.buildBoundary();
-    _m.computeNormals();
-
-    return true;
-}
-*/
-/*
-    for (Face* f : _m.faceList)
-    {
-        if (!f->oneEdge)
-        {
-            continue;
-        }
-
-        if (f->oneEdge->fa == f || f->oneEdge->fb == f)
-            std::cout << "";
-        else
-        {
-            std::cout << "Edge and face aren't connected\n";
-
-            if (f->oneEdge->fa == nullptr)
-            {
-                f->oneEdge->fa = f;
-            }
-            else if (f->oneEdge->fb == nullptr)
-            {
-                f->oneEdge->fb = f;
-            }
-            for (auto v : f->vertices)
-            {
-                auto e = f->oneEdge->nextEdge(v, f);
-                if (e == nullptr)
-                    continue;
-                if (e->fa == nullptr)
-                {
-                    e->fa = f;
-                }
-                else if (e->fb == nullptr)
-                {
-                    e->fb = f;
-                }
-            }
-
-        }
-    }
-    */
 void CMeshMerger::MergeClear() {
     currMesh.clear();
     MergedMesh.clear();
 }
-
 
 bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
 {
@@ -986,7 +1062,7 @@ bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
     Far::TopologyRefiner * refiner = GetRefiner(_m, isSharp);
     
     Far::TopologyRefiner::UniformOptions uniop(n);
-    uniop.orderVerticesFromFacesFirst = true;
+    //uniop.orderVerticesFromFacesFirst = true;
     refiner->RefineUniform(uniop);
 
     std::vector<Vertex> vbuffer(refiner->GetNumVerticesTotal());

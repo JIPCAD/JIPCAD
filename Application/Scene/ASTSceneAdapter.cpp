@@ -164,10 +164,6 @@ CEntity* CASTSceneAdapter::MakeEntity(const std::string& cmd, const std::string&
         return new CTorusKnot(name);
     else if (cmd == "torus")
         return new CTorus(name);
-    else if (cmd == "arc")
-        return new CArc(name);
-    else if (cmd == "icosphere")
-        return new CIcosphere(name);
     else if (cmd == "mobiusstrip")
         return new CMobiusStrip(name);
     else if (cmd == "hyperboloid")
@@ -834,6 +830,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                     }
                 }
                 bool reviewed = false;
+
                 try
                 {
                     std::vector<std::string> sceneMergedInstances = {};
@@ -891,10 +888,11 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                                         mesh->setOffset(true);
                                         mesh->Catmull();
                                         mesh->setOffset(false);
-                                        mesh->MarkDirty();
+                                        mesh->MarkDirty(); 
                                         mesh->CreateNormalsCurr(hasFaceNormal, faceNormalMultiplier,
                                                                 hasVertexNormal,
                                                                 vertexNormalMultiplier);
+
                                     }
                                     else
                                     {

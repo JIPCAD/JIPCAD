@@ -339,11 +339,6 @@ bool TBindingTranslator<Flow::TInput<CSweepPathInfo*>>::FromASTToValue(
         CTorusKnot* torusknot = dynamic_cast<CTorusKnot*>(path);
         value.Connect(torusknot->TorusKnot);
     }
-    else if (typeid(e) == typeid(CArc))
-    {
-        CArc* arc = dynamic_cast<CArc*>(path);
-        value.Connect(arc->Arc);
-    }
     else
     {
         throw AST::CSemanticError(tc::StringPrintf("Entity %s is not a sweep path", identVal.c_str()),
