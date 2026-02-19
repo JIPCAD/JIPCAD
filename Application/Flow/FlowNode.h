@@ -120,10 +120,17 @@ public:
     {
         if (ConnectedOutput)
         {
-            auto iter = ConnectedOutput->ConnectedInputs.find(this);
-            if (iter != ConnectedOutput->ConnectedInputs.end())
-                ConnectedOutput->ConnectedInputs.erase(iter);
-            ConnectedOutput->Owner->Release();
+            if (ConnectedOutput == nullptr)
+            {
+                std::cout << "Debug: ConnectedOutput is invalid\n";
+            }
+            if (ConnectedOutput != nullptr)
+            {
+                auto iter = ConnectedOutput->ConnectedInputs.find(this);
+                if (iter != ConnectedOutput->ConnectedInputs.end())
+                    ConnectedOutput->ConnectedInputs.erase(iter);
+                ConnectedOutput->Owner->Release();
+            }
         }
         ConnectedOutput = nullptr;
     }

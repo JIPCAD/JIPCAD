@@ -23,6 +23,16 @@ DEFINE_META_OBJECT(CTorus)
     BindPositionalArgument(&CTorus::theta_segs, 1, 5);
     BindPositionalArgument(&CTorus::phi_segs, 1, 6);
 }
+
+void CTorus::MarkDirty()//
+{
+    // Mark this entity dirty
+    Super::MarkDirty();
+
+    // And also mark the Face output dirty
+    Torus.MarkDirty();
+}
+
 void CTorus::UpdateEntity()
 {
     if (!IsDirty())
@@ -48,7 +58,8 @@ void CTorus::UpdateEntity()
     const float du_offset = (phiMin * (float)tc::M_PI
                              / 180.0f); // convert phiMin to radians. This will be used to offset so
                                         // it starts at phiMin instead of 0 .
-
+    std::vector<Vertex*> handles;
+    std::vector<CVertexInfo*> positions;
     // Create torus, creating one cross section at each iteration
     for (int i = 0; i < thetaSegs + 1;
          i++) // thetaSegs + 1; for some reason thetaSegs was outputting an off by one torus...
@@ -56,6 +67,18 @@ void CTorus::UpdateEntity()
         float t0 = i * dt;
 
         Point p0 = { majorRadius * cos(t0), majorRadius * sinf(t0), 0 };
+        Point curr_vertexi;
+        curr_vertexi.x = p0.x;
+        curr_vertexi.y = p0.y;
+        curr_vertexi.z = p0.z;
+
+        handles.push_back(AddVertex("iv" + std::to_string(i + 1),
+                                    { curr_vertexi.x, curr_vertexi.y, curr_vertexi.z }));
+        Vector3 pos = Vector3(curr_vertexi.x, curr_vertexi.y, curr_vertexi.z);
+
+        CVertexInfo* point = new CVertexInfo(); //
+        point->Position = pos; //
+        positions.push_back(point); //
 
         // Below, we'll work on approximating the Frenet frame { T, N, B } for the curve at the
         // current point
@@ -110,10 +133,30 @@ void CTorus::UpdateEntity()
             curr_vertex.y = p0.y + p2.y;
             curr_vertex.z = p0.z + p2.z;
 
+            
             AddVertex("v" + std::to_string(i + 1) + "_" + std::to_string(j),
                       { curr_vertex.x, curr_vertex.y, curr_vertex.z });
+            
         }
     }
+    std::cout << "^^"
+              << "\n";
+    std::cout << "" << majorRadius << "\n";
+    for (int i = 0; i < handles.size(); i++)
+    {
+        std::cout << "(" << (handles.at(i)->position.x) << " " << (handles.at(i)->position.y) << " "
+                  << (handles.at(i)->position.z) << ")"
+                  << "\n";
+    }
+    AddLineStrip("arc", handles);//
+    // Sweep path info
+    SI.Positions = positions;//
+    SI.IsClosed = false;//
+    SI.IsBSpline = false;//
+    SI.Name = GetName();//
+    Torus.UpdateValue(&SI);//
+    SetValid(true);//
+    
     // Create faces
     if (thetaMax == 360)
     {
@@ -125,11 +168,11 @@ void CTorus::UpdateEntity()
                 int next = (i + 1) % (phiSegs + 1);
                 int next_k = (k + 1) % thetaSegs;
                 std::vector<std::string> upperFace = {
-                    /* Old method was incorrectly CW (back face was showing in the front)
-                    "v" + std::to_string(k + 1) + "_" + std::to_string(next),
-                    "v" + std::to_string(k + 1) + "_" + std::to_string(i),
-                    "v" + std::to_string(next_k + 1) + "_" + std::to_string(i),
-                    "v" + std::to_string(next_k + 1) + "_" + std::to_string(next)*/
+                    //Old method was incorrectly CW (back face was showing in the front)
+                    //"v" + std::to_string(k + 1) + "_" + std::to_string(next),
+                    //"v" + std::to_string(k + 1) + "_" + std::to_string(i),
+                    //"v" + std::to_string(next_k + 1) + "_" + std::to_string(i),
+                    //"v" + std::to_string(next_k + 1) + "_" + std::to_string(next)
 
                     // CCW
                     "v" + std::to_string(next_k + 1) + "_" + std::to_string(next),

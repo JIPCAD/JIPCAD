@@ -63,6 +63,7 @@ id
 	| AZIMUTH
 	| TWIST
 	| REVERSE
+	| INVERT
 	| MINTORSION
 	| ORIGIN
 	| SIZE
@@ -130,6 +131,12 @@ id
 	| ENDTORUSKNOT
 	| TORUS
 	| ENDTORUS
+	| ARC
+	| ENDARC
+	| FACENORMAL
+	| VERTEXNORMAL
+	| ICOSPHERE
+	| ENDICOSPHERE
 	| GENCARTESIANSURF
 	| ENDGENCARTESIANSURF
 	| GENPARAMETRICSURF
@@ -198,9 +205,11 @@ vector3 : LPAREN expression expression expression RPAREN ;
 argClosed : CLOSED ;
 argSdFlag : SD_TYPE ident;
 argSdLevel : SD_LEVEL expression;
+argFaceNormal : FACENORMAL expression;
+argVertexNormal : VERTEXNORMAL expression;
 argOffsetFlag : OFFSET_TYPE ident;
 argHeight : HEIGHT expression;
-argWidth : WIDTH expression;
+argWidth : HOLE expression;
 argHidden : HIDDENC ;
 argBeginCap : BEGINCAP ;
 argEndCap : ENDCAP ;
@@ -244,6 +253,7 @@ argTopCap : TOPCAP ;
 argCutBegin : CUTBEGIN ;
 argCutEnd : CUTEND ;
 argMorphIndex : MORPHINDEX expression ;
+argInvert : INVERT ;
 
 command
    : open=POINT name=ident LPAREN expression expression expression RPAREN end=ENDPOINT # CmdExprListOne
@@ -271,12 +281,14 @@ command
    | open=TUNNEL name=ident LPAREN expression expression expression expression RPAREN end=ENDTUNNEL # CmdExprListOne
    | open=TORUSKNOT name=ident LPAREN expression expression expression expression expression expression expression RPAREN end=ENDTORUSKNOT # CmdExprListOne
    | open=TORUS name=ident LPAREN expression expression expression expression expression expression expression RPAREN end=ENDTORUS # CmdExprListOne
+   | open=ARC name=ident LPAREN expression expression expression expression expression expression expression RPAREN end=ENDARC # CmdExprListOne
+   | open=ICOSPHERE name=ident LPAREN expression expression RPAREN end=ENDICOSPHERE # CmdExprListOne
    | open=GENCARTESIANSURF name=ident argFunc LPAREN expression expression expression expression expression expression RPAREN end=ENDGENCARTESIANSURF # CmdGeneral
    | open=GENPARAMETRICSURF name=ident argFuncX argFuncY argFuncZ LPAREN expression expression expression expression expression expression RPAREN end=ENDGENPARAMETRICSURF # CmdGeneralParametric
    | open=GENIMPLICITSURF name=ident argFunc LPAREN expression expression expression expression expression expression expression expression expression RPAREN end=ENDGENIMPLICITSURF # CmdGeneral
    | open=BEZIERCURVE name=ident idList argSegs* end=ENDBEZIERCURVE # CmdIdListOne
    | open=BSPLINE name=ident argOrder* idList argSegs* end=ENDBSPLINE # CmdIdListOne
-   | open=INSTANCE name=ident entity=ident (argSurface | argTransform | argHidden | argBackface)* end=ENDINSTANCE # CmdInstance
+   | open=INSTANCE name=ident entity=ident (argSurface | argTransform | argHidden | argBackface | argFaceNormal | argVertexNormal )* end=ENDINSTANCE # CmdInstance
    | open=SURFACE name=ident argColor end=ENDSURFACE # CmdSurface
    | open=FRONTCOLOR LPAREN expression expression expression RPAREN end=ENDFRONTCOLOR # CmdInitColor
    | open=BACKCOLOR LPAREN expression expression expression RPAREN end=ENDBACKCOLOR # CmdInitColor
@@ -294,7 +306,7 @@ command
    | open=DELETE deleteFace* end=ENDDELETE # CmdDelete
    | open=SUBDIVISION name=ident argSdFlag* argSdLevel* command* end=ENDSUBDIVISION # CmdSubdivision
    | open=SHARP expression idList+ end=ENDSHARP # CmdSharp
-   | open=OFFSET name=ident argOffsetFlag* argHeight* argWidth* command* end=ENDOFFSET # CmdOffset
+   | open=OFFSET name=ident argOffsetFlag* argHeight* (argWidth)* command* end=ENDOFFSET # CmdOffset
    | open=INCLUDE name=ident end=ENDINCLUDE # CmdInclude
    | open=LIGHT name=ident argLightType argLightColor argLightVector* end=ENDLIGHT # CmdLight
    | open=CAMERA name=ident argCameraProjection (argCameraFrustum)* end=ENDCAMERA #CmdCamera
@@ -321,6 +333,7 @@ SD_LEVEL : 'sd_level';
 OFFSET_TYPE : 'offset_type';
 HEIGHT : 'height';
 WIDTH : 'width';
+HOLE : 'hole';
 HIDDENC : 'hidden';
 MERGEINSTANCE : 'mergeinstance';
 BEGINCAP : 'begincap';
@@ -345,6 +358,7 @@ POINT : 'point';
 AZIMUTH : 'azimuth';
 TWIST : 'twist';
 REVERSE : 'reverse';
+INVERT : 'invert';
 MINTORSION : 'mintorsion';
 ORIGIN : 'origin';
 SIZE : 'size';
@@ -410,6 +424,12 @@ TORUSKNOT : 'torusknot';
 ENDTORUSKNOT : 'endtorusknot';
 TORUS : 'torus';
 ENDTORUS : 'endtorus';
+ARC : 'arc';
+ENDARC : 'endarc';
+FACENORMAL : 'facenormal';
+VERTEXNORMAL : 'vertexnormal';
+ICOSPHERE : 'icosphere';
+ENDICOSPHERE : 'endicosphere';
 GENCARTESIANSURF : 'gencartesiansurf';
 ENDGENCARTESIANSURF : 'endgencartesiansurf';
 GENPARAMETRICSURF : 'genparametricsurf';
@@ -470,7 +490,7 @@ FACE : 'face';
 
 
 IDENT : VALID_ID_START VALID_ID_CHAR* | OPENBRACKET VALID_ID_FUNC* CLOSEBRACKET ;
-fragment VALID_ID_START : ('a' .. 'z') | ('A' .. 'Z') | '_' | '.' ;
+fragment VALID_ID_START : ('a' .. 'z') | ('A' .. 'Z') | '_' | '.' | '\\' | ':';
 fragment VALID_ID_CHAR : VALID_ID_START | ('0' .. '9') ;
 fragment VALID_ID_FUNC : VALID_ID_CHAR | '(' | ')' | '*' | '/' | '+' | '!' | '%' | '=' | '^' | '-' | '|' | ',' | '<' | '>' ;
 fragment OPENBRACKET : '[' ;

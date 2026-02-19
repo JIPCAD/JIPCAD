@@ -40,6 +40,8 @@ public:
     antlrcpp::Any visitArgReverse(NomParser::ArgReverseContext* context) override;
     antlrcpp::Any visitArgMintorsion(NomParser::ArgMintorsionContext* context) override;
     antlrcpp::Any visitArgMorphIndex(NomParser::ArgMorphIndexContext* context) override;
+    antlrcpp::Any visitArgFaceNormal(NomParser::ArgFaceNormalContext* ctx) override;
+    antlrcpp::Any visitArgVertexNormal(NomParser::ArgVertexNormalContext* ctx) override;
     antlrcpp::Any visitArgSdLevel(NomParser::ArgSdLevelContext* ctx) override;
     antlrcpp::Any visitArgSdFlag(NomParser::ArgSdFlagContext* ctx) override;
     antlrcpp::Any visitArgLightType(NomParser::ArgLightTypeContext* ctx) override;

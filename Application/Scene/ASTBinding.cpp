@@ -8,6 +8,7 @@
 #include "BezierSpline.h"
 #include "TorusKnot.h" // Randy added
 #include "Polyline.h" // Randy added on 12/29
+#include "Arc.h";
 #include "SweepControlPoint.h"
 #include "SweepMorph.h"
 #include <Flow/FlowNode.h>

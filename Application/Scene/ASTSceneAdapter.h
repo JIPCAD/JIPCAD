@@ -27,7 +27,8 @@ public:
     std::vector<std::string> GetIncludes(AST::AFile* astRoot, CScene& scene); // Randy added on 12/13
 
     void VisitCommandBankSet(AST::ACommand* cmd, CScene& scene);
-    void VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, bool insubMesh);
+    void VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, bool insubMesh,
+                               std::string groupName = "");
     std::string VisitInclude(AST::ACommand* cmd, CScene& scene); // Randy added this on 11/30 for include files
 
     std::vector<AST::ACommand*> CmdTraverseStack;

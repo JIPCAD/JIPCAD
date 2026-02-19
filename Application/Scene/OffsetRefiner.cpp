@@ -2,10 +2,10 @@
 // winged edge DS
 #include "OffsetRefiner.h"
 #include "qcolor.h"
-#include <set>
 #include <cmath>
-#include <unordered_set>
+#include <set>
 #include <tuple>
+#include <unordered_set>
 #undef M_PI
 
 using namespace std;
@@ -30,7 +30,7 @@ COffsetRefiner::COffsetRefiner(DSMesh& _m, bool offsetFlag)
     // Mesh.request_face_normals();
 
     size_t numVertices = currMesh.vertList.size(); // Mesh.n_vertices();
-    vertexEdges.resize(numVertices); //no of Edge per vertex
+    vertexEdges.resize(numVertices); // no of Edge per vertex
     newVertices.resize(numVertices); // no of new vertices
     // for (auto vertex : currMesh.vertList)//Mesh.vertices())
     //{
@@ -63,13 +63,13 @@ void COffsetRefiner::Refine(float height, float width)
         {
             continue;
         }
-        //generateNewVertices(vertex, height);
+        // generateNewVertices(vertex, height);
         generateNewVerticesForFace(vertex, height);
     }
     auto faces = currMesh.faceList; // Mesh.faces().to_vector();
     for (auto face : faces)
     {
-        //if (needGrid)
+        // if (needGrid)
         //{
         generateNewFaceVertices(face, width, height);
         //}
@@ -96,8 +96,8 @@ float COffsetRefiner::AngleBetween(Vector3 a, Vector3 b)
     {
         return 1000.0;
     }
-    //std::cout << dot / (maga * magb) << std::endl;
-    float angle = std::acos(max(min(dot / (maga * magb), 1.0f),-1.0f));
+    // std::cout << dot / (maga * magb) << std::endl;
+    float angle = std::acos(max(min(dot / (maga * magb), 1.0f), -1.0f));
     return angle;
 }
 
@@ -128,7 +128,8 @@ float COffsetRefiner::getNormalizationComponent(std::set<Face*> facesReq, Vector
         return 4.0f;
     }
 }
-float COffsetRefiner::getNormalizationComponentV2(std::set<Face*> facesReq, Vector3 sumNormals) {
+float COffsetRefiner::getNormalizationComponentV2(std::set<Face*> facesReq, Vector3 sumNormals)
+{
     float cosAng = 0.0f;
     for (auto face : facesReq)
     {
@@ -150,9 +151,9 @@ float COffsetRefiner::getNormalizationComponentV2(std::set<Face*> facesReq, Vect
         return 2.0f;
     }
 }
-    void COffsetRefiner::generateNewVerticesForFace(Vertex* vertex, float height)
+void COffsetRefiner::generateNewVerticesForFace(Vertex* vertex, float height)
 {
-    //All of this section is Aaron's code
+    // All of this section is Aaron's code
     Vector3 point = vertex->position;
 
     if (height <= 0)
@@ -163,7 +164,7 @@ float COffsetRefiner::getNormalizationComponentV2(std::set<Face*> facesReq, Vect
         return;
     }
     Vector3 sumFaceNormals;
-    std::vector<Edge *> edges = currMesh.randyedgeTable[vertex];
+    std::vector<Edge*> edges = currMesh.randyedgeTable[vertex];
     std::set<Face*> facesReq = std::set<Face*>();
     for (auto edge : edges)
     {
@@ -192,7 +193,6 @@ float COffsetRefiner::getNormalizationComponentV2(std::set<Face*> facesReq, Vect
     Vertex* newVert2 = addPoint(newPoint2);
     int size = offsetVertices.size();
     newVertices[vertex->ID] = OffsetVerticesInfo { newVert1, size - 2, newVert2, size - 1 };
-
 }
 void COffsetRefiner::generateNewVertices(Vertex* vertex, float height)
 {
@@ -252,7 +252,6 @@ void COffsetRefiner::generateNewVertices(Vertex* vertex, float height)
     newVertices[vertex->ID] = OffsetVerticesInfo { newVert1, size - 2, newVert2, size - 1 };
 }
 
-
 void COffsetRefiner::generateNewFaceVertices(Face* face, float width, float height)
 {
     size_t length = faceVertices[face->id];
@@ -276,7 +275,7 @@ void COffsetRefiner::generateNewFaceVertices(Face* face, float width, float heig
 
         if (flag)
         {
-            //normalise the prev path and curr path
+            // normalise the prev path and curr path
             prevPath.Normalize();
             curPath.Normalize();
         }
@@ -303,23 +302,23 @@ void COffsetRefiner::generateNewFaces(Face* face, bool needGrid, bool needOffset
 
     if (!needGrid)
     {
-        //Aaron changed this to include points specific to faces rather than to edges. 
-        //Previously was causing bugs as there was collision between the in and out
+        // Aaron changed this to include points specific to faces rather than to edges.
+        // Previously was causing bugs as there was collision between the in and out
         std::vector<int> indexList1, indexList2;
         std::vector<Vertex*> vertices1, vertices2;
         for (auto vertex : face->vertices)
         {
             int index = vertex->ID;
 
-            //int topIndex = newFaceVertices[face->id][vertex->ID].topIndex;
-            //int bottomIndex = newFaceVertices[face->id][vertex->ID].bottomIndex;
-            //indexList1.push_back(topIndex);
-            //indexList2.push_back(bottomIndex);
+            // int topIndex = newFaceVertices[face->id][vertex->ID].topIndex;
+            // int bottomIndex = newFaceVertices[face->id][vertex->ID].bottomIndex;
+            // indexList1.push_back(topIndex);
+            // indexList2.push_back(bottomIndex);
 
-            //vertices1.push_back(newFaceVertices[face->id][vertex->ID].topVert);
-            //vertices2.push_back(newFaceVertices[face->id][vertex->ID].bottomVert);
+            // vertices1.push_back(newFaceVertices[face->id][vertex->ID].topVert);
+            // vertices2.push_back(newFaceVertices[face->id][vertex->ID].bottomVert);
 
-            //Aaron commented this out.
+            // Aaron commented this out.
 
             int topIndex = newVertices[index].topIndex;
             int bottomIndex = newVertices[index].bottomIndex;
@@ -328,8 +327,8 @@ void COffsetRefiner::generateNewFaces(Face* face, bool needGrid, bool needOffset
             vertices1.push_back(newVertexList[topIndex]);
             vertices2.push_back(newVertexList[bottomIndex]);
         }
-        //std::reverse(indexList2.begin(), indexList1.end());
-        //std::reverse(vertices2.begin(), vertices2.end());
+        // std::reverse(indexList2.begin(), indexList1.end());
+        // std::reverse(vertices2.begin(), vertices2.end());
         std::reverse(indexList1.begin(), indexList1.end());
         std::reverse(vertices1.begin(), vertices1.end());
 
@@ -340,12 +339,17 @@ void COffsetRefiner::generateNewFaces(Face* face, bool needGrid, bool needOffset
         Face* offsetFace1 = new Face(vertices1); // takes in a vector of Vertex objects
         Face* offsetFace2 = new Face(vertices2); // takes in a vector of Vertex objects
         
+        
         offsetFaces.push_back(offsetFace1);
         offsetFaces.push_back(offsetFace2);
 
-        //Set to different colors
-        std::array<float,3> color1 = {0.f, 0.f, 0.f};
+        // Set to different colors
+        std::array<float, 3> color1 = { 0.f, 0.f, 0.f };
         std::array<float, 3> color2 = { 1.f, 0.9f, 0.3f };
+        offsetFace1->surfaceName = face->surfaceName;
+        offsetFace1->backfaceName = face->backfaceName;
+        offsetFace2->surfaceName = face->surfaceName;
+        offsetFace2->backfaceName = face->backfaceName;
         offsetFace1->color = color1;
         offsetFace2->color = color2;
 
@@ -361,7 +365,8 @@ void COffsetRefiner::generateNewFaces(Face* face, bool needGrid, bool needOffset
         idxList.push_back(vertex->ID);
 
     std::set<std::tuple<uint32_t, uint32_t, uint32_t, uint32_t>> duplicate_map;
-    for (size_t i = 0; i < idxList.size(); i++) {
+    for (size_t i = 0; i < idxList.size(); i++)
+    {
         int vertex1Id = idxList[i];
         // Vertex* vertex1Top = newVertices[vertex1Id].topVert;
         // Vertex* vertex1TopInside = newFaceVertices[faceId][vertex1Id].topVert;
@@ -372,9 +377,6 @@ void COffsetRefiner::generateNewFaces(Face* face, bool needGrid, bool needOffset
         // Vertex* vertex1BottomInside = newFaceVertices[faceId][vertex1Id].bottomVert;
         // Vertex* vertex2Bottom = newVertices[vertex2Id].bottomVert;
         // Vertex* vertex2BottomInside = newFaceVertices[faceId][vertex2Id].bottomVert;
-
-
-
     }
     for (size_t i = 0; i < idxList.size(); i++)
     {
@@ -393,7 +395,6 @@ void COffsetRefiner::generateNewFaces(Face* face, bool needGrid, bool needOffset
         Vertex* vertex2Top = newVertices[vertex2Id].topVert;
         Vertex* vertex2TopInside = newFaceVertices[faceId][vertex2Id].topVert;
 
-
         // std::vector<int> faceIndexList;
         // faceIndexList = {
         //    vertex1TopInsideIndex,
@@ -402,22 +403,28 @@ void COffsetRefiner::generateNewFaces(Face* face, bool needGrid, bool needOffset
         //    vertex2TopInsideIndex,
         //};
         // offsetFaces.push_back(faceIndexList);
-        //Set to different colors
+        // Set to different colors
         // Randy below line to hopefully replace above lines
-        // std::cout << "FACE CREATION" << std::endl; 
+        // std::cout << "FACE CREATION" << std::endl;
         // std::cout << "vertex1id: " << vertex1Id << std::endl;
         // std::cout << "vertex2id: " << vertex2Id << std::endl;
         // std::cout << "First Face: " << std::endl;
-        // std::cout << vertex1TopInside->position.x << " " << vertex1TopInside->position.y << " " << vertex1TopInside->position.z << std::endl;
-        // std::cout << vertex1Top->position.x << " " << vertex1Top->position.y << " " << vertex1Top->position.z << std::endl;
-        // std::cout << vertex2Top->position.x << " " << vertex2Top->position.y << " " << vertex2Top->position.z << std::endl;
-        // std::cout << vertex2TopInside->position.x << " " << vertex2TopInside->position.y << " " << vertex2TopInside->position.z << std::endl;
-        if (duplicate_map.find(std::make_tuple(vertex1TopInside->ID, vertex1Top->ID, vertex2Top->ID, vertex2TopInside->ID)) == duplicate_map.end()) {
+        // std::cout << vertex1TopInside->position.x << " " << vertex1TopInside->position.y << " "
+        // << vertex1TopInside->position.z << std::endl; std::cout << vertex1Top->position.x << " "
+        // << vertex1Top->position.y << " " << vertex1Top->position.z << std::endl; std::cout <<
+        // vertex2Top->position.x << " " << vertex2Top->position.y << " " << vertex2Top->position.z
+        // << std::endl; std::cout << vertex2TopInside->position.x << " " <<
+        // vertex2TopInside->position.y << " " << vertex2TopInside->position.z << std::endl;
+        if (duplicate_map.find(std::make_tuple(vertex1TopInside->ID, vertex1Top->ID, vertex2Top->ID,
+                                               vertex2TopInside->ID))
+            == duplicate_map.end())
+        {
             Face* offsetFaceTop =
-                currMesh.addFace({ vertex2TopInside, vertex2Top, vertex1Top, vertex1TopInside });
+                currMesh.addFace({ vertex2TopInside, vertex2Top, vertex1Top, vertex1TopInside }, face->surfaceName, face->backfaceName);
 
             offsetFaces.push_back(offsetFaceTop);
-            duplicate_map.insert(std::make_tuple(vertex1TopInside->ID, vertex1Top->ID, vertex2Top->ID, vertex2TopInside->ID)); 
+            duplicate_map.insert(std::make_tuple(vertex1TopInside->ID, vertex1Top->ID,
+                                                 vertex2Top->ID, vertex2TopInside->ID));
         }
 
         // Mesh.add_face(newVertexList[vertex1TopInsideIndex],
@@ -432,23 +439,28 @@ void COffsetRefiner::generateNewFaces(Face* face, bool needGrid, bool needOffset
             Vertex* vertex2BottomInside = newFaceVertices[faceId][vertex2Id].bottomVert;
 
             Face* offsetFaceBotTop = currMesh.addFace(
-                { vertex2BottomInside, vertex2TopInside, vertex1TopInside, vertex1BottomInside });
+                { vertex2BottomInside, vertex2TopInside, vertex1TopInside, vertex1BottomInside }, face->surfaceName, face->backfaceName);
             offsetFaces.push_back(offsetFaceBotTop);
             // std::cout << "Second Face: " << std::endl;
-            // std::cout << vertex1BottomInside->position.x << " " << vertex1BottomInside->position.y << " " << vertex1BottomInside->position.z << std::endl;
-            // std::cout << vertex1TopInside->position.x << " " << vertex1TopInside->position.y << " " << vertex1TopInside->position.z << std::endl;
-            // std::cout << vertex2TopInside->position.x << " " << vertex2TopInside->position.y << " " << vertex2TopInside->position.z << std::endl;
-            // std::cout << vertex2BottomInside->position.x << " " << vertex2BottomInside->position.y << " " << vertex2BottomInside->position.z << std::endl;
+            // std::cout << vertex1BottomInside->position.x << " " <<
+            // vertex1BottomInside->position.y << " " << vertex1BottomInside->position.z <<
+            // std::endl; std::cout << vertex1TopInside->position.x << " " <<
+            // vertex1TopInside->position.y << " " << vertex1TopInside->position.z << std::endl;
+            // std::cout << vertex2TopInside->position.x << " " << vertex2TopInside->position.y << "
+            // " << vertex2TopInside->position.z << std::endl; std::cout <<
+            // vertex2BottomInside->position.x << " " << vertex2BottomInside->position.y << " " <<
+            // vertex2BottomInside->position.z << std::endl;
 
-
-            Face* offsetFaceBot =
-                currMesh.addFace({ vertex2Bottom, vertex2BottomInside, vertex1BottomInside,
-                                   vertex1Bottom }); 
+            Face* offsetFaceBot = currMesh.addFace(
+                { vertex2Bottom, vertex2BottomInside, vertex1BottomInside, vertex1Bottom }, face->surfaceName, face->backfaceName);
             // std::cout << "Third Face: " << std::endl;
-            // std::cout << vertex1Bottom->position.x << " " << vertex1Bottom->position.y << " " << vertex1Bottom->position.z << std::endl;
-            // std::cout << vertex1BottomInside->position.x << " " << vertex1BottomInside->position.y << " " << vertex1BottomInside->position.z << std::endl;
-            // std::cout << vertex2BottomInside->position.x << " " << vertex2BottomInside->position.y << " " << vertex2BottomInside->position.z << std::endl;
-            // std::cout << vertex2Bottom->position.x << " " << vertex2Bottom->position.y << " " << vertex2Bottom->position.z << std::endl;
+            // std::cout << vertex1Bottom->position.x << " " << vertex1Bottom->position.y << " " <<
+            // vertex1Bottom->position.z << std::endl; std::cout << vertex1BottomInside->position.x
+            // << " " << vertex1BottomInside->position.y << " " << vertex1BottomInside->position.z
+            // << std::endl; std::cout << vertex2BottomInside->position.x << " " <<
+            // vertex2BottomInside->position.y << " " << vertex2BottomInside->position.z <<
+            // std::endl; std::cout << vertex2Bottom->position.x << " " << vertex2Bottom->position.y
+            // << " " << vertex2Bottom->position.z << std::endl;
             offsetFaces.push_back(offsetFaceBot);
         }
     }
@@ -481,7 +493,7 @@ void COffsetRefiner::closeFace(Face* face)
         // check to see if the vertex is on an edge that is on a boundary.. In openMesh,
         // is_boundary() checked if a vertex is adjacent to a boundary edge
 
-        //boundary edge is an edge that only has one face attached to it,.
+        // boundary edge is an edge that only has one face attached to it,.
 
         std::vector<Vertex*> verts = { vertex1Top, vertex1Bottom, vertex2Top, vertex2Bottom };
         std::vector<Edge*> boundaryList = currMesh.boundaryEdgeList();
@@ -515,7 +527,7 @@ void COffsetRefiner::closeFace(Face* face)
             /*Face* offsetFaceClose =
                 currMesh.addFace({ vertex1Top, vertex1Bottom, vertex2Bottom, vertex2Top });*/
             Face* offsetFaceClose =
-                currMesh.addFace({ vertex2Top, vertex2Bottom, vertex1Bottom, vertex1Top });
+                currMesh.addFace({ vertex2Top, vertex2Bottom, vertex1Bottom, vertex1Top }, face->surfaceName, face->backfaceName);
             offsetFaces.push_back(offsetFaceClose);
         }
         // if (vertex1Top.is_boundary() && vertex1Bottom.is_boundary() && vertex2Top.is_boundary()

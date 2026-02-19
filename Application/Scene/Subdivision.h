@@ -34,8 +34,13 @@ Far::TopologyRefiner * GetRefiner(DSMesh& _m, bool isSharp) {
         desc.numFaces = _m.n_faces();
         int *faceVerts = new int[_m.n_faces()];
         int count = 0;
+        std::string* surfaceNames = new std::string[_m.n_faces()];
+        std::string* backfaceNames = new std::string[_m.n_faces()];
+
         for (auto face : _m.faces()) {
             int i = 0;
+            surfaceNames[face->id] = face->surfaceName;
+            backfaceNames[face->id] = face->backfaceName;
             for (auto vert : face->vertices) {
                 i++;
                 count++;
@@ -52,6 +57,8 @@ Far::TopologyRefiner * GetRefiner(DSMesh& _m, bool isSharp) {
         }
         desc.numVertsPerFace = faceVerts;
         desc.vertIndicesPerFace = faceVertsIndices;
+        //desc.surfaceNamePerFace = surfaceNames;
+        //desc.backfaceNamePerFace = backfaceNames;
     }
 
     if (isSharp)

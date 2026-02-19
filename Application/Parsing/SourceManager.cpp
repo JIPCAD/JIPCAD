@@ -121,7 +121,8 @@ std::vector<std::string> TokenizeByNewSpace(std::string s) {
 }
 //Aaron's code... enables adding axes option in NOME JIPCAD
 bool CSourceManager::ParseMainSource() { return ParseMainSource(false); }
-bool CSourceManager::ParseMainSource(bool withAxes) {
+bool CSourceManager::ParseMainSource(bool withAxes, std::string extraContent)
+{
     std::ifstream ifs(MainSource);
     std::string content((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
     ifs.close();
@@ -129,7 +130,7 @@ bool CSourceManager::ParseMainSource(bool withAxes) {
     {
         content.append(AXES_ADDING_STRING);
     }
-
+    content.insert(0,extraContent);
     /* Error Reporting (Check for Duplicate Instance) - Brian Kim 07/19/2023*/
     std::vector<std::string> first_tokenized = TokenizeByNewLine(content);
     std::vector<std::vector<std::string>> code_tokens; 
@@ -413,7 +414,7 @@ void CSourceManager::SaveFile() const
 bool CSourceManager::AppendText(const std::string& text)
 {
     std::ofstream ofs(GetMainSourcePath());
-    InsertText(CollectText().length() - 1, text);
+    InsertText(CollectText().length(), text);
     SaveFile();
     return true; // Randy added this
 }

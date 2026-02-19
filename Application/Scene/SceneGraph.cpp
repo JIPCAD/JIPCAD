@@ -78,14 +78,21 @@ void CSceneTreeNode::RemoveTree()
 {
     for (CSceneTreeNode* child : Children)
         child->RemoveTree();
+    InstanceEntity = nullptr;
 
     // Note: the tree node may still be referenced after deletion, thus we reset all relavant info
     Parent = nullptr;
     Children.clear();
-    auto iter = Owner->TreeNodes.find(this);
-    Owner->TreeNodes.erase(iter);
-    Owner = nullptr;
-    InstanceEntity = nullptr;
+    if (Owner)
+    {
+        auto iter = Owner->TreeNodes.find(this);
+        if (iter != Owner->TreeNodes.end())
+        {
+            Owner->TreeNodes.erase(iter);
+        }
+        //Owner->TreeNodes.erase(iter);
+        //Owner = nullptr;
+    }
 }
 
 void CSceneTreeNode::MarkTreeL2WDirty()
@@ -145,7 +152,7 @@ void CSceneNode::AddParent(CSceneNode* newParent)
         myTree->Parent = parentTreeNode;
         parentTreeNode->Children.insert(myTree);
     }
-
+    std::cout << "parent added\n";
     Parents.insert(newParent);
     newParent->Children.insert(this);
 }
@@ -166,7 +173,8 @@ void CSceneNode::RemoveParent(CSceneNode* parent)
     for (CSceneTreeNode* parentTreeNode : parent->TreeNodes)
     {
         CSceneTreeNode* myTree = parentTreeNode->FindChildOfOwner(this);
-        myTree->RemoveTree();
+        if (myTree)
+            myTree->RemoveTree();
     }
 }
 
