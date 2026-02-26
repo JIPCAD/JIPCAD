@@ -4,22 +4,8 @@
 ### with a colorful pentafoil soap film
 #####################################################
 
-surface Z color (1 0 0.5) endsurface        # Zinnober
-surface R color (1 0 0) endsurface          # Red
-surface O color (0.9 0.6 0) endsurface      # Orange
-surface Y color (1 1 0) endsurface          # Yellow
-surface L color (0.6 0.8 0) endsurface      # Lime
-surface G color (0 0.9 0) endsurface        # Green
-surface A color (0 0.9 0.7) endsurface      # Aqua
-surface C color (0 1 1) endsurface          # Cyan
-surface U color (0 0.5 1) endsurface        # Uniform
-surface B color (0 0 1) endsurface          # Blue
-surface P color (0.5 0 1) endsurface        # Purple
-surface M color (1 0 1) endsurface          # Magenta
-surface W color (1 1 1) endsurface          # White
-surface S color (0.8 0.8 0.8) endsurface    # Snow(dirty)
-
-### backgroundcolor  (0.6 0.7 0.8)  endbackgroundcolor
+### Import Color Definitions
+include :intro_imports\colors.nom endinclude
 
 ############  Adjustable Parameters on Sliders  ##################################
 bank p
