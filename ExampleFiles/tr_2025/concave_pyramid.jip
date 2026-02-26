@@ -1,0 +1,48 @@
+###############  concave_pyramid.nom  ###############
+### Demonstrates updated generators: 
+### Merge, Subdivision, Offset, Normal Vectors
+#####################################################
+
+############### Import Color Definitions ###############
+include :intro_imports\colors.nom endinclude
+
+###############  Scene parameter sliders ###############
+bank p
+  set tx         0    -0.5  0.5  0.1   ##  "shift peak in x"
+  set ty         0    -0.5  0.5  0.1   ##  "shift peak in y"
+  set tz         1     0    3    0.1   ##  "height of the pyramid tip"
+
+  list ( tx ty tz )
+endbank
+
+###############  Pyramid Geometry  #####################################
+mesh pyramid
+  point vx  ( 2  0  0 ) endpoint
+  point vy  ( 0  2  0 ) endpoint
+  point va  (-2  0  0 ) endpoint
+  point vb  ( 0 -2  0 ) endpoint
+  point vc  (0.4 -0.4  0 ) endpoint
+  point vz  ( {expr  $p.tx} {expr  $p.ty} {expr  $p.tz} ) endpoint
+
+  face fxy (vz vx vy)  surface R  endface  ## pyr-faces
+  face fya (vz vy va)  surface G  endface
+  face fab (vz va vb)  surface B  endface
+  face pf4 (vz vb vc)  surface M  endface
+  face pf5 (vz vc vx)  surface Y  endface
+endmesh
+
+merge merge_pyramid
+    instance ipyramid pyramid endinstance
+endmerge
+instance imerge_pyramid merge_pyramid endinstance
+
+###### Figure 5. Offset Generator, with Vertex Normals
+### offset offset_pyramid
+###     offset_type NOME_OFFSET_DEFAULT
+###     height 0.2 ### or use a custom variable such as {expr $p.varHeight}
+###     hole 0.3  ### or use a custom variable such as {expr $p.varHole}
+###     instance imerge_pyramid merge_pyramid endinstance
+### endoffset
+### instance ioffset_pyramid offset_pyramid vertexnormal 1.0 endinstance
+
+###########################  END  ###############################

@@ -1,0 +1,108 @@
+###########  Soapy_Pentafoil.nom  ###############
+### Demonstrates updated generators: 
+### Merge, Subdivision, Offset, Normal Vectors
+### with a colorful pentafoil soap film
+#####################################################
+
+############### Import Color Definitions ###############
+include :intro_imports\colors.nom endinclude
+
+############  Adjustable Parameters on Sliders  ##################################
+bank p
+  set	rimnum	55	1      20      5	# number of segments		
+  set	rimrad	 4	2      20      0.1	# rim circle radius		
+  set	rimrot	 0    -60      60      1	# rotate outer circle 		
+ 
+  set   prad     5.3    1      20      0.1      #  pentafoil.radius   
+  set   irad     2      1      20      0.1      #  pentafoil.inner ctrl pts rad  
+  set   psep    20      0      30      1        #  pentafoil.sep.angle
+  set   ptik     2.5   -5       5      0.1      #  pentafoil.zthick
+  set   pseg    90     15      90      5        #  pentafoil.segments
+
+  list ( rimnum rimrad rimrot   prad irad psep ptik pseg )
+endbank
+
+################################  Pentafoil Path  #############################################
+circle circ  ( {expr $p.rimrad} {expr $p.rimnum} ) endcircle 
+instance  co  circ    rotate (0 0 1)( {expr $p.rimrot} )  surface R  endinstance    ## Outer Circle
+
+point center (0 0 0) endpoint
+
+point b0 ( {expr $p.prad*cos(0.0174533*( $p.psep))}      {expr $p.prad*sin(0.0174533*( $p.psep))}      {expr  $p.ptik} ) endpoint
+point i0 ( {expr $p.irad*cos(0.0174533*( 108))}          {expr $p.irad*sin(0.0174533*( 108))}          0 ) endpoint
+point b1 ( {expr $p.prad*cos(0.0174533*(-$p.psep+216))}  {expr $p.prad*sin(0.0174533*(-$p.psep+216))}  {expr -$p.ptik} ) endpoint
+
+point b2 ( {expr $p.prad*cos(0.0174533*( $p.psep+216))}  {expr $p.prad*sin(0.0174533*( $p.psep+216))}  {expr  $p.ptik} ) endpoint
+point i2 ( {expr $p.irad*cos(0.0174533*( -36))}          {expr $p.irad*sin(0.0174533*( -36))}          0 ) endpoint
+point b3 ( {expr $p.prad*cos(0.0174533*(-$p.psep+72))}   {expr $p.prad*sin(0.0174533*(-$p.psep+72))}   {expr -$p.ptik} ) endpoint
+
+point b4 ( {expr $p.prad*cos(0.0174533*( $p.psep+72))}   {expr $p.prad*sin(0.0174533*( $p.psep+72))}   {expr  $p.ptik} ) endpoint
+point i4 ( {expr $p.irad*cos(0.0174533*( 180))}          {expr $p.irad*sin(0.0174533*( 180))}          0 ) endpoint
+point b5 ( {expr $p.prad*cos(0.0174533*(-$p.psep+288))}  {expr $p.prad*sin(0.0174533*(-$p.psep+288))}  {expr -$p.ptik} ) endpoint
+
+point b6 ( {expr $p.prad*cos(0.0174533*( $p.psep+288))}  {expr $p.prad*sin(0.0174533*( $p.psep+288))}  {expr  $p.ptik} ) endpoint
+point i6 ( {expr $p.irad*cos(0.0174533*( 36))}           {expr $p.irad*sin(0.0174533*( 36))}           0 ) endpoint
+point b7 ( {expr $p.prad*cos(0.0174533*(-$p.psep+144))}  {expr $p.prad*sin(0.0174533*(-$p.psep+144))}  {expr -$p.ptik} ) endpoint
+
+point b8 ( {expr $p.prad*cos(0.0174533*( $p.psep+144))}  {expr $p.prad*sin(0.0174533*( $p.psep+144))}   {expr  $p.ptik} ) endpoint
+point i8 ( {expr $p.irad*cos(0.0174533*( -108))}         {expr $p.irad*sin(0.0174533*( -108))}          0 ) endpoint
+point b9 ( {expr $p.prad*cos(0.0174533*(-$p.psep))}      {expr $p.prad*sin(0.0174533*(-$p.psep))}       {expr -$p.ptik} ) endpoint
+
+### polyline ctrlpoly  ( b0 i0 b1  b2 i2 b3  b4 i4 b5  b6 i6 b7  b8 i8 b9  b0 )     endpolyline
+### instance cp0  ctrlpoly   surface B   endinstance
+
+bspline  bsp   order 4    ( b0 i0 b1  b2 i2 b3  b4 i4 b5  b6 i6 b7  b8 i8 b9  b0 i0 b1 )    segs  {expr $p.pseg}   endbspline
+
+instance  pfoil  bsp  surface O    endinstance    ##  Inner CinqueFoil
+ 
+##########################  Soap Film Faces   #####################################
+mesh skirt
+  face f0 (.co.v1 .co.v0  .pfoil.v81 .pfoil.v82 ) endface
+  face f1 (.co.v2 .co.v1  .pfoil.v82 .pfoil.v83 ) endface
+  face f2 (.co.v3 .co.v2  .pfoil.v83 .pfoil.v84 ) endface
+
+  face f3 (.co.v4 .co.v3  .pfoil.v84 .pfoil.v85 ) endface
+  face f4 (.co.v4 .co.v5  .pfoil.v86 .pfoil.v85 ) endface
+  face f5 (.co.v5 .co.v6  .pfoil.v22 .pfoil.v86 ) endface
+  face f6 (.co.v6 .co.v7  .pfoil.v23 .pfoil.v22 ) endface
+  face f7 (.co.v7 .co.v8  .pfoil.v24 .pfoil.v23 ) endface
+
+  face f8 (.co.v9 .co.v8  .pfoil.v24 .pfoil.v25 ) endface
+  face f9 (.co.v10 .co.v9 .pfoil.v25 .pfoil.v26 ) endface
+  face f10 (.co.v11 .co.v10 .pfoil.v26 .pfoil.v27 ) endface
+endmesh
+
+mesh cross
+  face f0 (.pfoil.v86 .pfoil.v87 .pfoil.v21 .pfoil.v22 ) endface
+  face f1 (.pfoil.v87 .pfoil.v88 .pfoil.v20 .pfoil.v21 ) endface
+  face f2 (.pfoil.v88 .pfoil.v89 .pfoil.v55 .pfoil.v54 ) endface
+  face f3 (.pfoil.v54 .pfoil.v53 .pfoil.v19 .pfoil.v20 ) endface
+  face f4 (.pfoil.v20 .pfoil.v88 .pfoil.v54 ) endface
+endmesh
+
+###### Figure 13a. Initial Pentafoil Model
+###### Figure 13b. Turn on WireFrame using pull-down menu: Render Config -> WireFrame
+merge merge_pentafoil
+    instance sC  skirt   surface C   endinstance
+    instance sY  skirt   surface Y   rotate(0 0 1)(72)   endinstance
+    instance sO  skirt   surface G   rotate(0 0 1)(144)   endinstance
+    instance sR  skirt   surface R   rotate(0 0 1)(216)   endinstance
+    instance sM  skirt   surface M   rotate(0 0 1)(288)   endinstance   
+
+    instance mC  cross   surface C     endinstance
+    instance mY  cross   surface Y   rotate(0 0 1)(72)   endinstance
+    instance mO  cross   surface G   rotate(0 0 1)(144)   endinstance
+    instance mR  cross   surface R   rotate(0 0 1)(216)   endinstance
+    instance mM  cross   surface M   rotate(0 0 1)(288)   endinstance
+endmerge
+instance imerge_pentafoil merge_pentafoil endinstance
+
+###### Figure 12c. Apply subdivision
+subdivision subdiv_pentafoil
+  sd_type NOME_SD_CC_sharp
+  sd_level 2
+  instance imerge_pentafoil merge_pentafoil  endinstance
+endsubdivision
+instance isubdiv_pentafoil subdiv_pentafoil endinstance
+
+###################  END  ###########################################
