@@ -27,7 +27,7 @@ endgroup
 
 ############  Adjustable Parameters on Sliders  ##################################
 bank p
-   set radi      1.5   0.1     2    0.1    ## radi
+   set radi      1.5   0.1       2    0.1    ## radi
    set rado      3       1       5    0.1    ## rado
    set wida     30       1      90    1      ## width-angle
    set dz        1       0       3    0.1    ## delta z
@@ -55,7 +55,7 @@ polyline  tref  ( pa pb pc pd pe pf pg ph pi pa )  endpolyline
 ### instance itref tref  surface K    endinstance  
 
 bspline curve  order 4  ( pi  pa pb pc pd pe pf pg ph pi pa  pb )    segs {expr $p.segC}  endbspline
-instance icurve curve  surface Y    endinstance       # scale(0.2 0.2 0.2)
+instance icurve curve  surface Y    endinstance
 
 ##########################  Soap Film Faces   #####################################
 mesh TempMesh0

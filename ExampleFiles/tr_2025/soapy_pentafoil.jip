@@ -97,7 +97,7 @@ merge merge_pentafoil
 endmerge
 instance imerge_pentafoil merge_pentafoil endinstance
 
-###### Figure 12c. Apply subdivision
+###### Figure 13c. Apply subdivision
 subdivision subdiv_pentafoil
   sd_type NOME_SD_CC_sharp
   sd_level 2

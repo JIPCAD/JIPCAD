@@ -41,7 +41,7 @@ instance imerge_pyramid merge_pyramid endinstance
 ###### To show wireframe, use the pull-down menu inside JIPCAD: Render Config -> WireFrame
 ### subdivision subdiv_pyramid
 ###   sd_type NOME_SD_CC_sharp
-###   sd_level 3 ### or use a custom variable such as {expr $p.varLevel}
+###   sd_level 3
 ###   instance imerge_pyramid merge_pyramid  endinstance
 ### endsubdivision
 ### instance isubdiv_pyramid subdiv_pyramid endinstance

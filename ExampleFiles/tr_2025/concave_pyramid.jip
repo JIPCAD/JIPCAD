@@ -37,12 +37,12 @@ endmerge
 instance imerge_pyramid merge_pyramid endinstance
 
 ###### Figure 5. Offset Generator, with Vertex Normals
-### offset offset_pyramid
-###     offset_type NOME_OFFSET_DEFAULT
-###     height 0.2 ### or use a custom variable such as {expr $p.varHeight}
-###     hole 0.3  ### or use a custom variable such as {expr $p.varHole}
-###     instance imerge_pyramid merge_pyramid endinstance
-### endoffset
-### instance ioffset_pyramid offset_pyramid vertexnormal 1.0 endinstance
+offset offset_pyramid
+    offset_type NOME_OFFSET_DEFAULT
+    height 0.2
+    hole 0.3
+    instance imerge_pyramid merge_pyramid endinstance
+endoffset
+instance ioffset_pyramid offset_pyramid vertexnormal 1.0 endinstance
 
 ###########################  END  ###############################
