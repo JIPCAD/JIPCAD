@@ -597,49 +597,161 @@ void getFaceNormal(Face* currFace)
 // @param currVert: the target vertex.
 void getVertexNormal(Vertex* currVert)
 {
+    
+    //std::cout << "pre calculation normal: (" << currVert->normal.x << "," << currVert->normal.y
+      //        << "," << currVert->normal.z << ")\n"; 
     Edge* firstEdge = currVert->oneEdge;
-    if (firstEdge == NULL)
-    {   
-        std::cout << currVert->name
-         + " is a lonely vertex without any adjacent edges. This error message  also appear for shapes with non-manifold verts and for polylines"
-                  << std::endl;
-        return;
-    }
-    Edge* currEdge = firstEdge;
-    if (currEdge == nullptr)
+    if (firstEdge == nullptr)
     {
         std::cout << currVert->name
-                + " is a lonely vertex without any adjacent edges. This error message  also appear "
-                  "for shapes with non-manifold verts and for polylines"
+                  << " is a lonely vertex without any adjacent edges. This error message also "
+                     "appear for shapes with non-manifold verts and for polylines"
                   << std::endl;
         return;
     }
-    Face* currFace = currEdge->fa;
+
+    Face* currFace = (firstEdge->fa != nullptr) ? firstEdge->fa : firstEdge->fb;
     tc::Vector3 avgNorm(0, 0, 0);
-    int mobiusCounter = 0;
+
+    // ---------------------------------------------------------
+    // 1. BOUNDARY SEARCH LOOP
+    // ---------------------------------------------------------
+    Edge* startEdge = firstEdge;
+    Edge* checkEdge = firstEdge;
+    Face* checkFace = currFace; // Track the face so nextEdge knows how to pivot!
+
     do
     {
-        if (mobiusCounter % 2 == 0)
+        if (checkEdge->fa == nullptr || checkEdge->fb == nullptr)
         {
-            avgNorm += currFace->normal;
+            bool isBoundary = false;
+            if (currVert == checkEdge->va)
+            {
+                isBoundary = (checkEdge->fb == nullptr && checkEdge->fa != nullptr);
+            }
+            else if (currVert == checkEdge->vb)
+            {
+                isBoundary = (checkEdge->fa == nullptr && checkEdge->fb != nullptr);
+            }
+
+            if (isBoundary)
+            {
+                startEdge = checkEdge;
+                break;
+            }
         }
-        else
+
+        // Use checkFace instead of nullptr
+        Edge* nextE = checkEdge->nextEdge(currVert, checkFace);
+
+        // Safeguard against broken topology or end of boundary
+        if (nextE == nullptr)
+            break;
+
+        checkFace = nextE->theOtherFace(checkFace);
+        checkEdge = nextE;
+
+        // If we crossed into a null face, we fell off the boundary fan and must stop
+        if (checkFace == nullptr)
+            break;
+
+    } while (checkEdge != firstEdge && checkEdge != nullptr);
+
+    // ---------------------------------------------------------
+    // 2. NORMAL CALCULATION LOOP
+    // ---------------------------------------------------------
+    bool breakOnNext = false;
+    Edge* currEdge = startEdge;
+    currFace = (currEdge->fa != nullptr) ? currEdge->fa : currEdge->fb;
+    //std::cout << "\n---calc begin---\n";
+    while (currEdge != nullptr)
+    {
+        if (currFace == nullptr)
         {
-            avgNorm -= currFace->normal;
-        }
-        if (currEdge->mobius)
-        {
-            mobiusCounter += 1;
-        }
-        currFace = currEdge->theOtherFace(currFace);
-        if (currFace == NULL)
-        {
-            // If the face is NULL, need to skip this face
             break;
         }
-        currEdge = currEdge->nextEdge(currVert, currFace);
-    } while (currEdge != firstEdge);
-    currVert->normal = avgNorm.Normalized();
+        Vertex* otherVert = (currEdge->va == currVert) ? currEdge->vb : currEdge->va;
+
+        // 1. Decide if we should skip the math for this step
+        bool skipMath = false;
+
+        // Skip if it touches a hole, OR if the face is a ribbon
+        if (otherVert->name.find("_hole123") != std::string::npos
+            || currFace->name.find("offsetRibbon") != std::string::npos)
+        {
+            skipMath = true;
+        }
+        if (!skipMath)
+        {
+
+            int v_idx = -1;
+            for (int index = 0; index < currFace->vertices.size(); ++index)
+            {
+                if (currFace->vertices[index] == currVert)
+                {
+                    v_idx = index;
+                    break;
+                }
+            }
+
+            if (v_idx != -1)
+            {
+                Vertex* vPrev = currFace->vertices[(v_idx - 1 + currFace->vertices.size())
+                                                   % currFace->vertices.size()];
+                Vertex* vNext = currFace->vertices[(v_idx + 1) % currFace->vertices.size()];
+                //std::cout << "names: " << vPrev->name << ", and " << vNext->name << "; Face Name: << " << currFace->name << "; Face Vertex Count: "<< currFace->vertices.size()<<"\n";
+                if (!(vPrev->name.find("_hole") != std::string::npos
+                      || vNext->name.find("_hole") != std::string::npos))
+                {
+                    tc::Vector3 e1 = (vPrev->position - currVert->position).Normalized();
+                    tc::Vector3 e2 = (vNext->position - currVert->position).Normalized();
+
+                    float dot = e1.DotProduct(e2);
+                    dot = std::max(-1.0f, std::min(1.0f, dot));
+
+                    float angle = acos(dot);
+                    if (currFace->name.find("offsetRibbon") == std::string::npos)
+                    {
+                        avgNorm += (currFace->normal * angle);
+                    }
+                }
+            }
+        }
+        // Advance to the next edge
+        Edge* next = currEdge->nextEdge(currVert, currFace);
+
+        // FIX: Prevent null pointer crash at the end of a boundary fan
+        if (next == nullptr)
+            break;
+
+        currFace = next->theOtherFace(currFace);
+        currEdge = next;
+
+        if (currEdge == startEdge)
+        {
+            break;
+            if ((avgNorm.x == 0 && avgNorm.y == 0 && avgNorm.z == 0) && !breakOnNext)
+                breakOnNext = true;
+            else
+                break;
+        }
+
+    }
+
+    // Normalize the final accumulated vector
+    tc::Vector3 finalNormal = avgNorm.Normalized();
+    if (finalNormal.x != 0 || finalNormal.y != 0 || finalNormal.z != 0)
+    {
+        //std::cout << "non zero normal\n";
+        currVert->normal = finalNormal;
+    }
+    else
+    {
+        /*
+        std::cout << "zero normal - (" << currVert->normal.x << "," << currVert->normal.y << ","
+                  << currVert->normal.z << ")\n";
+        */
+    }
 }
 
 // Iterate over every vertex in the mesh and compute its normal
@@ -1003,6 +1115,7 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
         vertCopy->name = (*vIt)->name;
         vertCopy->position = (*vIt)->position;
         vertCopy->sharpness = (*vIt)->sharpness;
+        vertCopy->normal = (*vIt)->normal;
 
         // This MUST set the new ID based on newMesh.vertList.size()
         newMesh.addVertex(vertCopy);

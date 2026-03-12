@@ -883,7 +883,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                                         // GEnv.Scene->FindMerge(entity->GetName());
                                         // GEnv.Scene->CopyMerge(entity->GetName(), id);
                                         // GEnv.Scene->AdjustSubdivisionLevel(id, level);
-                                        mesh->changeColors(surfaceName, backfaceName);
+                                        //mesh->changeColors(surfaceName, backfaceName);
                                         mesh->setOffsetHeightWidth(height, width);
                                         mesh->setOffset(true);
                                         mesh->Catmull();
@@ -1244,7 +1244,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                     }
                 }
             }
-            auto vn = cmd->GetNamedArgument("vertexnormal");
+            auto vn = cmd->GetNamedArgument("vertexnormal1");
             if (vn)
             {
                 hasVertexNormal = true;
@@ -1680,7 +1680,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
         // sn->SetEntity(merger.Get()); // Set sn, which is the scene node, to point to entity
         // merger
     }
-    else if (cmd->GetCommand() == "vertexnormal1")
+    else if (cmd->GetCommand() == "vertexnormal")
     {
         /*
             Way to fix instantiation issue
