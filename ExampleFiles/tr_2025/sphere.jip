@@ -17,7 +17,7 @@ endmerge
 
 ############### Uncomment following figures one at a time to see the results.
 ### Figure 6a. Coarse starting Sphere
-### instance imerge_sphere merge_sphere endinstance
+instance imerge_sphere merge_sphere endinstance
 
 ### Figure 6b. Level 1 Subdivision
 ### subdivision subdiv_sphere
@@ -31,7 +31,7 @@ endmerge
 ### offset offset_sphere
 ###     offset_type NOME_OFFSET_DEFAULT
 ###     height 0.1
-###     hole 0.5
+###     hole 0.3
 ###     instance isubdiv_sphere subdiv_sphere endinstance
 ### endoffset
 ### instance ioffset_sphere offset_sphere endinstance
