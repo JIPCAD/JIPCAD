@@ -1316,6 +1316,12 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width)
 
             Vertex* original = _m_original.findVertexInThisMesh(
                 f_out.vertices[j]->name.substr(0, f_out.vertices[j]->name.find("_offset")));
+            Vertex* before_original = _m_original.findVertexInThisMesh(
+                f_out.vertices[(j - 1) % f_out.vertices.size()]->name.substr(
+                    0, f_out.vertices[(j - 1) % f_out.vertices.size()]->name.find("_offset")));
+            Vertex* after_original = _m_original.findVertexInThisMesh(
+                f_out.vertices[(j + 1) % f_out.vertices.size()]->name.substr(
+                    0, f_out.vertices[(j + 1) % f_out.vertices.size()]->name.find("_offset")));
             // Scale toward the centroids
             auto getCentroid = [](const std::vector<Vertex*>& verts)
             {
@@ -1331,11 +1337,31 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width)
                 double invNum = 1.0 / static_cast<double>(verts.size());
                 return tc::Vector3(centroid.x * invNum, centroid.y * invNum, centroid.z * invNum);
             };
+
             tc::Vector3 tmpFaceCentroid = getCentroid(f_curr->vertices);
-            tc::Vector3 H_out_pos = tmpFaceCentroid + (original->position - tmpFaceCentroid) * scale
-                + original->normal * d; // c_out over centroid
-            tc::Vector3 H_in_pos = tmpFaceCentroid + (original->position - tmpFaceCentroid) * scale
-                - original->normal * d; // c_in over centroid
+            // 1. Calculate the positions of the three relevant "shifted" inside points
+            tc::Vector3 p_curr =
+                tmpFaceCentroid + (original->position - tmpFaceCentroid) * scale;
+            tc::Vector3 p_before =
+                tmpFaceCentroid + (before_original->position - tmpFaceCentroid) * scale;
+            tc::Vector3 p_after = tmpFaceCentroid + (after_original->position - tmpFaceCentroid) * scale;
+
+            // 2. Create directional vectors pointing from your current point to its neighbors
+            tc::Vector3 vecBefore = p_before - p_curr;
+            tc::Vector3 vecAfter = p_after - p_curr;
+
+            // 3. Use the cross product to get the normal, and normalize it to a length of 1
+            // NOTE: If the normal points in the opposite direction of what you want (inward vs
+            // outward), simply reverse the order to: vecAfter.cross(vecBefore)
+            //tc::Vector3 avgNormal = vecBefore.CrossProduct(vecAfter).Normalized();
+            tc::Vector3 avgNormal = (before_original->normal + after_original->normal).Normalized();
+            //avgNormal.Normalize();
+            //tc::Vector3 tmpFaceCentroid = getCentroid(f_curr->vertices);
+            tc::Vector3 H_out_pos = p_curr
+                +  avgNormal * d; // c_out over centroid, from outer to interior by 50% - for
+                                       // all end lines - 
+            tc::Vector3 H_in_pos = p_curr
+                - avgNormal * d; // c_in over centroid
 
             // Create the actual Vertex objects (make sure to assign unique names/IDs based on your
             // system)
