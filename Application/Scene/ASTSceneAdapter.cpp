@@ -645,7 +645,8 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                             {
                                 mesh->GetDSMesh().computeNormals();
                                 std::vector<Face*> myFaceList = mesh->GetDSMesh().faceList;
-                                if (surfaceName.empty()){
+                                if (surfaceName.empty() && node->GetOwner()->GetSurface())
+                                {
                                     surfaceName = node->GetOwner()->GetSurface().Get()->GetName();
                                 }
                                 if (!surfaceName.empty() && node->GetOwner()->GetSurface())
@@ -660,7 +661,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                                 {
                                     backfaceName = node->GetOwner()->GetBackface().Get()->GetName();
                                 }
-                                if (!backfaceName.empty())
+                                if (!backfaceName.empty() && node->GetOwner()->GetBackface())
                                 {
                                     for (Face* f : myFaceList)
                                     {
