@@ -1374,16 +1374,23 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
             { // If the entityName is a group identifier 
                 
                 
-                std::vector<TAutoPtr<CSceneNode>> safeChildrenSnapshot;
+                std::deque<TAutoPtr<CSceneNode>> safeChildrenSnapshot;
+                std::deque<tc::Matrix3x4> pos;
+
                 for (const auto& node_ : group->GetSceneNodeChildren())
                 {
                     if (node_)
                     {
                         safeChildrenSnapshot.push_back(node_);
+                        pos.push_back(node_->Transform.GetValue(tc::Matrix3x4::IDENTITY));
                     }
                 }
-                for (auto node : safeChildrenSnapshot)
+                while (!safeChildrenSnapshot.empty())
                 {
+                    auto node = safeChildrenSnapshot.front();
+                    auto currentMatrix = pos.front();
+                    safeChildrenSnapshot.pop_front();
+                    pos.pop_front();
                     if (!node)
                         continue;
                     tc::TAutoPtr<Nome::Scene::CSceneNode> tempNode =
@@ -1393,11 +1400,43 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                         auto* e = node->GetEntity();
                         if (!e)
                         {
-                            std::cout << "NULL entity on " << node->GetName() << "\n";
-                            continue;
+                            if (node.Get()->GetSceneNodeChildren().size() > 0)
+                            {
+                                for (const auto& node_ : node->GetSceneNodeChildren())
+                                {
+                                    if (node_)
+                                    {
+                                        safeChildrenSnapshot.push_back(node_);
+                                        tc::Matrix3x4 childLocal =
+                                            node_->Transform.GetValue(tc::Matrix3x4::IDENTITY);
+                                        pos.push_back(currentMatrix * childLocal);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                std::cout << "NULL entity on " << node->GetName() << "\n";
+                                continue;
+                            }
                         }
                         tempNode->SetEntity(node->GetEntity());
-                        tempNode->Transform = node->Transform;
+                        
+                        // Needed to bypass the flow node issue to convert the currentMatrix to be able to connect the transforms
+                        class CStaticMatrixSource : public Flow::CFlowNode
+                        {
+                        public:
+                            Flow::TOutput<tc::Matrix3x4> MatrixOut;
+
+                            CStaticMatrixSource(const tc::Matrix3x4& mat)
+                                : MatrixOut(
+                                    this, []() {})
+                            {
+                                MatrixOut.UpdateValue(mat);
+                            }
+                        };
+                        auto* matrixSource = new CStaticMatrixSource(currentMatrix);
+                        // Allows nested groups to be in the correct location
+                        tempNode->Transform.Connect(matrixSource->MatrixOut);
                         if (node->GetSurface())
                         {
                             tempNode->SetSurface(node->GetSurface());
