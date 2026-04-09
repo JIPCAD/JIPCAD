@@ -623,6 +623,8 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                         }
                         if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
                         {
+                            surfaceName = "";
+                            backfaceName = "";
                             // set "auto * mesh" to this entity. Call MergeIn to set merger's
                             // vertices based on mesh's vertices. Reminder: an instance identifier
                             // is NOT a Mesh, so only real entities get merged.
