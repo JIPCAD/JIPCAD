@@ -299,6 +299,8 @@ struct commandInput
     }
 };
 std::map<std::string, Nome::Scene::CEntity*> meshMappings;
+std::vector<std::string> GroupNames = {};
+std::unordered_set<Scene::CSceneTreeNode*> visitedNodes;
 std::vector<commandInput> provided_commands = {};
 std::vector<commandInput> completed_commands = {};
 std::vector<std::string> localInstanceIDs = {};
@@ -307,7 +309,19 @@ std::map<std::string, TAutoPtr<CSurface>*> groupSurfaces = {}; // TAutoPtr<CSurf
 std::map<std::string, std::vector<Nome::Scene::CSceneNode*>> groupSourceNode = {}; // TAutoPtr<CSurface>
 std::map<std::string, size_t> groupSizePairings = {};
 //std::vector<TAutoPtr<CEntity>> keepAliveEntities = {};
+// 
+//  Needed to bypass the flow node issue to convert the currentMatrix to be able to connect the transforms
+class CStaticMatrixSource : public Flow::CFlowNode
+{
+public:
+    Flow::TOutput<tc::Matrix3x4> MatrixOut;
 
+    CStaticMatrixSource(const tc::Matrix3x4& mat)
+        : MatrixOut(this, []() {})
+    {
+        MatrixOut.UpdateValue(mat);
+    }
+};
 void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, bool insubMesh,
                                              std::string groupName)
 {
@@ -578,122 +592,127 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
             {
                 // Robert 2/5/2025
                 // Took the code from CMainWindow::on_actionMerge_triggered() and modified it so
-                // referenced instances will be merged If you wish to change how merging works,
-                // modify the MergeIn function in MeshMerger.cpp
-
+                // referenced instances will be merged.
+                // If you wish to change how merging works, modify the MergeIn function in MeshMerger.cpp
                 
                 // One shot merging, and add a new entity and its corresponding node
 
                 // Gather all instances to merge
                 std::string instanceNames = "";
+                std::vector<std::string> instance_strings = {};
                 for (auto* sub : command_to_review.provided_command->GetSubCommands())
                 {
                     // std::cout << "sub: " << sub->GetName() << "\n" << endl;
                     instanceNames += sub->GetName() + ":::";
+                    instance_strings.push_back(sub->GetName());
                     VisitCommandSyncScene(sub, scene, false);
                 }
                 GEnv.Scene->Update();
-                // CmeshMerger is basically a CMesh, but with a MergeIn method. Merger will
-                // contain ALL the merged vertices (from various meshes)
+                // CMeshMerger is basically a CMesh, but with a MergeIn method. 
+                // Merger will contain ALL the merged vertices (from various meshes)
                 // The name of the CMeshMerger is an identifier
                 tc::TAutoPtr<Scene::CMeshMerger> merger =
                     new Scene::CMeshMerger(command_to_review.provided_command->GetName());
                 bool flag = false;
                 bool isInstance = false;
+
+                std::deque<Scene::CSceneTreeNode*> nodesToVisit;
+                std::unordered_set<Scene::CSceneTreeNode*> visitedNodes;
+
+                // Seed only the selected group/root nodes you actually want to merge.
                 GEnv.Scene->ForEachSceneTreeNode(
                     [&](Scene::CSceneTreeNode* node)
-                    {
-                        // If the node owner is a globalMergeNode, skip as that was a
-                        // previously merger mesh (from a previous Merge iteration). We only
-                        // want to merge vertices from our actual (non-merged) meshes.
-
-                        // this is for the merger. If the merger instance is the globalMergeNode,
-                        // then it is already
-                        if (node->GetOwner()->GetName() == "globalMergeNode")
+                    { 
+                        for (int i = 0; i < instance_strings.size(); i++)
                         {
-                            flag = true;
-                            return;
-                        }
-                        auto* entity = node->GetInstanceEntity(); // Else, get the instance
-                        if (!entity) // Check to see if the an entity is instantiable
-                        {
-                            entity =
-                                node->GetOwner()
-                                    ->GetEntity(); // If it's not instantiable, get entity instead
-                        }
-                        if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
-                        {
-                            surfaceName = "";
-                            backfaceName = "";
-                            // set "auto * mesh" to this entity. Call MergeIn to set merger's
-                            // vertices based on mesh's vertices. Reminder: an instance identifier
-                            // is NOT a Mesh, so only real entities get merged.
-                            // std::cout << "meshName: " << node->GetOwner()->GetName() << "\n" <<
-                            // endl;
-                            size_t start = 0;
-                            size_t end;
-                            // Loop through and extract words split by ":::".
-                            while ((end = instanceNames.find(":::", start)) != std::string::npos)
-                            {
-                                // Extract word between start and end
-                                std::string word = instanceNames.substr(start, end - start);
-                                // std::cout << "Word: " << word << std::endl;
-                                if (word.compare(node->GetOwner()->GetName()) == 0)
-                                    isInstance = true;
-                                // Move start position to the next part after ":::"
-                                start = end + 3;
-                            }
-                            if (isInstance)
-                            {
-                                mesh->GetDSMesh().computeNormals();
-                                std::vector<Face*> myFaceList = mesh->GetDSMesh().faceList;
-                                if (surfaceName.empty() && node->GetOwner()->GetSurface())
-                                {
-                                    surfaceName = node->GetOwner()->GetSurface().Get()->GetName();
-                                }
-                                if (!surfaceName.empty() && node->GetOwner()->GetSurface())
-                                {
-                                    for (Face* f : myFaceList)
-                                    {
-                                        if (f->surfaceName.empty())
-                                            f->surfaceName = surfaceName;
-                                    }
-                                }
-                                if (backfaceName.empty() && node->GetOwner()->GetBackface())
-                                {
-                                    backfaceName = node->GetOwner()->GetBackface().Get()->GetName();
-                                }
-                                if (!backfaceName.empty() && node->GetOwner()->GetBackface())
-                                {
-                                    for (Face* f : myFaceList)
-                                    {
-                                        if (f->backfaceName.empty())
-                                            f->backfaceName = backfaceName;
-                                    }
-                                }
-                                auto it =
-                                    std::find(localInstanceIDs.begin(), localInstanceIDs.end(),
-                                              command_to_review.provided_command->GetName());
-                                if (it != localInstanceIDs.end())
-                                {
-                                    GEnv.Scene->CreateMerge(
-                                        command_to_review.provided_command->GetName()
-                                        + "_"+ std::to_string(localInstanceIDs.size()));
-                                }
-                                else
-                                {
-                                    GEnv.Scene->CreateMerge(
-                                        command_to_review.provided_command->GetName());
-                                }
-
-                                //std::cout << command_to_review.provided_command->GetName() << " <<\n";
-                                merger->MergeIn(*mesh, true);
-                                entity->isMerged = true;
-                                merger->CreateNormals(mesh->GetDSMesh(), hasFaceNormal, faceNormalMultiplier, hasVertexNormal, vertexNormalMultiplier);
-                            }
-                            isInstance = false;
+                            if (instance_strings[i] == node->GetOwner()->GetName())
+                                nodesToVisit.push_back(node);
                         }
                     });
+                
+
+                while (!nodesToVisit.empty())
+                {
+                    Scene::CSceneTreeNode* node = nodesToVisit.front();
+                    nodesToVisit.pop_front();
+
+                    if (!node)
+                        continue;
+
+                    if (!visitedNodes.insert(node).second)
+                    {
+                        std::cout << "\nSkipping already visited node: "
+                                  << node->GetOwner()->GetName();
+                        continue;
+                    }
+
+                    if (node->GetOwner()->GetName() == "globalMergeNode")
+                    {
+                        flag = true;
+                        continue;
+                    }
+
+                    // Queue children exactly once.
+                    for (auto* child : node->GetChildren())
+                    {
+                        if (!child)
+                            continue;
+
+                        if (child->GetOwner()->GetName() == node->GetOwner()->GetName())
+                            continue;
+
+                        nodesToVisit.push_back(child);
+                    }
+
+                    auto* entity = node->GetInstanceEntity();
+                    if (!entity)
+                        entity = node->GetOwner()->GetEntity();
+
+                    if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
+                    {
+                        std::cout << "\nMERGING node=" << node->GetOwner()->GetName()
+                                  << " nodePtr=" << node << " entityPtr=" << entity
+                                  << " meshPtr=" << mesh;
+
+                        mesh->GetDSMesh().computeNormals();
+
+                        std::vector<Face*> myFaceList = mesh->GetDSMesh().faceList;
+
+                        surfaceName = "";
+                        backfaceName = "";
+
+                        if (node->GetOwner()->GetSurface())
+                            surfaceName = node->GetOwner()->GetSurface().Get()->GetName();
+
+                        if (!surfaceName.empty())
+                        {
+                            for (Face* f : myFaceList)
+                            {
+                                if (f->surfaceName.empty())
+                                    f->surfaceName = surfaceName;
+                            }
+                        }
+
+                        if (node->GetOwner()->GetBackface())
+                            backfaceName = node->GetOwner()->GetBackface().Get()->GetName();
+
+                        if (!backfaceName.empty())
+                        {
+                            for (Face* f : myFaceList)
+                            {
+                                if (f->backfaceName.empty())
+                                    f->backfaceName = backfaceName;
+                            }
+                        }
+
+                        merger->MergeIn(*mesh, true);
+                        entity->isMerged = true;
+
+                        merger->CreateNormals(mesh->GetDSMesh(), hasFaceNormal,
+                                              faceNormalMultiplier, hasVertexNormal,
+                                              vertexNormalMultiplier);
+                    }
+                }
                 
                 GEnv.Scene->Update();
                 if (flag)
@@ -721,438 +740,323 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                 sn->SetEntity(
                     merger.Get()); // Set sn, which is the scene node, to point to entity merger
                 std::cout << "\ncmdName: " << command_to_review.name << "\n";
-                meshMappings[command_to_review.name] = merger.Get();
+                auto* mergedEntity = merger.Get();
+
+                std::string cmdName = command_to_review.name;
+                std::string providedName = command_to_review.provided_command->GetName();
+                std::string entityName = mergedEntity->GetName();
+
+                std::cout << "\n[Merge Register]"
+                          << "\n  command_to_review.name: " << cmdName
+                          << "\n  provided_command name: " << providedName
+                          << "\n  merger entity name: " << entityName;
+
+                // Main aliases
+                meshMappings[cmdName] = mergedEntity;
+                meshMappings[providedName] = mergedEntity;
+                meshMappings[entityName] = mergedEntity;
+
+                // Register the inputs that produced this merge.
+                for (const auto& name : instance_strings)
+                {
+                    std::cout << "\n  alias: " << name;
+                    meshMappings[name] = mergedEntity;
+                }
             }
             else if (command_to_review.type == "offset")
             {
-                // Robert 2/16/2025
-                // If you wish to change how offsetting works, review the below functions which come
-                // from MeshMerger.cpp
                 double height = 0.1f;
                 double width = 0.0f;
                 CExprEvalDirect eval;
 
-                // Get height from input
+                // Parse height
                 auto* heightInfo = command_to_review.provided_command->GetNamedArgument("height");
+
                 auto items = std::any_cast<AST::ANamedArgument*>(heightInfo)->GetArguments();
+
                 try
                 {
-                    // Checks first for slider value upon initialization
                     std::ostringstream oss;
                     oss << heightInfo[0];
+
                     std::string result = oss.str();
                     result = result.substr(7, result.length());
+
                     if (GEnv.Scene->GetBankAndSet().GetSlider(result) == nullptr)
                         throw AST::CSemanticError("Height is not slider, will now check for value",
                                                   items.at(0));
+
                     height = GEnv.Scene->GetBankAndSet().GetSlider(result)->GetValue();
                 }
                 catch (const AST::CSemanticError& e)
                 {
-                    // Checks for a numerical value if no slider value is provided
                     try
                     {
                         auto tempHeight = std::any_cast<float>(items.at(0)->Accept(&eval));
-                        std::ostringstream oss;
-                        oss << tempHeight;
-                        std::string result = oss.str();
-                        char* charArray = new char[result.length() + 1];
-                        std::strcpy(charArray, result.c_str());
-                        height = std::atof(charArray);
+                        height = static_cast<double>(tempHeight);
                     }
-                    catch (int e)
+                    catch (const AST::CSemanticError& e)
                     {
-                        // The input was invalid
-                        // Currently the error message is misleading for an invalid input
-                        // "Direct expression does not support variable references"
-                        // Comes from the CExprEvalDirect Accept function
                         throw AST::CSemanticError("Height is not properly defined", items.at(0));
                     }
                 }
 
-                // Get width from input
+                // Parse hole / width
                 auto* widthInfo = command_to_review.provided_command->GetNamedArgument("hole");
+
                 items = std::any_cast<AST::ANamedArgument*>(widthInfo)->GetArguments();
+
                 try
                 {
-                    // Checks first for slider value upon initialization
                     std::ostringstream oss;
                     oss << widthInfo[0];
+
                     std::string result = oss.str();
                     result = result.substr(6, result.length());
+
                     if (GEnv.Scene->GetBankAndSet().GetSlider(result) == nullptr)
                         throw AST::CSemanticError("Width is not slider, will now check for value",
                                                   items.at(0));
+
                     width = GEnv.Scene->GetBankAndSet().GetSlider(result)->GetValue();
                 }
                 catch (const AST::CSemanticError& e)
                 {
-                    // Checks for a numerical value if no slider value is provided
                     try
                     {
                         auto tempWidth = std::any_cast<float>(items.at(0)->Accept(&eval));
-                        std::ostringstream oss;
-                        oss << tempWidth;
-                        std::string result = oss.str();
-                        char* charArray = new char[result.length() + 1];
-                        std::strcpy(charArray, result.c_str());
-                        width = std::atof(charArray);
+                        width = static_cast<double>(tempWidth);
                     }
                     catch (const AST::CSemanticError& e)
                     {
-                        // The input was invalid
-                        // The input was invalid
-                        // Currently the error message is misleading for an invalid input
-                        // "Direct expression does not support variable references"
-                        // Comes from the CExprEvalDirect Accept function
                         throw AST::CSemanticError("Width is not properly defined", items.at(0));
                     }
                 }
 
-                std::cout << "Offset height: " << height << "\n";
-                std::cout << "Offset width: " << width << "\n";
-                //std::vector<std::string> instanceNames = {};
-                std::string instanceNames = "";
+                std::string outputName = command_to_review.name;
+                std::string providedName = command_to_review.provided_command->GetName();
+
+                std::cout << "\n[Offset]"
+                          << "\n  output command name: " << outputName
+                          << "\n  provided command name: " << providedName
+                          << "\n  height: " << height << "\n  width/hole: " << width;
+
+                Scene::CMeshMerger* sourceMesh = nullptr;
+                std::string sourceName;
+                std::string sourceInstanceName;
+
                 for (auto* sub : command_to_review.provided_command->GetSubCommands())
                 {
-                    std::cout << "sub: " << sub->GetName() << "\n" << endl;
-                    bool notInList = false;
-                    for (int i = 0; i < completed_commands.size(); i++)
-                    {
-                        const commandInput command_to_check = completed_commands.at(i);
+                    if (!sub)
+                        continue;
 
-                        if (command_to_check.isInputtedCommand(sub->GetPositionalIdentAsString(1)))
-                        {
-                            notInList = true;
-                            break;
-                        }
+                    // Ensure the instance/source command is processed.
+                    VisitCommandSyncScene(sub, scene, false);
 
-                        /*
-                        catch (const AST::CSemanticError e)
-                        {
-                            std::cout << "what\n";
-                        }*/
-                    }
-                    if (notInList)
-                    {
-                        instanceNames += sub->GetName() + ":::";
-                        VisitCommandSyncScene(sub, scene, false);
-                    }
-                }
-                bool reviewed = false;
+                    sourceInstanceName = sub->GetName();
 
-                try
-                {
-                    std::vector<std::string> sceneMergedInstances = {};
-
-                    GEnv.Scene->ForEachSceneTreeNode(
-                        [&](Scene::CSceneTreeNode* node)
-                        {
-                            size_t start = 0;
-                            size_t end;
-                            bool isInstance = false;
-                            auto* entity =
-                                node->GetOwner()->GetEntity(); // new Nome::Scene::CEntity();
-                            // Loop through and extract words split by ":::".
-                            while ((end = instanceNames.find(":::", start)) != std::string::npos)
-                            {
-                                // Extract word between start and end
-                                std::string word = instanceNames.substr(start, end - start);
-                                if (word.compare(node->GetOwner()->GetName()) == 0
-                                    && GEnv.Scene->ExistMerge(entity->GetName()))
-                                {
-                                    isInstance = true;
-                                    entity = node->GetOwner()->GetEntity();
-                                    sceneMergedInstances.push_back(entity->GetName());
-
-                                    break;
-                                }
-                                // Move start position to the next part after ":::"
-                                start = end + 3;
-                            }
-                            if (entity && isInstance && GEnv.Scene->ExistMerge(entity->GetName()))
-                            {
-                                for (auto* sub :
-                                     command_to_review.provided_command->GetSubCommands())
-                                {
-                                    VisitCommandSyncScene(sub, scene, false);
-                                }
-
-                                auto level =
-                                    width; // std::any_cast<float>(items.at(0)->Accept(&eval));
-                                if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
-                                {
-                                    std::cout << entity->GetName() << "\t"
-                                              << GEnv.Scene->ExistMerge(entity->GetName()) << "\t"
-                                              << mesh->isMerged << "f\n";
-                                    if (GEnv.Scene->ExistMerge(
-                                            entity
-                                                ->GetName())) //(mesh->isMerged)//(GEnv.Scene->ExistMerge(entity->GetName()))
-                                    {
-                                        // std::pair<TAutoPtr<CSceneNode>, int> merge_obj =
-                                        // GEnv.Scene->FindMerge(entity->GetName());
-                                        // GEnv.Scene->CopyMerge(entity->GetName(), id);
-                                        // GEnv.Scene->AdjustSubdivisionLevel(id, level);
-                                        //mesh->changeColors(surfaceName, backfaceName);
-                                        mesh->setOffsetHeightWidth(height, width);
-                                        mesh->setOffset(true);
-                                        mesh->Catmull();
-                                        mesh->setOffset(false);
-                                        mesh->MarkDirty(); 
-                                        mesh->CreateNormalsCurr(hasFaceNormal, faceNormalMultiplier,
-                                                                hasVertexNormal,
-                                                                vertexNormalMultiplier);
-
-                                    }
-                                    else
-                                    {
-                                        std::cout << "[Offset Error] objects not merged"
-                                                  << std::endl;
-                                    }
-                                }
-                            }
-                        });
-                    GEnv.Scene->Update();
-                }
-                catch (const AST::CSemanticError& e)
-                {
-                    std::cout << "[Offset Error] Offset Parsing Error" << std::endl;
-                }
-                /*
-                for (auto* sub : command_to_review.provided_command->GetSubCommands())
-                {
-                    std::cout << "sub: " << sub->GetCommand() << "\n" << endl;
-                    std::istringstream stream(sub->GetCommand().c_str());
-                    std::string word;
-                    int count = 0;
-                    while (stream >> word)
-                    {
-                        count++;
-                        if (count == 3)
-                        {
-                            std::cout << "The 3rd word is: " << word << std::endl;
-                            break;
-                        }
-                    }
-                    //VisitCommandSyncScene(sub, scene, false);
-                    if (true || meshMappings.find(word)
-                        != meshMappings.end())
-                    {
-                        reviewed = true;
-                        auto* entity = meshMappings[command_to_review.provided_command->GetName()];
-                        if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
-                        {
-                            mesh->changeColors(surfaceName, backfaceName);
-                            mesh->setOffsetHeightWidth(height, width);
-                            mesh->setOffset(true);
-                            mesh->Catmull();
-                            mesh->setOffset(false);
-                            mesh->MarkDirty();
-                            mesh->CreateNormalsCurr(hasFaceNormal,
-                                                  faceNormalMultiplier, hasVertexNormal,
-                                                  vertexNormalMultiplier);
-                            auto* sn = GEnv.Scene->GetRootNode()->FindOrCreateChildNode(
-                                "globalMergeNode"); // Add it into the Scene Tree by creating a new
-                                                    // node called globalMergeNode. Notice, this is
-                                                    // the same name everytime you Merge. This means
-                                                    // you can only have one merger mesh each time.
-                                                    // It will override previous merger meshes with
-                                                    // the new vertices.
-                            sn->SetEntity(entity); // Set sn, which is the scene node, to point to
-                                                   // entity merger
-                        }
-                    }
-                }
-                
-                if (!reviewed)
-                {
-                    GEnv.Scene->ForEachSceneTreeNode(
-                        [&](Scene::CSceneTreeNode* node)
-                        {
-                            for (auto* sub : command_to_review.provided_command->GetSubCommands())
-                            {
-                                VisitCommandSyncScene(sub, scene, false);
-                            }
-                            auto* entity = node->GetOwner()->GetEntity();
-                            if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
-                            {
-                                mesh->changeColors(surfaceName, backfaceName);
-
-                                mesh->setOffsetHeightWidth(height, width);
-                                mesh->setOffset(true);
-                                mesh->Catmull();
-                                mesh->setOffset(false);
-                                mesh->MarkDirty();
-                                mesh->CreateNormalsCurr(hasFaceNormal, faceNormalMultiplier,
-                                                        hasVertexNormal, vertexNormalMultiplier);
-                            }
-                            auto* sn = GEnv.Scene->GetRootNode()->FindOrCreateChildNode(
-                                node->GetOwner()
-                                    ->GetName()); // Add it into the Scene Tree by creating a new
-                                                  // node called globalMergeNode. Notice, this is
-                                                  // the same name everytime you Merge. This means
-                                                  // you can only have one merger mesh each time. It
-                                                  // will override previous merger meshes with the
-                                                  // new vertices.
-                            sn->SetEntity(entity); // Set sn, which is the scene node, to point to
-                                                   // entity merger
-                        });
-                    GEnv.Scene->Update();
-                }
-                */
-            }
-            else if (command_to_review.type == "subdivision")
-            {
-                // Get width from input
-                auto* widthInfo = command_to_review.provided_command->GetNamedArgument("sd_level");
-                int width = 1;
-                CExprEvalDirect eval;
-                auto items = std::any_cast<AST::ANamedArgument*>(widthInfo)->GetArguments();
-                try
-                {
-                    // Checks first for slider value upon initialization
-                    std::ostringstream oss;
-                    oss << widthInfo[0];
-                    std::string result = oss.str();
-                    result = result.substr(6, result.length());
-                    if (GEnv.Scene->GetBankAndSet().GetSlider(result) == nullptr)
-                        throw AST::CSemanticError("Level is not slider, will now check for value",
-                                                  items.at(0));
-                    width = (int)(GEnv.Scene->GetBankAndSet().GetSlider(result)->GetValue());
-                }
-                catch (const AST::CSemanticError& e)
-                {
-                    // Checks for a numerical value if no slider value is provided
                     try
                     {
-                        auto tempWidth = std::any_cast<float>(items.at(0)->Accept(&eval));
-                        std::ostringstream oss;
-                        oss << tempWidth;
-                        std::string result = oss.str();
-                        char* charArray = new char[result.length() + 1];
-                        std::strcpy(charArray, result.c_str());
-                        width = (int)(std::atof(charArray));
+                        sourceName = sub->GetPositionalIdentAsString(1);
                     }
                     catch (const AST::CSemanticError& e)
                     {
-                        // The input was invalid
-                        // The input was invalid
-                        // Currently the error message is misleading for an invalid input
-                        // "Direct expression does not support variable references"
-                        // Comes from the CExprEvalDirect Accept function
+                        std::cout << "\n[Offset] Could not read source from subcommand: "
+                                  << sourceInstanceName;
+                        continue;
+                    }
+
+                    std::cout << "\n  sub instance: " << sourceInstanceName
+                              << "\n  source target: " << sourceName;
+
+                    auto it = meshMappings.find(sourceName);
+                    if (it == meshMappings.end())
+                    {
+                        std::cout << "\n[Offset] source not found in meshMappings: " << sourceName;
+                        continue;
+                    }
+
+                    sourceMesh = dynamic_cast<Scene::CMeshMerger*>(it->second);
+                    if (!sourceMesh)
+                    {
+                        std::cout << "\n[Offset] source is not CMeshMerger: " << sourceName;
+                        continue;
+                    }
+
+                    break;
+                }
+
+                if (!sourceMesh)
+                {
+                    std::cout << "\n[Offset Error] no valid merged source found for: " << outputName
+                              << std::endl;
+
+                    std::cout << "\nAvailable meshMappings keys:";
+                    for (const auto& pair : meshMappings)
+                        std::cout << "\n  " << pair.first;
+
+                    return;
+                }
+
+                // Offset the existing merged mesh in place.
+                std::cout << "\nOffset resolved source: " << sourceName;
+                std::cout << "\nOffset output alias: " << outputName;
+                std::cout << "\nOffset height: " << height;
+                std::cout << "\nOffset width/hole: " << width;
+
+                sourceMesh->setOffsetHeightWidth(height, width);
+                sourceMesh->setOffset(true);
+                sourceMesh->Catmull();
+                sourceMesh->setOffset(false);
+                sourceMesh->MarkDirty();
+                sourceMesh->CreateNormalsCurr(hasFaceNormal, faceNormalMultiplier, hasVertexNormal,
+                                              vertexNormalMultiplier);
+
+                // Register the offset command name as another alias to the same modified mesh.
+                meshMappings[outputName] = sourceMesh;
+                meshMappings[providedName] = sourceMesh;
+
+                if (!sourceInstanceName.empty())
+                    meshMappings[sourceInstanceName] = sourceMesh;
+
+                std::cout << "\n[Offset Register]"
+                          << "\n  output: " << outputName << "\n  provided: " << providedName
+                          << "\n  source: " << sourceName
+                          << "\n  local source instance: " << sourceInstanceName;
+
+                GEnv.Scene->Update();
+            }
+            else if (command_to_review.type == "subdivision")
+            {
+                // Parse sd_level
+                auto* widthInfo = command_to_review.provided_command->GetNamedArgument("sd_level");
+
+                int width = 1;
+                CExprEvalDirect eval;
+                auto items = std::any_cast<AST::ANamedArgument*>(widthInfo)->GetArguments();
+
+                try
+                {
+                    std::ostringstream oss;
+                    oss << widthInfo[0];
+
+                    std::string result = oss.str();
+                    result = result.substr(6, result.length());
+
+                    if (GEnv.Scene->GetBankAndSet().GetSlider(result) == nullptr)
+                        throw AST::CSemanticError("Level is not slider, will now check for value",
+                                                  items.at(0));
+
+                    width =
+                        static_cast<int>(GEnv.Scene->GetBankAndSet().GetSlider(result)->GetValue());
+                }
+                catch (const AST::CSemanticError& e)
+                {
+                    try
+                    {
+                        auto tempWidth = std::any_cast<float>(items.at(0)->Accept(&eval));
+                        width = static_cast<int>(tempWidth);
+                    }
+                    catch (const AST::CSemanticError& e)
+                    {
                         throw AST::CSemanticError("Level is not properly defined", items.at(0));
                     }
                 }
 
-                // std::cout << "Offset width: " << width << "\n";
-                auto id = command_to_review.provided_command->GetPositionalIdentAsString(0);
-                std::string entityName;
-                auto* typeinfo =
-                    command_to_review.provided_command->GetNamedArgument("instance");
-                std::string instanceNames = "";
+                std::string outputName = command_to_review.name;
+                std::string providedName = command_to_review.provided_command->GetName();
+
+                std::cout << "\n[Subdivision]"
+                          << "\n  output command name: " << outputName
+                          << "\n  provided command name: " << providedName
+                          << "\n  level: " << width;
+
+                Scene::CMeshMerger* sourceMesh = nullptr;
+                std::string sourceName;
+                std::string sourceInstanceName;
+
                 for (auto* sub : command_to_review.provided_command->GetSubCommands())
                 {
-                    std::cout << "sub: " << sub->GetName() << "\n" << endl;
-                    bool notInList = false;
-                    for (int i = 0; i < completed_commands.size(); i++)
-                    {
-                        const commandInput command_to_check = completed_commands.at(i);
-                        
-                        if (command_to_check.isInputtedCommand(
-                                sub->GetPositionalIdentAsString(1)))
-                        {
-                            notInList = true;
-                            break;
-                        }
-                        
-                        /*
-                        catch (const AST::CSemanticError e)
-                        {
-                            std::cout << "what\n";
-                        }*/
-                    }
-                    if (notInList)
-                    {
-                        instanceNames += sub->GetName() + ":::";
-                        VisitCommandSyncScene(sub, scene, false);
-                    }
-                }
-                std::cout << "instance names: " << instanceNames << "<<\n";
-                try
-                {
-                    std::vector<std::string> sceneMergedInstances = {};
+                    if (!sub)
+                        continue;
 
-                    GEnv.Scene->ForEachSceneTreeNode(
-                        [&](Scene::CSceneTreeNode* node)
-                        {
-                            size_t start = 0;
-                            size_t end;
-                            bool isInstance = false;
-                            auto* entity =
-                                node->GetOwner()->GetEntity(); // new Nome::Scene::CEntity();
-                            // Loop through and extract words split by ":::".
-                            while ((end = instanceNames.find(":::", start)) != std::string::npos)
-                            {
-                                // Extract word between start and end
-                                std::string word = instanceNames.substr(start, end - start);
-                                if (word.compare(node->GetOwner()->GetName()) == 0
-                                    && GEnv.Scene->ExistMerge(entity->GetName()))
-                                {
-                                    isInstance = true;
-                                    entity = node->GetOwner()->GetEntity();
-                                    sceneMergedInstances.push_back(entity->GetName());
-                                    
-                                    break;
-                                }
-                                // Move start position to the next part after ":::"
-                                start = end + 3;
-                            }
-                            if (entity && isInstance && GEnv.Scene->ExistMerge(entity->GetName()))
-                            {
-                                for (auto* sub :
-                                     command_to_review.provided_command->GetSubCommands())
-                                {
-                                    VisitCommandSyncScene(sub, scene, false);
-                                }
+                    // Ensure the instance command is processed.
+                    VisitCommandSyncScene(sub, scene, false);
 
-                                auto level =
-                                    width; // std::any_cast<float>(items.at(0)->Accept(&eval));
-                                if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
-                                {
-                                    std::cout << entity->GetName() << "\t"
-                                              << GEnv.Scene->ExistMerge(entity->GetName()) << "\t"
-                                              << mesh->isMerged << "f\n";
-                                    if (GEnv.Scene->ExistMerge(
-                                            entity
-                                                ->GetName())) //(mesh->isMerged)//(GEnv.Scene->ExistMerge(entity->GetName()))
-                                    {
-                                        // std::pair<TAutoPtr<CSceneNode>, int> merge_obj =
-                                        // GEnv.Scene->FindMerge(entity->GetName());
-                                        // GEnv.Scene->CopyMerge(entity->GetName(), id);
-                                        // GEnv.Scene->AdjustSubdivisionLevel(id, level);
-                                        std::cout << "subdiv level: " << level;
-                                        mesh->changeColors(surfaceName, backfaceName);
-                                        mesh->setSubLevel(level);
-                                        mesh->Catmull();
-                                        mesh->MarkDirty();
-                                        mesh->CreateNormalsCurr(hasFaceNormal, faceNormalMultiplier,
-                                                                hasVertexNormal,
-                                                                vertexNormalMultiplier);
-                                    }
-                                    else
-                                    {
-                                        std::cout << "[Subdivision Error] objects not merged"
-                                                  << std::endl;
-                                    }
-                                }
-                            }
-                        });
-                    GEnv.Scene->Update();
+                    sourceInstanceName = sub->GetName();
+
+                    try
+                    {
+                        sourceName = sub->GetPositionalIdentAsString(1);
+                    }
+                    catch (const AST::CSemanticError& e)
+                    {
+                        std::cout << "\n[Subdivision] Could not read source from subcommand: "
+                                  << sourceInstanceName;
+                        continue;
+                    }
+
+                    std::cout << "\n  sub instance: " << sourceInstanceName
+                              << "\n  source target: " << sourceName;
+
+                    auto it = meshMappings.find(sourceName);
+                    if (it == meshMappings.end())
+                    {
+                        std::cout << "\n[Subdivision] source not found in meshMappings: "
+                                  << sourceName;
+                        continue;
+                    }
+
+                    sourceMesh = dynamic_cast<Scene::CMeshMerger*>(it->second);
+                    if (!sourceMesh)
+                    {
+                        std::cout << "\n[Subdivision] source is not CMeshMerger: " << sourceName;
+                        continue;
+                    }
+
+                    break;
                 }
-                catch (const AST::CSemanticError& e)
+
+                if (!sourceMesh)
                 {
-                    std::cout << "[Subdivision Error] Subdivision Parsing Error" << std::endl;
+                    std::cout << "\n[Subdivision Error] no valid merged source found for: "
+                              << outputName << std::endl;
+
+                    std::cout << "\nAvailable meshMappings keys:";
+                    for (const auto& pair : meshMappings)
+                        std::cout << "\n  " << pair.first;
+
+                    return;
                 }
+                // Subdivide the existing merged mesh in place.
+                std::cout << "\nSubdivision resolved source: " << sourceName;
+                std::cout << "\nSubdivision output alias: " << outputName;
+                std::cout << "\nSubdivision level: " << width;
+
+                // Create a new merger for the subdivided result.
+                tc::TAutoPtr<Scene::CMeshMerger> subdivided = new Scene::CMeshMerger(outputName);
+
+                sourceMesh->changeColors(surfaceName, backfaceName);
+                sourceMesh->setSubLevel(width);
+                sourceMesh->Catmull();
+                sourceMesh->MarkDirty();
+                sourceMesh->CreateNormalsCurr(hasFaceNormal, faceNormalMultiplier, hasVertexNormal,
+                                              vertexNormalMultiplier);
+
+                // Register the subdivision command name as another alias to the same merged mesh.
+                meshMappings[outputName] = sourceMesh;
+                meshMappings[providedName] = sourceMesh;
+
+                if (!sourceInstanceName.empty())
+                    meshMappings[sourceInstanceName] = sourceMesh;
+
+                GEnv.Scene->Update();
+                std::cout << "\n[Subdivision Register]"
+                          << "\n  output: " << outputName << "\n  provided: " << providedName
+                          << "\n  source: " << sourceName
+                          << "\n  local source instance: " << sourceInstanceName;
+
+                GEnv.Scene->Update();
             }
         }
         else
@@ -1348,6 +1252,43 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                             });
                     }
                 }
+                GEnv.Scene->Update();
+
+                if (sceneNode->GetEntity()->IsMesh())
+                {
+                    sceneNode->ForEachTreeNode(
+                        [&](Scene::CSceneTreeNode* node)
+                        {
+                            auto* entity = node->GetInstanceEntity(); // Else, get the instance
+
+                            if (!entity) // Check to see if the an entity is instantiable
+                            {
+                                entity = node->GetOwner()->GetEntity(); // If it's not instantiable,
+                            }
+                            // std::cout << "Surface Name: " << surfaceName << "\n";
+                            if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
+                            {
+                                tc::TAutoPtr<Scene::CMeshMerger> merger =
+                                    new Scene::CMeshMerger(entity->GetName() + "_m");
+
+                                //merger->MergeIn(*mesh, false);
+                                //entity->isMerged = true;
+                                auto* normalNode = GEnv.Scene->GetRootNode()->FindOrCreateChildNode(
+                                    entity->GetName() + "_normals");
+
+                                DSMesh d = mesh->GetDSMesh();
+                                merger->CreateNormals(mesh->GetDSMesh(), hasFaceNormal,
+                                                      faceNormalMultiplier, hasVertexNormal,
+                                                      vertexNormalMultiplier);
+                                merger->MarkDirty();
+                                normalNode->SetEntity(merger.Get());
+
+                                GEnv.Scene->Update();
+                            }
+                        });
+                }
+
+
                 /*
                 if (auto* mesh = dynamic_cast<Scene::CMesh*>(entity.Get()))
                 {
@@ -1375,7 +1316,9 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
             }
             else if (auto group = GEnv.Scene->FindGroup(entityName))
             { // If the entityName is a group identifier 
-                
+                std::cout << "\nstuck here3";
+                std::cout << "A group is called " << sceneNode->GetName() << "\n";
+                GroupNames.push_back(sceneNode->GetName());
                 
                 std::deque<TAutoPtr<CSceneNode>> safeChildrenSnapshot;
                 std::deque<tc::Matrix3x4> pos;
@@ -1424,19 +1367,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                         }
                         tempNode->SetEntity(node->GetEntity());
                         
-                        // Needed to bypass the flow node issue to convert the currentMatrix to be able to connect the transforms
-                        class CStaticMatrixSource : public Flow::CFlowNode
-                        {
-                        public:
-                            Flow::TOutput<tc::Matrix3x4> MatrixOut;
-
-                            CStaticMatrixSource(const tc::Matrix3x4& mat)
-                                : MatrixOut(
-                                    this, []() {})
-                            {
-                                MatrixOut.UpdateValue(mat);
-                            }
-                        };
+                        
                         auto* matrixSource = new CStaticMatrixSource(currentMatrix);
                         // Allows nested groups to be in the correct location
                         tempNode->Transform.Connect(matrixSource->MatrixOut);

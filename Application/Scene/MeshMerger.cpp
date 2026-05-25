@@ -1363,8 +1363,6 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width)
             tc::Vector3 H_in_pos = p_curr
                 - avgNormal * d; // c_in over centroid
 
-            // Create the actual Vertex objects (make sure to assign unique names/IDs based on your
-            // system)
             Vertex* h_out = new Vertex(H_out_pos.x, H_out_pos.y, H_out_pos.z, _m.vertList.size());
             h_out->name = f_out.name + "_holeOut_" + std::to_string(j);
             out.addVertex(h_out);

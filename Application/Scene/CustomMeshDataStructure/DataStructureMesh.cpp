@@ -613,53 +613,47 @@ void getVertexNormal(Vertex* currVert)
     Face* currFace = (firstEdge->fa != nullptr) ? firstEdge->fa : firstEdge->fb;
     tc::Vector3 avgNorm(0, 0, 0);
 
-    // ---------------------------------------------------------
     // 1. BOUNDARY SEARCH LOOP
-    // ---------------------------------------------------------
     Edge* startEdge = firstEdge;
     Edge* checkEdge = firstEdge;
-    Face* checkFace = currFace; // Track the face so nextEdge knows how to pivot!
+    Face* checkFace = currFace;
 
     do
     {
+        // If the current edge is boundary, use it.
         if (checkEdge->fa == nullptr || checkEdge->fb == nullptr)
         {
-            bool isBoundary = false;
-            if (currVert == checkEdge->va)
-            {
-                isBoundary = (checkEdge->fb == nullptr && checkEdge->fa != nullptr);
-            }
-            else if (currVert == checkEdge->vb)
-            {
-                isBoundary = (checkEdge->fa == nullptr && checkEdge->fb != nullptr);
-            }
-
-            if (isBoundary)
-            {
-                startEdge = checkEdge;
-                break;
-            }
+            startEdge = checkEdge;
+            break;
         }
 
-        // Use checkFace instead of nullptr
         Edge* nextE = checkEdge->nextEdge(currVert, checkFace);
 
-        // Safeguard against broken topology or end of boundary
         if (nextE == nullptr)
             break;
 
-        checkFace = nextE->theOtherFace(checkFace);
-        checkEdge = nextE;
-
-        // If we crossed into a null face, we fell off the boundary fan and must stop
-        if (checkFace == nullptr)
+        // If nextE is boundary, save it BEFORE calling theOtherFace(),
+        // because theOtherFace() may return nullptr and you would lose it.
+        if (nextE->fa == nullptr || nextE->fb == nullptr)
+        {
+            startEdge = nextE;
             break;
+        }
+
+        Face* nextFace = nextE->theOtherFace(checkFace);
+
+        if (nextFace == nullptr)
+        {
+            startEdge = nextE;
+            break;
+        }
+
+        checkEdge = nextE;
+        checkFace = nextFace;
 
     } while (checkEdge != firstEdge && checkEdge != nullptr);
 
-    // ---------------------------------------------------------
     // 2. NORMAL CALCULATION LOOP
-    // ---------------------------------------------------------
     bool breakOnNext = false;
     Edge* currEdge = startEdge;
     currFace = (currEdge->fa != nullptr) ? currEdge->fa : currEdge->fb;
@@ -720,7 +714,7 @@ void getVertexNormal(Vertex* currVert)
         // Advance to the next edge
         Edge* next = currEdge->nextEdge(currVert, currFace);
 
-        // FIX: Prevent null pointer crash at the end of a boundary fan
+        // Prevent null pointer crash at the end of a boundary fan
         if (next == nullptr)
             break;
 
@@ -752,6 +746,18 @@ void getVertexNormal(Vertex* currVert)
                   << currVert->normal.z << ")\n";
         */
     }
+    std::cout << "NORMAL START for " << currVert->name << "\n";
+    std::cout << "  startEdge: " << startEdge->va->name << " - " << startEdge->vb->name << "\n";
+
+    if (startEdge->fa)
+        std::cout << "  fa surface=" << startEdge->fa->surfaceName << "\n";
+    else
+        std::cout << "  fa=null\n";
+
+    if (startEdge->fb)
+        std::cout << "  fb surface=" << startEdge->fb->surfaceName << "\n";
+    else
+        std::cout << "  fb=null\n";
 }
 
 // Iterate over every vertex in the mesh and compute its normal
