@@ -618,41 +618,42 @@ void getVertexNormal(Vertex* currVert)
     Edge* checkEdge = firstEdge;
     Face* checkFace = currFace;
 
-    do
+    // Fast path: firstEdge is already boundary
+    if (firstEdge->fa == nullptr || firstEdge->fb == nullptr)
     {
-        // If the current edge is boundary, use it.
-        if (checkEdge->fa == nullptr || checkEdge->fb == nullptr)
+        startEdge = firstEdge;
+    }
+    else
+    {
+        Edge* checkEdge = firstEdge;
+        Face* checkFace = currFace;
+
+        do
         {
-            startEdge = checkEdge;
-            break;
-        }
+            Edge* nextE = checkEdge->nextEdge(currVert, checkFace);
 
-        Edge* nextE = checkEdge->nextEdge(currVert, checkFace);
+            if (nextE == nullptr)
+                break;
 
-        if (nextE == nullptr)
-            break;
+            if (nextE->fa == nullptr || nextE->fb == nullptr)
+            {
+                startEdge = nextE;
+                break;
+            }
 
-        // If nextE is boundary, save it BEFORE calling theOtherFace(),
-        // because theOtherFace() may return nullptr and you would lose it.
-        if (nextE->fa == nullptr || nextE->fb == nullptr)
-        {
-            startEdge = nextE;
-            break;
-        }
+            Face* nextFace = nextE->theOtherFace(checkFace);
 
-        Face* nextFace = nextE->theOtherFace(checkFace);
+            if (nextFace == nullptr)
+            {
+                startEdge = nextE;
+                break;
+            }
 
-        if (nextFace == nullptr)
-        {
-            startEdge = nextE;
-            break;
-        }
+            checkEdge = nextE;
+            checkFace = nextFace;
 
-        checkEdge = nextE;
-        checkFace = nextFace;
-
-    } while (checkEdge != firstEdge && checkEdge != nullptr);
-
+        } while (checkEdge != firstEdge);
+    }
     // 2. NORMAL CALCULATION LOOP
     bool breakOnNext = false;
     Edge* currEdge = startEdge;
@@ -746,6 +747,7 @@ void getVertexNormal(Vertex* currVert)
                   << currVert->normal.z << ")\n";
         */
     }
+    /*
     std::cout << "NORMAL START for " << currVert->name << "\n";
     std::cout << "  startEdge: " << startEdge->va->name << " - " << startEdge->vb->name << "\n";
 
@@ -758,6 +760,7 @@ void getVertexNormal(Vertex* currVert)
         std::cout << "  fb surface=" << startEdge->fb->surfaceName << "\n";
     else
         std::cout << "  fb=null\n";
+        */
 }
 
 // Iterate over every vertex in the mesh and compute its normal
