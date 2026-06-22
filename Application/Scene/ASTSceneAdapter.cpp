@@ -949,7 +949,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                 std::cout << "\nOffset output alias: " << outputName;
                 std::cout << "\nOffset height: " << height;
                 std::cout << "\nOffset width/hole: " << width;
-
+                std::cout << "\nOffset outer rim surface name: " << outerRimSurfaceName; 
                 sourceMesh->setOffsetHeightWidth(height, width);
                 sourceMesh->setOffsetRims(outerRimSurfaceName, innerRimSurfaceName, outerRimHidden,
                                           innerRimHidden);
