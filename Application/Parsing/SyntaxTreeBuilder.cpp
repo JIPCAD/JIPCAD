@@ -183,7 +183,33 @@ antlrcpp::Any CFileBuilder::visitArgWidth(NomParser::ArgWidthContext* ctx)
     result->AddChild(visit(ctx->expression()).as<AST::AExpr*>());
     return result;
 }
+antlrcpp::Any CFileBuilder::visitArgOUTERRIMSURFACE(NomParser::ArgOUTERRIMSURFACEContext* ctx)
+{
+    AST::ANamedArgument* arg = new AST::ANamedArgument(ConvertToken(ctx->getStart()));
+    arg->AddChild(visit(ctx->ident()).as<AST::AExpr*>());
+    return arg;
+}
+antlrcpp::Any
+CFileBuilder::visitArgINNERRIMSURFACE(NomParser::ArgINNERRIMSURFACEContext* ctx)
+{
+    AST::ANamedArgument* arg = new AST::ANamedArgument(ConvertToken(ctx->getStart()));
+    arg->AddChild(visit(ctx->ident()).as<AST::AExpr*>());
+    return arg;
+}
 
+antlrcpp::Any
+CFileBuilder::visitArgOUTERRIMHIDDEN(NomParser::ArgOUTERRIMHIDDENContext* ctx)
+{
+    AST::ANamedArgument* arg = new AST::ANamedArgument(ConvertToken(ctx->getStart()));
+    return arg;
+}
+
+antlrcpp::Any
+CFileBuilder::visitArgINNERRIMHIDDEN(NomParser::ArgINNERRIMHIDDENContext* ctx)
+{
+    AST::ANamedArgument* arg = new AST::ANamedArgument(ConvertToken(ctx->getStart()));
+    return arg;
+}
 
 antlrcpp::Any CFileBuilder::visitArgOrder(NomParser::ArgOrderContext* context)
 {
@@ -542,6 +568,14 @@ antlrcpp::Any CFileBuilder::visitCmdOffset(NomParser::CmdOffsetContext* context)
     for (auto* arg : context->argHeight())
         cmd->AddNamedArgument(visit(arg));
     for (auto* arg : context->argWidth())
+        cmd->AddNamedArgument(visit(arg));
+    for (auto* arg : context->argOUTERRIMSURFACE())
+        cmd->AddNamedArgument(visit(arg));
+    for (auto* arg : context->argOUTERRIMHIDDEN())
+        cmd->AddNamedArgument(visit(arg));
+    for (auto* arg : context->argINNERRIMSURFACE())
+        cmd->AddNamedArgument(visit(arg));
+    for (auto* arg : context->argINNERRIMHIDDEN())
         cmd->AddNamedArgument(visit(arg));
 
     for (auto* subCmd : context->command())

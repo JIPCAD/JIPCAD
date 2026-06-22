@@ -66,6 +66,8 @@ CDataStructureMeshToQGeometry::CDataStructureMeshToQGeometry(
         std::array<float, 3> backFaceColor = InstanceBackColor;
         std::array<float, 3> SelectedFaceColor {.7, .7, .7};
         Face* currFace = (*fIt);
+        //if (currFace->hide)
+          //  std::cout << "t:" << currFace->hide;
         if (!currFace->surfaceName.empty())
         {
             potentialFaceColor = currFace->color;
@@ -141,13 +143,13 @@ CDataStructureMeshToQGeometry::CDataStructureMeshToQGeometry(
                     vCurr.faceColor = SelectedFaceColor;
                 else
                     vCurr.faceColor = potentialFaceColor;
-                if (renderFrontFace)
+                if (renderFrontFace && !currFace->hide)
                 {
                     v0.SendToBuilder(builder);
                     vPrev.SendToBuilder(builder);
                     vCurr.SendToBuilder(builder);
                 }
-                if (renderBackFace)
+                if (renderBackFace && !currFace->hide)
                 {
                     auto temp = v0.faceColor;
                     v0.faceColor = backFaceColor;

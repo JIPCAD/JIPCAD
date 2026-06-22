@@ -135,6 +135,16 @@ id
 	| ENDARC
 	| FACENORMAL
 	| VERTEXNORMAL
+	| ENDFACENORMAL
+	| ENDVERTEXNORMAL
+	| OUTERRIM
+	| ENDOUTERRIM
+	| OUTERRIMSURFACE
+	| OUTERRIMHIDDEN
+	| INNERRIMSURFACE
+	| INNERRIMHIDDEN
+	| INNERRIM
+	| ENDINNERRIM
 	| ICOSPHERE
 	| ENDICOSPHERE
 	| GENCARTESIANSURF
@@ -214,6 +224,10 @@ argHidden : HIDDENC ;
 argBeginCap : BEGINCAP ;
 argEndCap : ENDCAP ;
 argSurface : SURFACE ident ;
+argOUTERRIMSURFACE : OUTERRIMSURFACE ident;
+argINNERRIMSURFACE : INNERRIMSURFACE ident;
+argOUTERRIMHIDDEN : OUTERRIMHIDDEN;
+argINNERRIMHIDDEN : INNERRIMHIDDEN;
 argBackface : BACKFACE ident ;
 argCross : CROSSSECTION ident ;
 argSegs : SEGS expression ;
@@ -306,7 +320,7 @@ command
    | open=DELETE deleteFace* end=ENDDELETE # CmdDelete
    | open=SUBDIVISION name=ident argSdFlag* argSdLevel* command* end=ENDSUBDIVISION # CmdSubdivision
    | open=SHARP expression idList+ end=ENDSHARP # CmdSharp
-   | open=OFFSET name=ident argOffsetFlag* argHeight* (argWidth)* command* end=ENDOFFSET # CmdOffset
+   | open=OFFSET name=ident argOffsetFlag* argHeight* (argWidth)* argOUTERRIMSURFACE* argINNERRIMSURFACE* argOUTERRIMHIDDEN* argINNERRIMHIDDEN* command* end=ENDOFFSET # CmdOffset
    | open=INCLUDE name=ident end=ENDINCLUDE # CmdInclude
    | open=LIGHT name=ident argLightType argLightColor argLightVector* end=ENDLIGHT # CmdLight
    | open=CAMERA name=ident argCameraProjection (argCameraFrustum)* end=ENDCAMERA #CmdCamera
@@ -428,6 +442,16 @@ ARC : 'arc';
 ENDARC : 'endarc';
 FACENORMAL : 'facenormal';
 VERTEXNORMAL : 'vertexnormal';
+ENDFACENORMAL : 'endfacenormal';
+ENDVERTEXNORMAL : 'endvertexnormal';
+OUTERRIM : 'outerrim';
+ENDOUTERRIM : 'endouterrim';
+OUTERRIMSURFACE: 'outerrimsurface';
+INNERRIMSURFACE: 'innerrimsurface';
+OUTERRIMHIDDEN: 'outerrimhidden';
+INNERRIMHIDDEN: 'innerrimhidden';
+INNERRIM : 'innerrim';
+ENDINNERRIM : 'endinnerrim';
 ICOSPHERE : 'icosphere';
 ENDICOSPHERE : 'endicosphere';
 GENCARTESIANSURF : 'gencartesiansurf';

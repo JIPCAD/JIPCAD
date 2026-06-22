@@ -36,7 +36,8 @@ public:
 
     bool offset(DSMesh& _m);
 
-    bool offset(DSMesh& _m, double height, double width);
+    bool offset(DSMesh& _m, double height, double width, std::string outerRimSurface,
+                std::string innerRimSurface, bool outerRimHidden, bool innerRimHidden);
 
     // sd_flag can be set to sharp and plain cc to have different types of subdivision
     void Catmull();
@@ -61,6 +62,14 @@ public:
     {
         h = height;
         w = width;
+    }
+    void setOffsetRims(std::string outerRimSurface, std::string innerRimSurface, bool outerRimHidden,
+                       bool innerRimHidden)
+    {
+        _outerRimSurface = outerRimSurface;
+        _innerRimSurface = innerRimSurface;
+        _outerRimHidden = outerRimHidden;
+        _innerRimHidden = innerRimHidden;
     }
     void setShellHeightWidth(double height, double width) 
     { 
@@ -111,6 +120,10 @@ private:
     //CMeshImpl MergedMesh;
     unsigned int subdivisionLevel = 0;
     double h = 0.0f, w = 0.0f;
+    std::string _outerRimSurface;
+    std::string _innerRimSurface;
+    bool _outerRimHidden;
+    bool _innerRimHidden;
     bool offsetIdent = false;
     bool isSharp = true;
     // true == NOME_OFFSET_DEFAULT, false == NOME_OFFSET_GRID

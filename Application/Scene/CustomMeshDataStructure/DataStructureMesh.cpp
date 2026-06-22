@@ -1263,6 +1263,7 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
                 newFace->name = (*fIt)->name;
                 newFace->surfaceName = (*fIt)->surfaceName;
                 newFace->backfaceName = (*fIt)->backfaceName;
+                newFace->hide = (*fIt)->hide;
             }
             else
             {

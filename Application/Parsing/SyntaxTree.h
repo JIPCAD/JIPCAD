@@ -360,6 +360,9 @@ public:
     int GetPositionalNumber(size_t index) const;
     AExpr* GetPositionalArgument(size_t index) const;
     ANamedArgument* GetNamedArgument(const std::string& name) const;
+    std::vector<ANamedArgument*> GetNamedArguments() const;
+    std::vector<std::string> GetNamedArgumentsNames() const;
+    
     const std::vector<ANamedArgument*>& GetTransforms() const { return Transforms; }
 
     std::vector<ACommand*> GetSubCommands() const;

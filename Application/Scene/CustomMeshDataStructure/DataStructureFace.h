@@ -49,6 +49,8 @@ public:
 
     std::string surfaceName; // Randy added this
     std::string backfaceName;
+
+    bool hide = false;
 };
 
 #endif // __FACE_H__

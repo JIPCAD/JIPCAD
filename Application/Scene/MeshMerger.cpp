@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <unordered_map>
+
 using namespace std;
 
 namespace Nome::Scene
@@ -242,7 +243,7 @@ void CMeshMerger::Catmull2(CMeshInstance& meshInstance, bool shouldMergePoints =
     if (needOffset)
     {
         // offset(otherMesh);
-        offset(otherMesh, h, w);
+        offset(otherMesh, h, w, _outerRimSurface, _innerRimSurface, _outerRimHidden, _innerRimHidden);
         std::cout << "Apply offset, may take some time..." << std::endl;
         didOffset = true;
     }
@@ -331,7 +332,7 @@ void CMeshMerger::Catmull()
     if (needOffset)
     {
         // offset(otherMesh);
-        offset(otherMesh, h, w);
+        offset(otherMesh, h, w, _outerRimSurface, _innerRimSurface, _outerRimHidden, _innerRimHidden);
         std::cout << "Apply offset, may take some time..." << std::endl;
         didOffset = true;
     }
@@ -1113,7 +1114,8 @@ tc::Vector3 Nome::Scene::CMeshMerger::calculate3PlaneIntersection(tc::Vector3 p,
                        (c23.z * d1_prime + c31.z * d2_prime + c12.z * d3_prime) * invDet);
 }
 // normals first, then split vertices, then done
-bool CMeshMerger::offset(DSMesh& _m, double height, double width)
+bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string outerRimSurface,
+                         std::string innerRimSurface, bool outerRimHidden, bool innerRimHidden)
 {
     if (height < 0 && width < 0)
         return true;
@@ -1369,13 +1371,20 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width)
             ribbonVerts.push_back(v1_inner);
             ribbonVerts.push_back(v2_inner);
 
-            out.addFace(ribbonVerts, rimSurface, "");
-            out.faceList.back()->name =
-                out.faceList.back()->name + "_offsetBoundaryRibbon"; //"_offsetRibbon"; //
-            ribbonVerts.push_back(v2_outer);
+            if (true)
+            {
+                std::string outerHoleSurf = outerRimSurface;
+                if (outerHoleSurf.empty())
+                    outerHoleSurf = rimSurface;
+                Face* t_face = out.addFace(ribbonVerts, outerHoleSurf, "");
+                out.faceList.back()->hide = outerRimHidden; // for outer boundary ribbon
+                out.faceList.back()->name =
+                    out.faceList.back()->name + "_offsetBoundaryRibbon"; //"_offsetRibbon"; //
+                ribbonVerts.push_back(v2_outer);
 
-            WireFrames.push_back(ribbonVerts);
-            ribbonVerts.pop_back();
+                WireFrames.push_back(ribbonVerts);
+                ribbonVerts.pop_back();
+            }
         }
     }
     auto getMappedCentroid = [](TempFace f)
@@ -1529,9 +1538,14 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width)
                 if (!isBoundaryRibbon)
                 {
                     // Because O_curr and I_curr match, this bridges cleanly without crisscrossing!
-                    out.addFace({ H_out_curr, H_out_next, H_in_next, H_in_curr }, surfOut, "");
+                    std::string innerHoleSurf = innerRimSurface;
+                    if (innerHoleSurf.empty())
+                        innerHoleSurf = surfOut;
+                    out.addFace({ H_out_curr, H_out_next, H_in_next, H_in_curr }, innerHoleSurf,
+                                "");
                     out.faceList.back()->name = f_curr->name + "_offsetHoleRibbon_"
                         + std::to_string(i) + "_" + std::to_string(j);
+                    out.faceList.back()->hide = innerRimHidden; // for hole ribbon
                     WireFrames.push_back(
                         { H_out_curr, H_out_next, H_in_next, H_in_curr, H_out_curr });
                     WireFrames.push_back({ H_out_curr, H_in_curr });
