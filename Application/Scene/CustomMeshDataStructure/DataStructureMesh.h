@@ -97,10 +97,20 @@ public:
      * If it does not exists, then return NULL.
      */
     Edge* findEdge(Vertex* v1, Vertex* v2, bool setmobius = true);
+    
+
     /**
+   * @brief Set sharpness on an existing edge by vertex names.
+   * Used by the sharp command before subdivision.
+   */ 
+   void setEdgeSharpness(const std::string& v1, const std::string& v2, float sharpness);
+
+
+   /**
      * @brief deleteEdge Delete edge v1-v2 in this Mesh.
      * @param v1, v2: the two vertices of this edge.
      */
+
     void deleteEdge(Edge* edge);
     /**
      * @brief Add a triangle face to a mesh, with three vertices.

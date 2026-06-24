@@ -34,6 +34,7 @@
 #include "TorusKnot.h"
 #include "Tunnel.h"
 #include "Viewport.h"
+#include "Sharp.h"
 #include "../QtFrontend/DebugDraw.h"
 #include <StringPrintf.h>
 #include <unordered_map>
@@ -336,13 +337,29 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
     else if (kind == ECommandKind::Entity)
     {
         if (cmd->GetCommand() == "sharp")
+{
+    // Normal NOME syntax:
+    // sharp 9 ( P1 P2 ) endsharp
+    //
+    // This command is usually direct, not a wrapper with subcommands.
+    if (cmd->GetSubCommands().empty())
+    {
+        IterateSharpness(cmd, scene);
+    }
+    else
+    {
+        // Keep the older wrapper-style behavior just in case any old files use it.
+        for (auto* sub : cmd->GetSubCommands())
         {
-            for (auto* sub : cmd->GetSubCommands())
-            {
-                sub->PushPositionalArgument(cmd->GetLevel());
-                IterateSharpness(sub, scene);
-            }
+            if (!sub)
+                continue;
+
+            sub->PushPositionalArgument(cmd->GetLevel());
+            IterateSharpness(sub, scene);
         }
+    }
+}
+
         else
         {
             TAutoPtr<CEntity> entity;
