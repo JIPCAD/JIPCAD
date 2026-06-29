@@ -768,10 +768,15 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                 double height = 0.1f;
                 double width = 0.0f;
                 CExprEvalDirect eval;
-
+                if (!command_to_review.provided_command)
+                    return;
                 // Parse height
                 auto* heightInfo = command_to_review.provided_command->GetNamedArgument("height");
-
+                if (!heightInfo)
+                {
+                    std::cout << "Height is not defined";
+                    return;
+                }
                 auto items = std::any_cast<AST::ANamedArgument*>(heightInfo)->GetArguments();
 
                 try
@@ -803,7 +808,11 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
 
                 // Parse hole / width
                 auto* widthInfo = command_to_review.provided_command->GetNamedArgument("hole");
-
+                if (!widthInfo)
+                {
+                    std::cout << "Width is not defined";
+                    return;
+                }
                 items = std::any_cast<AST::ANamedArgument*>(widthInfo)->GetArguments();
 
                 try
@@ -832,7 +841,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                         throw AST::CSemanticError("Width is not properly defined", items.at(0));
                     }
                 }
-
+                /*
                 if (command_to_review.provided_command != nullptr)
                 {
 
@@ -841,7 +850,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                     {
                         std::cout << "\narg: " << u << "\n";
                     }
-                }
+                }*/
                 
                 auto* outerRimSurfaceInfo = command_to_review.provided_command->GetNamedArgument("outerrimsurface");
                 std::string outerRimSurfaceName = "";
