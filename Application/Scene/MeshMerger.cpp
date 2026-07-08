@@ -5,6 +5,10 @@
 
 #include <cmath>
 #include <unordered_map>
+#include <algorithm>
+#include <vector>
+#include <limits>
+
 
 using namespace std;
 
@@ -545,16 +549,30 @@ void CMeshMerger::MergeCurr()
 
     // Copy over all the vertices and check for overlapping
     std::unordered_map<Vertex*, Vertex*> vertMap;
-    for (auto otherVert :
-         otherMesh.vertList) // Iterate through all the vertices in the mesh (the non-merger mesh,
-                             // aka the one you're trying copy vertices from)
-    {
-        Vector3 localPos = otherVert->position; // localPos is position before transformations
-        // Vector3 worldPos = tf * localPos; // worldPos is the actual position you see in the grid
-        auto [closestVert, distance] = FindClosestVertex(
-            localPos); // Find closest vertex already IN MERGER mesh, not the actual mesh. This is
 
-        // to prevent adding two merger vertices in the same location!
+    // 1. Copy vertices from currMesh into MergedMesh.
+    for (auto* otherVert : otherMesh.vertList)
+    {
+        if (!otherVert)
+        {
+            continue;
+        }
+
+        Vector3 localPos = otherVert->position;
+
+        Vertex* closestVert = nullptr;
+        float distance = std::numeric_limits<float>::max();
+
+        if (!MergedMesh.vertList.empty())
+        {
+            auto closestResult = FindClosestVertex(localPos);
+            closestVert = closestResult.first;
+            distance = closestResult.second;
+        }
+
+        if (distance < Epsilon && shouldMergePoints && closestVert != nullptr)
+        {
+            vertMap[otherVert] = closestVert;
 
         if (distance < Epsilon && shouldMergePoints && otherVert != nullptr
             && closestVert != nullptr)
@@ -565,89 +583,151 @@ void CMeshMerger::MergeCurr()
                 closestVert; // just set vi to the closestVert (which is a merger vertex
             // in the same location added in a previous iteration)
             closestVert->sharpness = std::max(closestVert->sharpness, otherVert->sharpness);
-            printf("set sharpness: %f\n", closestVert->sharpness);
+
+            if (otherVert->sharpness > 0.0f)
+            {
+                std::cout << "[mergeCurr] merged vertex sharpness "
+                          << otherVert->sharpness
+                          << " into "
+                          << closestVert->name
+                          << std::endl;
+            }
         }
-        else // Else, we haven't added a vertex at this location yet. So lets add_vertex to the
-             // merger mesh.
+        else
         {
-            Vertex* copiedVert = new Vertex(localPos.x, localPos.y, localPos.z,
-                                            MergedMesh.nameToVert.size()); // project add offset
+            Vertex* copiedVert = new Vertex(
+                localPos.x,
+                localPos.y,
+                localPos.z,
+                MergedMesh.nameToVert.size()
+            );
+
             copiedVert->name =
-                "copiedVert"
-                + std::to_string(
-                    MergedMesh.nameToVert.size()); // Randy this was causing the bug!!!!!!! the name
-            // was the same. so nameToVert remained size == 1
-            MergedMesh.addVertex(copiedVert); // Project AddOffset
-            vertMap[otherVert] = copiedVert; // Map actual mesh vertex to merged vertex.This
-            // dictionary is useful for add face later.
-            std::string vName = "v" + std::to_string(VertCount);
-            ++VertCount; // VertCount is an attribute for this merger mesh. Starts at 0.
+                "copiedVert" + std::to_string(MergedMesh.nameToVert.size());
+
             copiedVert->sharpness = otherVert->sharpness;
+            copiedVert->normal = otherVert->normal;
+            copiedVert->source_vertex = otherVert;
+
+            MergedMesh.addVertex(copiedVert);
+
+            vertMap[otherVert] = copiedVert;
+
+            ++VertCount;
         }
     }
 
-    // Add faces and create a face mesh for each
-    for (auto otherFace :
-         otherMesh.faceList) // Iterate through all the faces in the mesh (that is, the non-merger
-                             // mesh, aka the one you're trying to copy faces from)
+    // 2. Copy faces. This is what creates the actual merged edges.
+    for (auto* otherFace : otherMesh.faceList)
     {
+        if (!otherFace)
+        {
+            continue;
+        }
+
         std::vector<Vertex*> verts;
-        for (auto vert : otherFace->vertices) // otherMesh vertices
-        { // iterate through all the vertices on this face
-            verts.emplace_back(vertMap[vert]);
-        } // Add the vertex handles
-        MergedMesh.addFace(verts, otherFace->color, otherFace->surfaceName); // Project AddOffset
-        std::string fName = "v" + std::to_string(FaceCount);
-        FaceCount++;
-    }
 
-    for (auto edge : otherMesh.edges()) // Iterate through all the edges in the mesh
-    {
-        auto* mergedEdge = MergedMesh.findEdge(vertMap[edge->v0()], vertMap[edge->v1()], false);
-
-        std::vector<Vertex*> MergedEdgeVertices;
-        MergedEdgeVertices.push_back(vertMap[edge->v0()]);
-        MergedEdgeVertices.push_back(vertMap[edge->v1()]);
-        WireFrames.push_back(MergedEdgeVertices);
-
-        try
+        for (auto* vert : otherFace->vertices)
         {
-            // Aaron's edit
-            if (mergedEdge == nullptr)
+            if (!vert)
             {
-                mergedEdge = new Edge(edge->v0(), edge->v1());
-                mergedEdge->sharpness = edge->sharpness;
+                continue;
             }
-            else
+
+            auto it = vertMap.find(vert);
+
+            if (it != vertMap.end())
             {
-                mergedEdge->sharpness = std::max(edge->sharpness, mergedEdge->sharpness);
+                verts.emplace_back(it->second);
             }
         }
-        catch (int e)
+
+        if (verts.size() < 3)
         {
-            std::cerr << "When try to merge in sharpness the edges don't match" << e << '\n';
+            std::cout << "[mergeCurr] skipped face with fewer than 3 verts" << std::endl;
+            continue;
         }
+
+        Face* newFace = MergedMesh.addFace(
+            verts,
+            otherFace->color,
+            otherFace->surfaceName,
+            otherFace->backfaceName
+        );
+
+        if (newFace)
+        {
+            newFace->user_defined_color = otherFace->user_defined_color;
+            newFace->color = otherFace->color;
+            newFace->backcolor = otherFace->backcolor;
+            newFace->surfaceName = otherFace->surfaceName;
+            newFace->backfaceName = otherFace->backfaceName;
+        }
+
+        ++FaceCount;
     }
 
     /*
     std::vector<std::string> toElim = {};
     std::vector<Face*> fL = MergedMesh.faceList;
     for (Face* f : fL)
+    // 3. Transfer edge sharpness.
+    // Do not manually create Edge objects here.
+    // The real edges were already created by MergedMesh.addFace(...).
+    for (auto* edge : otherMesh.edges())
     {
-        for (Face* ff : fL)
+        if (!edge || !edge->v0() || !edge->v1())
         {
-            if (f->name == ff->name)
-                continue;
-            std::set<Face*> sa(f->vertices.begin(), f->vertices.end());
-            std::set<Face*> sb(ff->vertices.begin(), ff->vertices.end());
-            if (sa == sb)
-            {
-                toElim.push_back(ff->name);
-            }
+            continue;
+        }
+
+        auto it0 = vertMap.find(edge->v0());
+        auto it1 = vertMap.find(edge->v1());
+
+        if (it0 == vertMap.end() || it1 == vertMap.end())
+        {
+            std::cout << "[mergeCurr] missing copied vertex for source edge "
+                      << edge->v0()->name << " - "
+                      << edge->v1()->name << std::endl;
+            continue;
+        }
+
+        Vertex* mergedV0 = it0->second;
+        Vertex* mergedV1 = it1->second;
+
+        WireFrames.push_back({ mergedV0, mergedV1 });
+
+        Edge* mergedEdge = MergedMesh.findEdge(mergedV0, mergedV1, false);
+
+        if (!mergedEdge)
+        {
+            std::cout << "[mergeCurr] could not find merged edge for "
+                      << edge->v0()->name << " - "
+                      << edge->v1()->name << std::endl;
+            continue;
+        }
+
+        if (edge->sharpness > 0.0f)
+        {
+            mergedEdge->sharpness = std::max(mergedEdge->sharpness, edge->sharpness);
+            mergedEdge->isSharp = true;
+
+            mergedV0->sharpness = std::max(mergedV0->sharpness, edge->sharpness);
+            mergedV1->sharpness = std::max(mergedV1->sharpness, edge->sharpness);
+
+            std::cout << "[mergeCurr] transferred sharpness "
+                      << mergedEdge->sharpness
+                      << " to edge "
+                      << mergedEdge->v0()->name << " - "
+                      << mergedEdge->v1()->name
+                      << std::endl;
         }
     }
-    std::set<std::string> toElimSet(toElim.begin(), toElim.end());
-    for (std::string str : toElimSet)
+
+    // 4. Final debug count.
+    int sharpCount = 0;
+
+    for (auto* edge : MergedMesh.edgeList)
     {
         Face* toElimFace = nullptr;
 
@@ -663,9 +743,19 @@ void CMeshMerger::MergeCurr()
     */
     // otherMesh.visible = false;
     //    currMesh = MergedMesh.newMakeCopy();
+        if (edge && edge->sharpness > 0.0f)
+        {
+            ++sharpCount;
+        }
+    }
+
+    std::cout << "[mergeCurr] merged sharp edge count = "
+              << sharpCount << std::endl;
 
     MergedMesh.buildBoundary();
     MergedMesh.computeNormals();
+
+    currMesh = MergedMesh.newMakeCopy();
 }
 void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
 {
@@ -752,11 +842,13 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
         FaceCount++;
     }
 
-    for (auto edge : otherMesh.edges()) // Iterate through all the edges in the mesh
+
+    for (auto* edge : otherMesh.edges())
+{
+    if (!edge || !edge->v0() || !edge->v1())
     {
-        if (!edge)
-            continue;
-        auto* mergedEdge = MergedMesh.findEdge(vertMap[edge->v0()], vertMap[edge->v1()], false);
+        continue;
+    }
 
         std::vector<Vertex*> MergedEdgeVertices;
         MergedEdgeVertices.push_back(vertMap[edge->v0()]);
@@ -774,8 +866,16 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
             else
             {
                 edge->sharpness;
+    auto it0 = vertMap.find(edge->v0());
+    auto it1 = vertMap.find(edge->v1());
 
-                mergedEdge->sharpness;
+    if (it0 == vertMap.end() || it1 == vertMap.end())
+    {
+        std::cout << "[merge] missing copied vertex for source edge "
+                  << edge->v0()->name << " - "
+                  << edge->v1()->name << std::endl;
+        continue;
+    }
 
                 if (edge->isSharp == true && mergedEdge->isSharp == true && edge->sharpness
                     && edge->sharpness > 0.01 && edge->sharpness > mergedEdge->sharpness)
@@ -794,6 +894,42 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
         }
     }
     // otherMesh.visible = false;
+    Vertex* mergedV0 = it0->second;
+    Vertex* mergedV1 = it1->second;
+
+    std::vector<Vertex*> mergedEdgeVertices;
+    mergedEdgeVertices.push_back(mergedV0);
+    mergedEdgeVertices.push_back(mergedV1);
+    WireFrames.push_back(mergedEdgeVertices);
+
+    // Important: do NOT create a new Edge manually here.
+    // MergedMesh.addFace(...) already created the real edge and inserted it
+    // into edgeList / edgeTable. We need to find and update that edge.
+    Edge* mergedEdge = MergedMesh.findEdge(mergedV0, mergedV1, false);
+
+    if (!mergedEdge)
+    {
+        std::cout << "[merge] could not find merged edge for "
+                  << edge->v0()->name << " - "
+                  << edge->v1()->name << std::endl;
+        continue;
+    }
+
+    if (edge->sharpness > 0.0f)
+    {
+        mergedEdge->sharpness = std::max(mergedEdge->sharpness, edge->sharpness);
+        mergedEdge->isSharp = true;
+
+        mergedV0->sharpness = std::max(mergedV0->sharpness, edge->sharpness);
+        mergedV1->sharpness = std::max(mergedV1->sharpness, edge->sharpness);
+
+        std::cout << "[merge] transferred sharpness "
+                  << mergedEdge->sharpness << " to edge "
+                  << mergedEdge->v0()->name << " - "
+                  << mergedEdge->v1()->name << std::endl;
+    }
+}
+    //otherMesh.visible = false;
     MergedMesh.buildBoundary();
     MergedMesh.computeNormals();
     currMesh = MergedMesh.newMakeCopy();
@@ -1661,10 +1797,168 @@ void CMeshMerger::MergeClear()
     MergedMesh.clear();
 }
 
+struct SharpSegment
+{
+    tc::Vector3 a;
+    tc::Vector3 b;
+    float sharpness;
+};
+
+static float DistSq(const tc::Vector3& p, const tc::Vector3& q)
+{
+    float dx = p.x - q.x;
+    float dy = p.y - q.y;
+    float dz = p.z - q.z;
+    return dx * dx + dy * dy + dz * dz;
+}
+
+static float DotVec(const tc::Vector3& a, const tc::Vector3& b)
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+static tc::Vector3 SubVec(const tc::Vector3& a, const tc::Vector3& b)
+{
+    return tc::Vector3(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+static bool PointOnSegment(
+    const tc::Vector3& p,
+    const tc::Vector3& a,
+    const tc::Vector3& b,
+    float eps,
+    float& tOut
+)
+{
+    tc::Vector3 ab = SubVec(b, a);
+    tc::Vector3 ap = SubVec(p, a);
+
+    float abLenSq = DotVec(ab, ab);
+
+    if (abLenSq < eps * eps)
+    {
+        tOut = 0.0f;
+        return DistSq(p, a) < eps * eps;
+    }
+
+    float t = DotVec(ap, ab) / abLenSq;
+    tOut = t;
+
+    if (t < -eps || t > 1.0f + eps)
+    {
+        return false;
+    }
+
+    tc::Vector3 projected(
+        a.x + t * ab.x,
+        a.y + t * ab.y,
+        a.z + t * ab.z
+    );
+
+    return DistSq(p, projected) < eps * eps;
+}
+
+static void ReapplySharpnessToSubdividedEdges(
+    DSMesh& mesh,
+    const std::vector<SharpSegment>& oldSharpSegments
+)
+{
+    const float eps = 0.001f;
+
+    int reappliedCount = 0;
+
+    for (auto* edge : mesh.edges())
+    {
+        if (!edge || !edge->v0() || !edge->v1())
+        {
+            continue;
+        }
+
+        tc::Vector3 p0 = edge->v0()->position;
+        tc::Vector3 p1 = edge->v1()->position;
+
+        for (const auto& segment : oldSharpSegments)
+        {
+            float t0 = 0.0f;
+            float t1 = 0.0f;
+
+            bool p0OnSegment = PointOnSegment(p0, segment.a, segment.b, eps, t0);
+            bool p1OnSegment = PointOnSegment(p1, segment.a, segment.b, eps, t1);
+
+            if (!p0OnSegment || !p1OnSegment)
+            {
+                continue;
+            }
+
+            if (std::abs(t0 - t1) < 0.0001f)
+            {
+                continue;
+            }
+
+            edge->sharpness = std::max(edge->sharpness, segment.sharpness);
+            edge->isSharp = true;
+
+            edge->v0()->sharpness = std::max(edge->v0()->sharpness, segment.sharpness);
+            edge->v1()->sharpness = std::max(edge->v1()->sharpness, segment.sharpness);
+
+            ++reappliedCount;
+
+            std::cout << "[subdivide] re-applied sharpness "
+                      << edge->sharpness
+                      << " to child edge "
+                      << edge->v0()->name << " - "
+                      << edge->v1()->name
+                      << std::endl;
+
+            break;
+        }
+    }
+
+    std::cout << "[subdivide] re-applied sharpness to "
+              << reappliedCount
+              << " child edge(s)"
+              << std::endl;
+}
+
 bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
 {
     DSMesh myCopy = _m.newMakeCopy();
     std::vector<Face*> faceList = myCopy.faceList;
+
+    std::vector<SharpSegment> oldSharpSegments;
+
+if (isSharp)
+{
+    for (auto* edge : _m.edges())
+    {
+        if (!edge || !edge->v0() || !edge->v1())
+        {
+            continue;
+        }
+
+        if (edge->sharpness > 0.0f)
+        {
+            oldSharpSegments.push_back({
+                edge->v0()->position,
+                edge->v1()->position,
+                edge->sharpness
+            });
+
+            std::cout << "[subdivide] saved sharp parent edge "
+                      << edge->v0()->name << " - "
+                      << edge->v1()->name
+                      << " sharpness = "
+                      << edge->sharpness
+                      << std::endl;
+        }
+    }
+
+    std::cout << "[subdivide] saved "
+              << oldSharpSegments.size()
+              << " sharp parent edge(s)"
+              << std::endl;
+}
+  
 
     // Instantiate a Far::TopologyRefiner from the descriptor
     Far::TopologyRefiner* refiner = GetRefiner(_m, isSharp);
@@ -1763,10 +2057,16 @@ bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
             _m.addFace(vertices, surfaceName, backfaceName);
             WireFrames.push_back(vertices);
         }
-        _m.computeNormals();
-        _m.buildBoundary();
-        for (int i = 0; i < (int)_m.vertList.size(); ++i)
-            _m.vertList[i]->ID = i;
+        if (isSharp)
+{
+    ReapplySharpnessToSubdividedEdges(_m, oldSharpSegments);
+}
+
+_m.computeNormals();
+_m.buildBoundary();
+
+for (int i = 0; i < (int)_m.vertList.size(); ++i)
+    _m.vertList[i]->ID = i;
         for (int i = 0; i < (int)_m.faceList.size(); ++i)
             _m.faceList[i]->id = i;
         int maxID = -1;

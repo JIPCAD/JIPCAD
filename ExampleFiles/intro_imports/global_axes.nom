@@ -1,0 +1,15 @@
+###################  Global Coordinate Axes  ######################
+point ooo  ( 0 0 0 ) endpoint 
+point xoo  ( 1 0 0 ) endpoint
+point oyo  ( 0 1 0 ) endpoint
+point ooz  ( 0 0 1 ) endpoint
+
+polyline xaxis (ooo xoo) endpolyline
+polyline yaxis (ooo oyo) endpolyline
+polyline zaxis (ooo ooz) endpolyline
+
+group coord_axes   
+  instance ix xaxis surface R   endinstance     
+  instance iy yaxis surface B   endinstance
+  instance iz zaxis surface G   endinstance
+endgroup

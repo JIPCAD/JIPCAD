@@ -10,6 +10,7 @@
 #include "qcolor.h"
 //#include "parameter.h"
 #include <map>
+#include <algorithm>
 
 Mesh::Mesh(int type)
 {
@@ -83,6 +84,41 @@ Edge* Mesh::findEdge(Vertex* v1, Vertex* v2, bool setmobius)
         }
     }
     return NULL;
+}
+
+void Mesh::setEdgeSharpness(const std::string& v1, const std::string& v2, float sharpness)
+{
+    auto it1 = nameToVert.find(v1);
+    auto it2 = nameToVert.find(v2);
+
+    if (it1 == nameToVert.end() || it2 == nameToVert.end())
+    {
+        std::cout << "[sharp] Could not find vertex pair: "
+                  << v1 << " " << v2 << std::endl;
+        return;
+    }
+
+    Edge* edge = findEdge(it1->second, it2->second, false);
+
+    if (!edge)
+    {
+        std::cout << "[sharp] Could not find existing edge: "
+                  << v1 << " - " << v2
+                  << ". Make sure sharp is applied after the face using this edge is created."
+                  << std::endl;
+        return;
+    }
+
+   edge->sharpness = sharpness;
+    edge->isSharp = sharpness > 0.0f;
+
+    // Optional but useful if OpenSubdiv corner sharpness is enabled.
+    edge->v0()->sharpness = std::max(edge->v0()->sharpness, sharpness);
+    edge->v1()->sharpness = std::max(edge->v1()->sharpness, sharpness);
+
+    std::cout << "[sharp] Set edge "
+              << v1 << " - " << v2
+              << " sharpness = " << sharpness << std::endl;
 }
 
 Edge* Mesh::createEdge(Vertex* v1, Vertex* v2)
@@ -834,35 +870,58 @@ bool Mesh::isEmpty() { return vertList.size() == 0 && faceList.size() == 0; }
 
 void Mesh::clear()
 {
-     for(Vertex*& v : vertList)
+    for (Edge*& e : edgeList)
     {
-        delete v;
+        delete e;
     }
-     for(Face*& f : faceList)
-    {
-        delete f;
-    }
-    nameToFace.clear(); // Randy added this 
-    nameToVert.clear(); // Randy added this
-    idToVert.clear(); // Randy added this on 2/19
-    vertList.clear();
-    faceList.clear();
-    edgeTable.clear();
-}
 
-void Mesh::clearAndDelete()
-{
     for (Vertex*& v : vertList)
     {
         delete v;
     }
+
     for (Face*& f : faceList)
     {
         delete f;
     }
+
+    nameToFace.clear();
+    nameToVert.clear();
+    idToVert.clear();
+
     vertList.clear();
     faceList.clear();
+    edgeList.clear();
     edgeTable.clear();
+    randyedgeTable.clear();
+}
+
+void Mesh::clearAndDelete()
+{
+    for (Edge*& e : edgeList)
+    {
+        delete e;
+    }
+
+    for (Vertex*& v : vertList)
+    {
+        delete v;
+    }
+
+    for (Face*& f : faceList)
+    {
+        delete f;
+    }
+
+    nameToFace.clear();
+    nameToVert.clear();
+    idToVert.clear();
+
+    vertList.clear();
+    faceList.clear();
+    edgeList.clear();
+    edgeTable.clear();
+    randyedgeTable.clear();
 }
 
 //void Mesh::setColor(QColor color) { this->color = color; }
@@ -1277,12 +1336,40 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
     // ... (The Edge Sharpness transfer loop uses findEdge, which relies on the vertex map,
     //      but should be safe now that vertices are correctly mapped and indexed) ...
 
-    // This loop is fine, as newMesh.edgeList will only contain edges from faces successfully added.
-    std::vector<Edge*>::iterator eItr;
-    for (eItr = newMesh.edgeList.begin(); eItr != newMesh.edgeList.end(); eItr++)
+   // Transfer edge sharpness from the original mesh to the copied mesh.
+// This must happen after all copied faces have been added, because addFace()
+// is what rebuilds newMesh.edgeList.
+for (Edge* newEdge : newMesh.edgeList)
+{
+    if (!newEdge || !newEdge->v0() || !newEdge->v1())
     {
-        // ... (rest of sharpness transfer) ...
+        continue;
     }
+
+    Edge* oldEdge = findEdge(newEdge->v0()->name, newEdge->v1()->name, false);
+
+    if (!oldEdge)
+    {
+        std::cout << "[copy] Could not transfer sharpness; old edge not found: "
+                  << newEdge->v0()->name << " - "
+                  << newEdge->v1()->name << std::endl;
+
+        newEdge->sharpness = 0.0f;
+        newEdge->isSharp = false;
+        continue;
+    }
+
+    newEdge->sharpness = oldEdge->sharpness;
+    newEdge->isSharp = oldEdge->sharpness > 0.0f;
+
+    if (newEdge->sharpness > 0.0f)
+    {
+        std::cout << "[copy] transferred sharpness "
+                  << newEdge->sharpness << " to edge "
+                  << newEdge->v0()->name << " - "
+                  << newEdge->v1()->name << std::endl;
+    }
+}
 
     newMesh.buildBoundary();
     newMesh.computeNormals(isPolyline);
