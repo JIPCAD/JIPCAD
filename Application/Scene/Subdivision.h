@@ -22,84 +22,98 @@ Sdc::Options SubdivisionOptions() {
 }
 
 
-Far::TopologyRefiner * GetRefiner(DSMesh& _m, bool isSharp) {
-    typedef Far::TopologyDescriptor Descriptor;
+Far::TopologyRefiner* GetRefiner(DSMesh& _m, bool isSharp)
+{
 
-    Descriptor desc;
-    // convert the mesh information for subdivision
+    std::cout << "[OpenSubdiv] GetRefiner called. isSharp = "
+          << isSharp << std::endl;
 
-    /// assign topology
+int incomingSharpEdges = 0;
+for (auto* edge : _m.edges())
+{
+    if (edge && edge->sharpness > 0.0f)
     {
-        desc.numVertices = _m.n_vertices();
-        desc.numFaces = _m.n_faces();
-        int *faceVerts = new int[_m.n_faces()];
-        int count = 0;
-        std::string* surfaceNames = new std::string[_m.n_faces()];
-        std::string* backfaceNames = new std::string[_m.n_faces()];
-
-        for (auto face : _m.faces()) {
-            int i = 0;
-            surfaceNames[face->id] = face->surfaceName;
-            backfaceNames[face->id] = face->backfaceName;
-            for (auto vert : face->vertices) {
-                i++;
-                count++;
-            }
-            faceVerts[face->id] = i;
-        }
-        int *faceVertsIndices = new int[count];
-        int i = 0;
-        for (auto face : _m.faces()) {
-            for (auto vert : face->vertices) {
-                faceVertsIndices[i] = vert->ID;
-                i++;
-            }
-        }
-        desc.numVertsPerFace = faceVerts;
-        desc.vertIndicesPerFace = faceVertsIndices;
-        //desc.surfaceNamePerFace = surfaceNames;
-        //desc.backfaceNamePerFace = backfaceNames;
+        incomingSharpEdges++;
+        std::cout << "[OpenSubdiv] incoming sharp edge "
+                  << edge->v0()->name << " - "
+                  << edge->v1()->name
+                  << " sharpness = " << edge->sharpness
+                  << std::endl;
     }
+}
+
+std::cout << "[OpenSubdiv] incoming sharp edge count = "
+          << incomingSharpEdges << std::endl;
+    typedef Far::TopologyDescriptor Descriptor;
+    Descriptor desc;
+
+    desc.numVertices = (int)_m.vertList.size();
+    desc.numFaces = (int)_m.faceList.size();
+
+    // map Vertex* -> contiguous index
+    std::unordered_map<Vertex*, int> vIndex;
+    vIndex.reserve(_m.vertList.size());
+    for (int i = 0; i < (int)_m.vertList.size(); ++i)
+        vIndex[_m.vertList[i]] = i;
+
+    // FIX: Use std::vector to automatically manage memory and prevent massive memory leaks!
+    std::vector<int> faceVerts(desc.numFaces);
+    std::vector<int> faceVertsIndices;
+
+    for (int f = 0; f < desc.numFaces; ++f)
+    {
+        int nv = (int)_m.faceList[f]->vertices.size();
+        faceVerts[f] = nv;
+        for (auto* v : _m.faceList[f]->vertices)
+        {
+            faceVertsIndices.push_back(vIndex[v]);
+        }
+    }
+
+    desc.numVertsPerFace = faceVerts.data();
+    desc.vertIndicesPerFace = faceVertsIndices.data();
+
+    std::vector<float> cornerWeights;
+    std::vector<int> cornerIndices;
+    std::vector<float> creaseWeights;
+    std::vector<int> creaseIndices;
 
     if (isSharp)
     {
-        /// assign vertex sharpness
-        {
-            desc.numCorners = _m.n_vertices();
-            // assign sharpness
-            auto *sharpness = new float[_m.n_vertices()];
-            // assign edge pair
-            int *vertex = new int[_m.n_vertices()];
-            for (auto v_itr : _m.vertList)
-            {
-                sharpness[v_itr->ID] = v_itr->sharpness;
-                vertex[v_itr->ID] = v_itr->ID;
-            }
-            desc.cornerWeights = sharpness;
-            desc.cornerVertexIndices = vertex;
-        }
+        desc.numCorners = _m.n_vertices();
+        cornerWeights.resize(desc.numCorners);
+        cornerIndices.resize(desc.numCorners);
 
-        /// assign crease for edge pairs
+        int cornerCount = 0;
+        for (auto v_itr : _m.vertList)
         {
-            desc.numCreases = _m.n_edges();
-            // assign crease
-            auto *creases = new float[_m.n_edges()];
-            // assign edge pair
-            int *edgePair = new int[_m.n_edges() * 2];
-
-            for (auto edge : _m.edges())
-            {
-                creases[edge->idx()] = edge->sharpness;
-                edgePair[edge->idx() * 2] = edge->v0()->ID;
-                edgePair[edge->idx() * 2 + 1] = edge->v1()->ID;
-            }
-            desc.creaseVertexIndexPairs = edgePair;
-            desc.creaseWeights = creases;
+            cornerWeights[cornerCount] = v_itr->sharpness;
+            // FIX: Use the contiguous vIndex, NOT the unsafe ID!
+            cornerIndices[cornerCount] = vIndex[v_itr];
+            cornerCount++;
         }
+        desc.cornerWeights = cornerWeights.data();
+        desc.cornerVertexIndices = cornerIndices.data();
+
+        desc.numCreases = _m.n_edges();
+creaseWeights.resize(desc.numCreases);
+creaseIndices.resize(desc.numCreases * 2);
+
+int creaseCount = 0;
+for (auto edge : _m.edges())
+{
+    creaseWeights[creaseCount] = edge->sharpness;
+    creaseIndices[creaseCount * 2] = vIndex[edge->v0()];
+    creaseIndices[creaseCount * 2 + 1] = vIndex[edge->v1()];
+    creaseCount++;
+}
+desc.creaseVertexIndexPairs = creaseIndices.data();
+desc.creaseWeights = creaseWeights.data();
     }
 
-    return Far::TopologyRefinerFactory<Descriptor>::Create(desc,
-                                                    Far::TopologyRefinerFactory<Descriptor>::Options(SubdivisionType(), SubdivisionOptions()));
+    return Far::TopologyRefinerFactory<Descriptor>::Create(
+        desc,
+        Far::TopologyRefinerFactory<Descriptor>::Options(SubdivisionType(), SubdivisionOptions()));
 }
 
 

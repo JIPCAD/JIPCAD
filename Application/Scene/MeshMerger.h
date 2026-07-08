@@ -89,7 +89,8 @@ public:
 private:
     DSMesh MergedMesh;
     std::pair<Vertex*, float> FindClosestVertex(const tc::Vector3& pos);
-
+    tc::Vector3 calculate3PlaneIntersection(tc::Vector3 p, tc::Vector3 n1, tc::Vector3 n2,
+                                            tc::Vector3 n3, double offsetDistance);
     unsigned int VertCount = 0;
     unsigned int FaceCount = 0;
     double shellH = 0.1f, shellW = 0.1f;

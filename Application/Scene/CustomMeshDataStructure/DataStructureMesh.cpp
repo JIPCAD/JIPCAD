@@ -10,6 +10,7 @@
 #include "qcolor.h"
 //#include "parameter.h"
 #include <map>
+#include <algorithm>
 
 Mesh::Mesh(int type)
 {
@@ -83,6 +84,41 @@ Edge* Mesh::findEdge(Vertex* v1, Vertex* v2, bool setmobius)
         }
     }
     return NULL;
+}
+
+void Mesh::setEdgeSharpness(const std::string& v1, const std::string& v2, float sharpness)
+{
+    auto it1 = nameToVert.find(v1);
+    auto it2 = nameToVert.find(v2);
+
+    if (it1 == nameToVert.end() || it2 == nameToVert.end())
+    {
+        std::cout << "[sharp] Could not find vertex pair: "
+                  << v1 << " " << v2 << std::endl;
+        return;
+    }
+
+    Edge* edge = findEdge(it1->second, it2->second, false);
+
+    if (!edge)
+    {
+        std::cout << "[sharp] Could not find existing edge: "
+                  << v1 << " - " << v2
+                  << ". Make sure sharp is applied after the face using this edge is created."
+                  << std::endl;
+        return;
+    }
+
+   edge->sharpness = sharpness;
+    edge->isSharp = sharpness > 0.0f;
+
+    // Optional but useful if OpenSubdiv corner sharpness is enabled.
+    edge->v0()->sharpness = std::max(edge->v0()->sharpness, sharpness);
+    edge->v1()->sharpness = std::max(edge->v1()->sharpness, sharpness);
+
+    std::cout << "[sharp] Set edge "
+              << v1 << " - " << v2
+              << " sharpness = " << sharpness << std::endl;
 }
 
 Edge* Mesh::createEdge(Vertex* v1, Vertex* v2)
@@ -597,49 +633,167 @@ void getFaceNormal(Face* currFace)
 // @param currVert: the target vertex.
 void getVertexNormal(Vertex* currVert)
 {
+    
+    //std::cout << "pre calculation normal: (" << currVert->normal.x << "," << currVert->normal.y
+      //        << "," << currVert->normal.z << ")\n"; 
     Edge* firstEdge = currVert->oneEdge;
-    if (firstEdge == NULL)
-    {   
-        std::cout << currVert->name
-         + " is a lonely vertex without any adjacent edges. This error message  also appear for shapes with non-manifold verts and for polylines"
-                  << std::endl;
-        return;
-    }
-    Edge* currEdge = firstEdge;
-    if (currEdge == nullptr)
+    if (firstEdge == nullptr)
     {
         std::cout << currVert->name
-                + " is a lonely vertex without any adjacent edges. This error message  also appear "
-                  "for shapes with non-manifold verts and for polylines"
+                  << " is a lonely vertex without any adjacent edges. This error message also "
+                     "appear for shapes with non-manifold verts and for polylines"
                   << std::endl;
         return;
     }
-    Face* currFace = currEdge->fa;
+
+    Face* currFace = (firstEdge->fa != nullptr) ? firstEdge->fa : firstEdge->fb;
     tc::Vector3 avgNorm(0, 0, 0);
-    int mobiusCounter = 0;
+
+    // 1. BOUNDARY SEARCH LOOP
+    Edge* startEdge = firstEdge;
+    Edge* checkEdge = firstEdge;
+    Face* checkFace = currFace;
+
     do
     {
-        if (mobiusCounter % 2 == 0)
+        // If the current edge is boundary, use it.
+        if (checkEdge->fa == nullptr || checkEdge->fb == nullptr)
         {
-            avgNorm += currFace->normal;
-        }
-        else
-        {
-            avgNorm -= currFace->normal;
-        }
-        if (currEdge->mobius)
-        {
-            mobiusCounter += 1;
-        }
-        currFace = currEdge->theOtherFace(currFace);
-        if (currFace == NULL)
-        {
-            // If the face is NULL, need to skip this face
+            startEdge = checkEdge;
             break;
         }
-        currEdge = currEdge->nextEdge(currVert, currFace);
-    } while (currEdge != firstEdge);
-    currVert->normal = avgNorm.Normalized();
+
+        Edge* nextE = checkEdge->nextEdge(currVert, checkFace);
+
+        if (nextE == nullptr)
+            break;
+
+        // If nextE is boundary, save it BEFORE calling theOtherFace(),
+        // because theOtherFace() may return nullptr and you would lose it.
+        if (nextE->fa == nullptr || nextE->fb == nullptr)
+        {
+            startEdge = nextE;
+            break;
+        }
+
+        Face* nextFace = nextE->theOtherFace(checkFace);
+
+        if (nextFace == nullptr)
+        {
+            startEdge = nextE;
+            break;
+        }
+
+        checkEdge = nextE;
+        checkFace = nextFace;
+
+    } while (checkEdge != firstEdge && checkEdge != nullptr);
+
+    // 2. NORMAL CALCULATION LOOP
+    bool breakOnNext = false;
+    Edge* currEdge = startEdge;
+    currFace = (currEdge->fa != nullptr) ? currEdge->fa : currEdge->fb;
+    //std::cout << "\n---calc begin---\n";
+    while (currEdge != nullptr)
+    {
+        if (currFace == nullptr)
+        {
+            break;
+        }
+        Vertex* otherVert = (currEdge->va == currVert) ? currEdge->vb : currEdge->va;
+
+        // 1. Decide if we should skip the math for this step
+        bool skipMath = false;
+
+        // Skip if it touches a hole, OR if the face is a ribbon
+        if (otherVert->name.find("_hole123") != std::string::npos
+            || currFace->name.find("offsetRibbon") != std::string::npos)
+        {
+            skipMath = true;
+        }
+        if (!skipMath)
+        {
+
+            int v_idx = -1;
+            for (int index = 0; index < currFace->vertices.size(); ++index)
+            {
+                if (currFace->vertices[index] == currVert)
+                {
+                    v_idx = index;
+                    break;
+                }
+            }
+
+            if (v_idx != -1)
+            {
+                Vertex* vPrev = currFace->vertices[(v_idx - 1 + currFace->vertices.size())
+                                                   % currFace->vertices.size()];
+                Vertex* vNext = currFace->vertices[(v_idx + 1) % currFace->vertices.size()];
+                //std::cout << "names: " << vPrev->name << ", and " << vNext->name << "; Face Name: << " << currFace->name << "; Face Vertex Count: "<< currFace->vertices.size()<<"\n";
+                if (!(vPrev->name.find("_hole") != std::string::npos
+                      || vNext->name.find("_hole") != std::string::npos))
+                {
+                    tc::Vector3 e1 = (vPrev->position - currVert->position).Normalized();
+                    tc::Vector3 e2 = (vNext->position - currVert->position).Normalized();
+
+                    float dot = e1.DotProduct(e2);
+                    dot = std::max(-1.0f, std::min(1.0f, dot));
+
+                    float angle = acos(dot);
+                    if (currFace->name.find("offsetRibbon") == std::string::npos)
+                    {
+                        avgNorm += (currFace->normal * angle);
+                    }
+                }
+            }
+        }
+        // Advance to the next edge
+        Edge* next = currEdge->nextEdge(currVert, currFace);
+
+        // Prevent null pointer crash at the end of a boundary fan
+        if (next == nullptr)
+            break;
+
+        currFace = next->theOtherFace(currFace);
+        currEdge = next;
+
+        if (currEdge == startEdge)
+        {
+            break;
+            if ((avgNorm.x == 0 && avgNorm.y == 0 && avgNorm.z == 0) && !breakOnNext)
+                breakOnNext = true;
+            else
+                break;
+        }
+
+    }
+
+    // Normalize the final accumulated vector
+    tc::Vector3 finalNormal = avgNorm.Normalized();
+    if (finalNormal.x != 0 || finalNormal.y != 0 || finalNormal.z != 0)
+    {
+        //std::cout << "non zero normal\n";
+        currVert->normal = finalNormal;
+    }
+    else
+    {
+        /*
+        std::cout << "zero normal - (" << currVert->normal.x << "," << currVert->normal.y << ","
+                  << currVert->normal.z << ")\n";
+        */
+    }
+    std::cout << "NORMAL START for " << currVert->name << "\n";
+    std::cout << "  startEdge: " << startEdge->va->name << " - " << startEdge->vb->name << "\n";
+
+    if (startEdge->fa)
+        std::cout << "  fa surface=" << startEdge->fa->surfaceName << "\n";
+    else
+        std::cout << "  fa=null\n";
+
+    if (startEdge->fb)
+        std::cout << "  fb surface=" << startEdge->fb->surfaceName << "\n";
+    else
+        std::cout << "  fb=null\n";
 }
 
 // Iterate over every vertex in the mesh and compute its normal
@@ -713,35 +867,58 @@ bool Mesh::isEmpty() { return vertList.size() == 0 && faceList.size() == 0; }
 
 void Mesh::clear()
 {
-     for(Vertex*& v : vertList)
+    for (Edge*& e : edgeList)
     {
-        delete v;
+        delete e;
     }
-     for(Face*& f : faceList)
-    {
-        delete f;
-    }
-    nameToFace.clear(); // Randy added this 
-    nameToVert.clear(); // Randy added this
-    idToVert.clear(); // Randy added this on 2/19
-    vertList.clear();
-    faceList.clear();
-    edgeTable.clear();
-}
 
-void Mesh::clearAndDelete()
-{
     for (Vertex*& v : vertList)
     {
         delete v;
     }
+
     for (Face*& f : faceList)
     {
         delete f;
     }
+
+    nameToFace.clear();
+    nameToVert.clear();
+    idToVert.clear();
+
     vertList.clear();
     faceList.clear();
+    edgeList.clear();
     edgeTable.clear();
+    randyedgeTable.clear();
+}
+
+void Mesh::clearAndDelete()
+{
+    for (Edge*& e : edgeList)
+    {
+        delete e;
+    }
+
+    for (Vertex*& v : vertList)
+    {
+        delete v;
+    }
+
+    for (Face*& f : faceList)
+    {
+        delete f;
+    }
+
+    nameToFace.clear();
+    nameToVert.clear();
+    idToVert.clear();
+
+    vertList.clear();
+    faceList.clear();
+    edgeList.clear();
+    edgeTable.clear();
+    randyedgeTable.clear();
 }
 
 //void Mesh::setColor(QColor color) { this->color = color; }
@@ -1003,6 +1180,7 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
         vertCopy->name = (*vIt)->name;
         vertCopy->position = (*vIt)->position;
         vertCopy->sharpness = (*vIt)->sharpness;
+        vertCopy->normal = (*vIt)->normal;
 
         // This MUST set the new ID based on newMesh.vertList.size()
         newMesh.addVertex(vertCopy);
@@ -1154,12 +1332,40 @@ Mesh Mesh::newMakeCopy(std::string copy_mesh_name, bool isPolyline)
     // ... (The Edge Sharpness transfer loop uses findEdge, which relies on the vertex map,
     //      but should be safe now that vertices are correctly mapped and indexed) ...
 
-    // This loop is fine, as newMesh.edgeList will only contain edges from faces successfully added.
-    std::vector<Edge*>::iterator eItr;
-    for (eItr = newMesh.edgeList.begin(); eItr != newMesh.edgeList.end(); eItr++)
+   // Transfer edge sharpness from the original mesh to the copied mesh.
+// This must happen after all copied faces have been added, because addFace()
+// is what rebuilds newMesh.edgeList.
+for (Edge* newEdge : newMesh.edgeList)
+{
+    if (!newEdge || !newEdge->v0() || !newEdge->v1())
     {
-        // ... (rest of sharpness transfer) ...
+        continue;
     }
+
+    Edge* oldEdge = findEdge(newEdge->v0()->name, newEdge->v1()->name, false);
+
+    if (!oldEdge)
+    {
+        std::cout << "[copy] Could not transfer sharpness; old edge not found: "
+                  << newEdge->v0()->name << " - "
+                  << newEdge->v1()->name << std::endl;
+
+        newEdge->sharpness = 0.0f;
+        newEdge->isSharp = false;
+        continue;
+    }
+
+    newEdge->sharpness = oldEdge->sharpness;
+    newEdge->isSharp = oldEdge->sharpness > 0.0f;
+
+    if (newEdge->sharpness > 0.0f)
+    {
+        std::cout << "[copy] transferred sharpness "
+                  << newEdge->sharpness << " to edge "
+                  << newEdge->v0()->name << " - "
+                  << newEdge->v1()->name << std::endl;
+    }
+}
 
     newMesh.buildBoundary();
     newMesh.computeNormals(isPolyline);

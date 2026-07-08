@@ -1,0 +1,36 @@
+include :intro_imports\colors.nom endinclude
+
+###############  Pyramid Geometry  #####################################
+mesh pyramid
+  point vx  ( 2  0  0 ) endpoint
+  point vy  ( 0  2  0 ) endpoint
+  point va  (-2  0  0 ) endpoint
+  point vb  ( 0 -2  0 ) endpoint
+  point vz  ( 0  0  1 ) endpoint
+
+  face fxy (vz vx vy)  surface R  endface  ## pyr-faces
+  face fya (vz vy va)  surface G  endface
+  face fab (vz va vb)  surface B  endface
+endmesh
+
+merge merge_pyramid
+    instance ipyramid pyramid endinstance
+endmerge
+instance imerge_pyramid merge_pyramid endinstance
+
+###### Figure 9. Chain Offset -> Offset Generator
+offset offset_pyramid
+    offset_type NOME_OFFSET_DEFAULT
+    height 0.3
+    hole 0.3
+    instance imerge_pyramid merge_pyramid endinstance
+endoffset
+instance ioffset_pyramid offset_pyramid endinstance
+
+offset offset_pyramid2
+    offset_type NOME_OFFSET_DEFAULT
+    height 0.1
+    hole 0.1
+    instance ioffset_pyramid merge_pyramid endinstance
+endoffset
+instance ioffset_pyramid2 offset_pyramid2 endinstance

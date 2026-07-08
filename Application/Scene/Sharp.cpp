@@ -45,7 +45,10 @@ bool CSharp::AddSharpnessIntoMesh(CMesh* mesh) const
             nameList.push_back(point->Name);
         }
     }
-
+    std::cout << "[sharp] applying sharpness "
+          << Sharpness.GetValue(0.0f)
+          << " to " << nameList.size()
+          << " point(s)" << std::endl;
     if (nameList.size() == 1) {
         mesh->AddPointSharpness(mesh->FindVertex(nameList.at(0)), Sharpness.GetValue(0.0f));
     } else if (nameList.size() > 1){
