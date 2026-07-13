@@ -12,6 +12,7 @@ class CSphere : public CMesh
     DEFINE_INPUT(float, PhiMax) { MarkDirty(); }
     DEFINE_INPUT(float, ThetaSegs) { MarkDirty(); }
     DEFINE_INPUT(float, PhiSegs) { MarkDirty(); }
+    DEFINE_INPUT(float, Type) { MarkDirty(); }
 
 public:
     DECLARE_META_CLASS(CSphere, CMesh);
@@ -24,4 +25,4 @@ public:
     void UpdateEntity() override;
 };
 
-}
+} 

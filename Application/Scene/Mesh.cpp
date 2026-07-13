@@ -183,11 +183,33 @@ void CMesh::SetFromData(CMeshImpl mesh, std::map<std::string, Vertex*> vnames,
 
 void CMesh::AddEdgeSharpness(Vertex* e1, Vertex* e2, float sharpness)
 {
+    if (!e1 || !e2)
+    {
+        std::cout << "[sharp] null vertex passed into AddEdgeSharpness" << std::endl;
+        return;
+    }
+
+    std::cout << "[sharp] trying edge "
+              << e1->name << " - " << e2->name
+              << " = " << sharpness << std::endl;
+
     Edge* edge = currMesh.findEdge(e1, e2, false);
-    if (edge) {
+
+    if (edge)
+    {
         edge->sharpness = sharpness;
-    } else {
-        std::cout << "can't find edge with vertex " << e1->ID << ", " << e2->ID << std::endl;
+        edge->isSharp = sharpness > 0.0f;
+
+        std::cout << "[sharp] SET edge "
+                  << edge->v0()->name << " - " << edge->v1()->name
+                  << " sharpness = " << edge->sharpness << std::endl;
+    }
+    else
+    {
+        std::cout << "[sharp] FAILED to find edge "
+                  << e1->name << " - " << e2->name
+                  << " with IDs "
+                  << e1->ID << ", " << e2->ID << std::endl;
     }
 }
 

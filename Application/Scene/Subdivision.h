@@ -24,6 +24,26 @@ Sdc::Options SubdivisionOptions() {
 
 Far::TopologyRefiner* GetRefiner(DSMesh& _m, bool isSharp)
 {
+
+    std::cout << "[OpenSubdiv] GetRefiner called. isSharp = "
+          << isSharp << std::endl;
+
+int incomingSharpEdges = 0;
+for (auto* edge : _m.edges())
+{
+    if (edge && edge->sharpness > 0.0f)
+    {
+        incomingSharpEdges++;
+        std::cout << "[OpenSubdiv] incoming sharp edge "
+                  << edge->v0()->name << " - "
+                  << edge->v1()->name
+                  << " sharpness = " << edge->sharpness
+                  << std::endl;
+    }
+}
+
+std::cout << "[OpenSubdiv] incoming sharp edge count = "
+          << incomingSharpEdges << std::endl;
     typedef Far::TopologyDescriptor Descriptor;
     Descriptor desc;
 
@@ -76,20 +96,19 @@ Far::TopologyRefiner* GetRefiner(DSMesh& _m, bool isSharp)
         desc.cornerVertexIndices = cornerIndices.data();
 
         desc.numCreases = _m.n_edges();
-        creaseWeights.resize(desc.numCreases);
-        creaseIndices.resize(desc.numCreases * 2);
+creaseWeights.resize(desc.numCreases);
+creaseIndices.resize(desc.numCreases * 2);
 
-        int creaseCount = 0;
-        for (auto edge : _m.edges())
-        {
-            creaseWeights[creaseCount] = edge->sharpness;
-            // FIX: Use the contiguous vIndex!
-            creaseIndices[creaseCount * 2] = vIndex[edge->v0()];
-            creaseIndices[creaseCount * 2 + 1] = vIndex[edge->v1()];
-            creaseCount++;
-        }
-        desc.creaseVertexIndexPairs = creaseIndices.data();
-        desc.creaseWeights = creaseWeights.data();
+int creaseCount = 0;
+for (auto edge : _m.edges())
+{
+    creaseWeights[creaseCount] = edge->sharpness;
+    creaseIndices[creaseCount * 2] = vIndex[edge->v0()];
+    creaseIndices[creaseCount * 2 + 1] = vIndex[edge->v1()];
+    creaseCount++;
+}
+desc.creaseVertexIndexPairs = creaseIndices.data();
+desc.creaseWeights = creaseWeights.data();
     }
 
     return Far::TopologyRefinerFactory<Descriptor>::Create(
