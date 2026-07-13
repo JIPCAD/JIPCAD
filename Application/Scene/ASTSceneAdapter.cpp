@@ -785,10 +785,15 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                 double height = 0.1f;
                 double width = 0.0f;
                 CExprEvalDirect eval;
-
+                if (!command_to_review.provided_command)
+                    return;
                 // Parse height
                 auto* heightInfo = command_to_review.provided_command->GetNamedArgument("height");
-
+                if (!heightInfo)
+                {
+                    std::cout << "Height is not defined";
+                    return;
+                }
                 auto items = std::any_cast<AST::ANamedArgument*>(heightInfo)->GetArguments();
 
                 try
@@ -820,7 +825,11 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
 
                 // Parse hole / width
                 auto* widthInfo = command_to_review.provided_command->GetNamedArgument("hole");
-
+                if (!widthInfo)
+                {
+                    std::cout << "Width is not defined";
+                    return;
+                }
                 items = std::any_cast<AST::ANamedArgument*>(widthInfo)->GetArguments();
 
                 try
@@ -849,15 +858,61 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                         throw AST::CSemanticError("Width is not properly defined", items.at(0));
                     }
                 }
+                /*
+                if (command_to_review.provided_command != nullptr)
+                {
 
+                    auto xy = command_to_review.provided_command->GetNamedArgumentsNames();
+                    for (auto u : xy)
+                    {
+                        std::cout << "\narg: " << u << "\n";
+                    }
+                }*/
+                
+                auto* outerRimSurfaceInfo = command_to_review.provided_command->GetNamedArgument("outerrimsurface");
+                std::string outerRimSurfaceName = "";
+                if (outerRimSurfaceInfo)
+                {   
+                    auto surfaceEntityNameExpr = outerRimSurfaceInfo->GetArgument(
+                        0)[0]; // Returns a casted AExpr that was an AIdent before casting
+                    auto surfaceIdentifier = static_cast<AST::AIdent*>(&surfaceEntityNameExpr)
+                                                    ->ToString(); // Downcast it back to an AIdent
+                    outerRimSurfaceName = surfaceIdentifier;                        
+                }
+
+                auto* innerRimSurfaceInfo =
+                    command_to_review.provided_command->GetNamedArgument("innerrimsurface");
+                std::string innerRimSurfaceName = "";
+                if (innerRimSurfaceInfo)
+                {
+                    auto surfaceEntityNameExpr = innerRimSurfaceInfo->GetArgument(
+                        0)[0]; // Returns a casted AExpr that was an AIdent before casting
+                    auto surfaceIdentifier = static_cast<AST::AIdent*>(&surfaceEntityNameExpr)
+                                                 ->ToString(); // Downcast it back to an AIdent
+                    innerRimSurfaceName = surfaceIdentifier;
+                }
+
+                auto* outerRimHiddenInfo = command_to_review.provided_command->GetNamedArgument("outerrimhidden");
+                bool outerRimHidden = false;
+                if (outerRimHiddenInfo){
+                    outerRimHidden = true;
+                }
+
+                auto* innerRimHiddenInfo = command_to_review.provided_command->GetNamedArgument("innerrimhidden");
+                bool innerRimHidden = false;
+                if (innerRimHiddenInfo)
+                {
+                    innerRimHidden = true;
+                }
+                
                 std::string outputName = command_to_review.name;
                 std::string providedName = command_to_review.provided_command->GetName();
-
+                /*
                 std::cout << "\n[Offset]"
                           << "\n  output command name: " << outputName
                           << "\n  provided command name: " << providedName
                           << "\n  height: " << height << "\n  width/hole: " << width;
-
+                          */
                 Scene::CMeshMerger* sourceMesh = nullptr;
                 std::string sourceName;
                 std::string sourceInstanceName;
@@ -920,8 +975,10 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                 std::cout << "\nOffset output alias: " << outputName;
                 std::cout << "\nOffset height: " << height;
                 std::cout << "\nOffset width/hole: " << width;
-
+                std::cout << "\nOffset outer rim surface name: " << outerRimSurfaceName; 
                 sourceMesh->setOffsetHeightWidth(height, width);
+                sourceMesh->setOffsetRims(outerRimSurfaceName, innerRimSurfaceName, outerRimHidden,
+                                          innerRimHidden);
                 sourceMesh->setOffset(true);
                 sourceMesh->Catmull();
                 sourceMesh->setOffset(false);
@@ -982,12 +1039,12 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
 
                 std::string outputName = command_to_review.name;
                 std::string providedName = command_to_review.provided_command->GetName();
-
+                /*
                 std::cout << "\n[Subdivision]"
                           << "\n  output command name: " << outputName
                           << "\n  provided command name: " << providedName
                           << "\n  level: " << width;
-
+                */
                 Scene::CMeshMerger* sourceMesh = nullptr;
                 std::string sourceName;
                 std::string sourceInstanceName;
@@ -1175,7 +1232,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                     }
                 }
             }
-            auto vn = cmd->GetNamedArgument("vertexnormal1");
+            auto vn = cmd->GetNamedArgument("vertexnormal");
             if (vn)
             {
                 hasVertexNormal = true;
@@ -1271,7 +1328,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                 }
                 GEnv.Scene->Update();
 
-                if (sceneNode->GetEntity()->IsMesh())
+                if (sceneNode->GetEntity()->IsMesh() && (hasFaceNormal || hasVertexNormal))
                 {
                     sceneNode->ForEachTreeNode(
                         [&](Scene::CSceneTreeNode* node)
@@ -1293,7 +1350,9 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                                 auto* normalNode = GEnv.Scene->GetRootNode()->FindOrCreateChildNode(
                                     entity->GetName() + "_normals");
 
-                                DSMesh d = mesh->GetDSMesh();
+                                //DSMesh d = mesh->GetDSMesh();
+                                std::cout << "has vnormal : " << hasVertexNormal << " | "
+                                          << vertexNormalMultiplier  << "\n";
                                 merger->CreateNormals(mesh->GetDSMesh(), hasFaceNormal,
                                                       faceNormalMultiplier, hasVertexNormal,
                                                       vertexNormalMultiplier);
@@ -1489,7 +1548,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
 
     instance inorm_pyramid norm_pyramid endinstance
     */
-    else if (cmd->GetCommand() == "facenormal1")
+    else if (cmd->GetCommand() == "facenormal")
     {
         // Robert 2/19/2025
         // Gather all instances to merge

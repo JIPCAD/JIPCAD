@@ -3,8 +3,8 @@
 #include "ShellRefiner.h"
 #include "Subdivision.h"
 
-#include <unordered_map>
 #include <cmath>
+#include <unordered_map>
 #include <algorithm>
 #include <vector>
 #include <limits>
@@ -18,7 +18,6 @@ DEFINE_META_OBJECT(CMeshMerger)
     BindNamedArgument(&CMeshMerger::Level, "sd_level", 0);
     BindNamedArgument(&CMeshMerger::Height, "height", 0);
     BindNamedArgument(&CMeshMerger::Width, "width", 0);
-
 }
 
 inline static const float Epsilon = 0.01f;
@@ -34,62 +33,81 @@ void CMeshMerger::UpdateEntity()
     SetValid(true);
 }
 
-void CMeshMerger::ExportAsStl(QString filename) {
+void CMeshMerger::ExportAsStl(QString filename)
+{
     ofstream file;
-    file.open (filename.toStdString());
+    file.open(filename.toStdString());
     file << "solid\n";
     vector<Face*>::iterator fIt;
-    for(fIt = currMesh.faceList.begin(); fIt < currMesh.faceList.end(); fIt++) {
-        Face * currFace = (*fIt);
-        Edge * firstEdge = currFace -> oneEdge;
-        Edge * currEdge;
-        if(firstEdge == NULL) {
-            cout<<"ERROR: This face does not have a sideEdge."<<endl;
+    for (fIt = currMesh.faceList.begin(); fIt < currMesh.faceList.end(); fIt++)
+    {
+        Face* currFace = (*fIt);
+        Edge* firstEdge = currFace->oneEdge;
+        Edge* currEdge;
+        if (firstEdge == NULL)
+        {
+            cout << "ERROR: This face does not have a sideEdge." << endl;
             exit(0);
         }
-        Vertex * v0, * v1, * v2;
-        if(currFace == firstEdge -> fa) {
-            v0 = firstEdge -> va;
-            currEdge = firstEdge -> nextVbFa;
-        } else {
-            if(firstEdge -> mobius) {
-                v0 = firstEdge -> va;
-                currEdge = firstEdge -> nextVbFb;
-            } else {
-                v0 = firstEdge -> vb;
-                currEdge = firstEdge -> nextVaFb;
+        Vertex *v0, *v1, *v2;
+        if (currFace == firstEdge->fa)
+        {
+            v0 = firstEdge->va;
+            currEdge = firstEdge->nextVbFa;
+        }
+        else
+        {
+            if (firstEdge->mobius)
+            {
+                v0 = firstEdge->va;
+                currEdge = firstEdge->nextVbFb;
+            }
+            else
+            {
+                v0 = firstEdge->vb;
+                currEdge = firstEdge->nextVaFb;
             }
         }
-        tc::Vector3 p0 = v0 -> position;
-        if(currEdge == NULL) {
-            cout<<"ERROR: This face contains only one edge and can not be drawn."<<endl;
+        tc::Vector3 p0 = v0->position;
+        if (currEdge == NULL)
+        {
+            cout << "ERROR: This face contains only one edge and can not be drawn." << endl;
         }
-        do {
-            Edge * nextEdge;
-            if(currFace == currEdge -> fa) {
-                v1 = currEdge -> va;
-                v2 = currEdge -> vb;
-                nextEdge = currEdge -> nextVbFa;
-            } else {
-                if(currEdge -> mobius) {
-                    v1 = currEdge -> va;
-                    v2 = currEdge -> vb;
-                    nextEdge = currEdge -> nextVbFb;
-                } else {
-                    v1 = currEdge -> vb;
-                    v2 = currEdge -> va;
-                    nextEdge = currEdge -> nextVaFb;
+        do
+        {
+            Edge* nextEdge;
+            if (currFace == currEdge->fa)
+            {
+                v1 = currEdge->va;
+                v2 = currEdge->vb;
+                nextEdge = currEdge->nextVbFa;
+            }
+            else
+            {
+                if (currEdge->mobius)
+                {
+                    v1 = currEdge->va;
+                    v2 = currEdge->vb;
+                    nextEdge = currEdge->nextVbFb;
+                }
+                else
+                {
+                    v1 = currEdge->vb;
+                    v2 = currEdge->va;
+                    nextEdge = currEdge->nextVaFb;
                 }
             }
-            if(v2 != v0) {
+            if (v2 != v0)
+            {
                 tc::Vector3 faceNormal = getNormal3Vertex(v0->position, v1->position, v2->position);
-                file << "  facet normal "<<faceNormal.x<<" "<<faceNormal.y<<" "<<faceNormal.z<<"\n";
+                file << "  facet normal " << faceNormal.x << " " << faceNormal.y << " "
+                     << faceNormal.z << "\n";
                 file << "    outer loop\n";
-                tc::Vector3 p1 = v1 -> position;
-                tc::Vector3 p2 = v2 -> position;
-                file << "      vertex " << p0.x << " "<< p0.y << " " << p0.z<<"\n";
-                file << "      vertex " << p1.x << " "<< p1.y << " " << p1.z<<"\n";
-                file << "      vertex " << p2.x << " "<< p2.y << " " << p2.z<<"\n";
+                tc::Vector3 p1 = v1->position;
+                tc::Vector3 p2 = v2->position;
+                file << "      vertex " << p0.x << " " << p0.y << " " << p0.z << "\n";
+                file << "      vertex " << p1.x << " " << p1.y << " " << p1.z << "\n";
+                file << "      vertex " << p2.x << " " << p2.y << " " << p2.z << "\n";
                 file << "    endloop\n";
                 file << "  endfacet\n";
             }
@@ -112,7 +130,8 @@ std::vector<std::string> CMeshMerger::splitString(const std::string& str, const 
     result.push_back(str.substr(start));
     return result;
 }
-void CMeshMerger::Shell(std::string f) { 
+void CMeshMerger::Shell(std::string f)
+{
     DSMesh otherMesh = MergedMesh.newMakeCopy();
     Face* shellFace;
     bool selected = false;
@@ -141,11 +160,11 @@ void CMeshMerger::Shell(std::string f) {
     }
     catch (std::exception& e)
     {
-        std::cout << " shell build failed: Please do one of the following:"
-                  << std::endl;
+        std::cout << " shell build failed: Please do one of the following:" << std::endl;
     }
 }
-void CMeshMerger::doShell(DSMesh & _m, Face* f) {
+void CMeshMerger::doShell(DSMesh& _m, Face* f)
+{
     double height = Height.GetValue(shellH);
     double width = Width.GetValue(shellW);
     if (height <= 0 && width <= 0)
@@ -160,7 +179,7 @@ void CMeshMerger::doShell(DSMesh & _m, Face* f) {
     {
         std::cout << "face deletion failed, there is no face available to be deleted." << std::endl;
     }
-    
+
     CShellRefiner shellRefiner(_m);
     shellRefiner.Refine(height, width);
     _m.clear(); // TODO: is this not doing anyhting???
@@ -181,7 +200,7 @@ void CMeshMerger::doShell(DSMesh & _m, Face* f) {
                                          _m.vertList.size());
             newVert->name =
                 "shellVert" + std::to_string(i); // Randy this was the bug. Need to name the Vert
-                                                  // before adding it! Fix this logic.
+                                                 // before adding it! Fix this logic.
             _m.addVertex(newVert);
             newVerts.push_back(newVert);
         }
@@ -190,7 +209,6 @@ void CMeshMerger::doShell(DSMesh & _m, Face* f) {
 
     //_m.buildBoundary(); // Randy added this on 2/26
     //_m.computeNormals();
-
 }
 void CMeshMerger::Catmull2(CMeshInstance& meshInstance, bool shouldMergePoints = true)
 {
@@ -227,8 +245,8 @@ void CMeshMerger::Catmull2(CMeshInstance& meshInstance, bool shouldMergePoints =
     }
     if (needOffset)
     {
-        //offset(otherMesh);
-        offset(otherMesh, h, w);
+        // offset(otherMesh);
+        offset(otherMesh, h, w, _outerRimSurface, _innerRimSurface, _outerRimHidden, _innerRimHidden);
         std::cout << "Apply offset, may take some time..." << std::endl;
         didOffset = true;
     }
@@ -255,9 +273,9 @@ void CMeshMerger::Catmull2(CMeshInstance& meshInstance, bool shouldMergePoints =
     //  ccSubdivision(3);
     try
     {
-        //currMesh.buildBoundary();
-        //currMesh.computeNormals();
-        // MergedMesh = currMesh.newMakeCopy();
+        // currMesh.buildBoundary();
+        // currMesh.computeNormals();
+        //  MergedMesh = currMesh.newMakeCopy();
 
         // MergeIn(currMesh.newMakeCopy(), false);
     }
@@ -276,19 +294,21 @@ void CMeshMerger::Catmull2(CMeshInstance& meshInstance, bool shouldMergePoints =
     // and other undefined coloring behavior.
     if (subdivisionLevel > 0)
         Catmull2(meshInstance, shouldMergePoints);
-    //MergeIn(meshInstance, shouldMergePoints);
+    // MergeIn(meshInstance, shouldMergePoints);
 }
 
 void CMeshMerger::Catmull()
 {
     bool needSubdivision = subdivisionLevel != 0;
-    //bool needOffset = (Width.GetValue(0) != 0 || Height.GetValue(0) != 0);
+    // bool needOffset = (Width.GetValue(0) != 0 || Height.GetValue(0) != 0);
     bool needOffset = offsetIdent;
     // std::cout << std::to_string(Width.GetValue(0)).c_str() << '\n' << std::endl;
     // std::cout << std::to_string(Height.GetValue(0)).c_str() << std::endl;
-    if ((!needSubdivision && !needOffset) || MergedMesh.vertList.empty() && currMesh.isEmpty())//.vertices_empty()) Randy changed the commented out method
+    if ((!needSubdivision && !needOffset)
+        || MergedMesh.vertList.empty()
+            && currMesh.isEmpty()) //.vertices_empty()) Randy changed the commented out method
     {
-        //nothing to do
+        // nothing to do
         return;
     }
     WireFrames.clear();
@@ -305,16 +325,17 @@ void CMeshMerger::Catmull()
     bool didOffset = false;
     if (needSubdivision)
     {
-        //std::cout << "\nsubdivLevel again: " << subdivisionLevel << "\n"; 
-        subdivide(otherMesh,1); //, isSharp); // Randy commented this out for now. add back asap 
-        // 4/30/2025 - Robert made this 1 level at a time, see note at the end of the Catmull function.
+        // std::cout << "\nsubdivLevel again: " << subdivisionLevel << "\n";
+        subdivide(otherMesh, 1); //, isSharp); // Randy commented this out for now. add back asap
+        // 4/30/2025 - Robert made this 1 level at a time, see note at the end of the Catmull
+        // function.
         std::cout << "Apply catmullclark subdivision, may take some time..." << std::endl;
         subdivisionLevel--;
     }
     if (needOffset)
     {
-        //offset(otherMesh);
-        offset(otherMesh, h, w);
+        // offset(otherMesh);
+        offset(otherMesh, h, w, _outerRimSurface, _innerRimSurface, _outerRimHidden, _innerRimHidden);
         std::cout << "Apply offset, may take some time..." << std::endl;
         didOffset = true;
     }
@@ -322,27 +343,27 @@ void CMeshMerger::Catmull()
 
     if (didOffset)
     {
-        //currMeshInstance->GetDSMesh().faceList = currMesh.faceList;
-        //currMeshInstance->GetDSMesh().edgeList = currMesh.edgeList;
-        //currMeshInstance->GetDSMesh().edgeTable = currMesh.edgeTable;
-        //CMeshInstance cmi = CMeshInstance();
-        //currMeshInstance->currMesh = otherMesh;
-        //MergedMesh = currMesh.newMakeCopy();
-        //MergeCurr();
-        //MergeIn(*currMeshInstance, true);
+        // currMeshInstance->GetDSMesh().faceList = currMesh.faceList;
+        // currMeshInstance->GetDSMesh().edgeList = currMesh.edgeList;
+        // currMeshInstance->GetDSMesh().edgeTable = currMesh.edgeTable;
+        // CMeshInstance cmi = CMeshInstance();
+        // currMeshInstance->currMesh = otherMesh;
+        // MergedMesh = currMesh.newMakeCopy();
+        // MergeCurr();
+        // MergeIn(*currMeshInstance, true);
     }
 
-        //MergeCurr();
-        //std::cout << "";
-    //MergedMesh = otherMesh.newMakeCopy();
+    // MergeCurr();
+    // std::cout << "";
+    // MergedMesh = otherMesh.newMakeCopy();
 
-    //subdivide(currMesh, subdivisionLevel);
-    // ccSubdivision(3);
+    // subdivide(currMesh, subdivisionLevel);
+    //  ccSubdivision(3);
     try
     {
         MergedMesh = otherMesh.newMakeCopy();
-        //if (!didOffset)
-            MergedMesh.computeNormals();
+        // if (!didOffset)
+        MergedMesh.computeNormals();
         MergedMesh.buildBoundary();
 
         currMesh = MergedMesh.newMakeCopy();
@@ -355,18 +376,18 @@ void CMeshMerger::Catmull()
                   << " nameToVert=" << currMesh.nameToVert.size() // if exists
                   << " nameToFace=" << currMesh.nameToFace.size() // if exists
                   << "\n";
-        //MergedMesh = currMesh.newMakeCopy();
+        // MergedMesh = currMesh.newMakeCopy();
 
-        //MergeIn(currMesh.newMakeCopy(), false);
+        // MergeIn(currMesh.newMakeCopy(), false);
     }
     catch (std::exception& e)
     {
-        std::cout << "catmul clark subdivision failed: Please do one of the following:" << std::endl;
-
+        std::cout << "catmul clark subdivision failed: Please do one of the following:"
+                  << std::endl;
     }
-    
-    //MergeCurr();
-    
+
+    // MergeCurr();
+
     // Added by Robert - 4/30/2025
     // This in combination with just doing 1 subdivision level at a time
     // allows for the coloring to be consistent throughout the mesh.
@@ -374,9 +395,8 @@ void CMeshMerger::Catmull()
     // and other undefined coloring behavior.
     if (subdivisionLevel > 0)
         Catmull();
-    //MergeIn(meshInstance, shouldMergePoints);
+    // MergeIn(meshInstance, shouldMergePoints);
 }
-
 
 // Both of the below functions are used in the ASTSceneAdapter for creating
 // the normal vectors when using tags facenormal and vertexnormal
@@ -390,8 +410,9 @@ void CMeshMerger::CreateNormalsCurr(bool faceNormals, float faceNormalMultiplier
                   vertexNormalMultiplier);
 }
 
-void CMeshMerger::changeColors(std::string surfaceName, std::string backfaceName) {
-    //std::cout << "\nran color change\n";
+void CMeshMerger::changeColors(std::string surfaceName, std::string backfaceName)
+{
+    // std::cout << "\nran color change\n";
     std::vector<Face*> myFaceList = MergedMesh.faceList;
     if (!surfaceName.empty())
     {
@@ -411,18 +432,21 @@ void CMeshMerger::changeColors(std::string surfaceName, std::string backfaceName
     }
 }
 
-//Robert added in March 2025
-//Robert modified in March 2026 to use Newell's for face normals and Angle-Weighting for vertex normals
+// Robert added in March 2025
+// Robert modified in March 2026 to use Newell's for face normals and Angle-Weighting for vertex
+// normals
 void CMeshMerger::CreateNormals(DSMesh& ds, bool faceNormals, float faceNormalMultiplier,
-                                bool vertexNormals, float vertexNormalMultiplier )
-{ 
+                                bool vertexNormals, float vertexNormalMultiplier)
+{
     std::vector<std::vector<Vertex*>> tmp = WireFrames;
     ClearLineStrips();
-    for (auto i : tmp){
+    for (auto i : tmp)
+    {
         WireFrames.push_back(i);
-    } // This preserves the WireFrame as the original is deleted from ClearLineStrips, needed to remove previous normals
+    } // This preserves the WireFrame as the original is deleted from ClearLineStrips, needed to
+      // remove previous normals
     auto& otherMesh = ds;
-    //otherMesh.computeNormals();
+    // otherMesh.computeNormals();
     std::vector<Vertex*> currNormal = {};
     if (faceNormals)
     {
@@ -478,28 +502,27 @@ void CMeshMerger::CreateNormals(DSMesh& ds, bool faceNormals, float faceNormalMu
             i++;
         }*/
         int i = 0;
-        for (auto* v: otherMesh.vertList){
-                Vertex* center = new Vertex();
-                Vertex* distant = new Vertex();
-                center->position = v->position; // Gets center point of face
-                distant->position = v->normal; // Get the point the normal points to
-                distant->position.Normalize();
-                distant->position = distant->position * vertexNormalMultiplier;
-                std::cout << "Added normal (" << distant->position.x << ", " << distant->position.y
-                          << ", " << distant->position.z << ")\n";
-                distant->position += center->position;
-                currNormal.push_back(center);
-                currNormal.push_back(distant);
-                //std::vector<Vertex*> temp = { v->position, v->normal };
-                AddLineStrip("vert_normal_" + std::to_string(i), currNormal);
-                currNormal.clear();
-                i++;
+        for (auto* v : otherMesh.vertList)
+        {
+            Vertex* center = new Vertex();
+            Vertex* distant = new Vertex();
+            center->position = v->position; // Gets center point of face
+            distant->position = v->normal; // Get the point the normal points to
+            distant->position.Normalize();
+            distant->position = distant->position * vertexNormalMultiplier;
+            std::cout << "Added normal (" << distant->position.x << ", " << distant->position.y
+                      << ", " << distant->position.z << ")\n";
+            distant->position += center->position;
+            currNormal.push_back(center);
+            currNormal.push_back(distant);
+            // std::vector<Vertex*> temp = { v->position, v->normal };
+            AddLineStrip("vert_normal_" + std::to_string(i), currNormal);
+            currNormal.clear();
+            i++;
         }
     }
-
 }
-tc::Matrix3x4 CMeshMerger::getMergedMeshTf() { 
-    return MergedMeshTf; }
+tc::Matrix3x4 CMeshMerger::getMergedMeshTf() { return MergedMeshTf; }
 
 void CMeshMerger::MergeCurr()
 {
@@ -531,10 +554,14 @@ void CMeshMerger::MergeCurr()
             distance = closestResult.second;
         }
 
-        if (distance < Epsilon && shouldMergePoints && closestVert != nullptr)
-        {
-            vertMap[otherVert] = closestVert;
-
+        if (distance < Epsilon && shouldMergePoints && otherVert != nullptr
+            && closestVert != nullptr)
+        { // this is to check for cases where there is an overlap (two vertices lie in the exact
+            // same world space coordinate). We only want to create one merger vertex at this
+            // location!
+            vertMap[otherVert] =
+                closestVert; // just set vi to the closestVert (which is a merger vertex
+            // in the same location added in a previous iteration)
             closestVert->sharpness = std::max(closestVert->sharpness, otherVert->sharpness);
 
             if (otherVert->sharpness > 0.0f)
@@ -694,9 +721,10 @@ void CMeshMerger::MergeCurr()
 }
 void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
 {
-    //currMeshInstance = (std::make_shared<CMeshInstance>(meshInstance));
+    // currMeshInstance = (std::make_shared<CMeshInstance>(meshInstance));
     treeNode = meshInstance.GetSceneTreeNode();
-    auto tf = meshInstance.GetSceneTreeNode()->L2WTransform.GetValue(tc::Matrix3x4::IDENTITY); // The transformation matrix is the identity matrix by default
+    auto tf = meshInstance.GetSceneTreeNode()->L2WTransform.GetValue(
+        tc::Matrix3x4::IDENTITY); // The transformation matrix is the identity matrix by default
     MergedMeshTf = tf;
     auto& otherMesh = meshInstance.GetDSMesh(); // Getting OpeshMesh implementation of a mesh. This
 
@@ -719,8 +747,9 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
 
     // Copy over all the vertices and check for overlapping
     std::unordered_map<Vertex*, Vertex*> vertMap;
-    for (auto otherVert : otherMesh.vertList) // Iterate through all the vertices in the mesh (the non-merger mesh,
-        // aka the one you're trying copy vertices from)
+    for (auto otherVert :
+         otherMesh.vertList) // Iterate through all the vertices in the mesh (the non-merger mesh,
+                             // aka the one you're trying copy vertices from)
     {
         Vector3 localPos = otherVert->position; // localPos is position before transformations
         Vector3 worldPos = tf * localPos; // worldPos is the actual position you see in the grid
@@ -736,16 +765,18 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
             vertMap[otherVert] =
                 closestVert; // just set vi to the closestVert (which is a merger vertex
             // in the same location added in a previous iteration)
-            closestVert->sharpness =
-                std::max(closestVert->sharpness, otherVert->sharpness);
+            closestVert->sharpness = std::max(closestVert->sharpness, otherVert->sharpness);
             printf("set sharpness: %f\n", closestVert->sharpness);
         }
         else // Else, we haven't added a vertex at this location yet. So lets add_vertex to the
-            // merger mesh.
+             // merger mesh.
         {
-            Vertex* copiedVert =
-                new Vertex(worldPos.x, worldPos.y, worldPos.z, MergedMesh.nameToVert.size()); // project add offset
-            copiedVert->name = "copiedVert" + std::to_string(MergedMesh.nameToVert.size()); // Randy this was causing the bug!!!!!!! the name
+            Vertex* copiedVert = new Vertex(worldPos.x, worldPos.y, worldPos.z,
+                                            MergedMesh.nameToVert.size()); // project add offset
+            copiedVert->name =
+                "copiedVert"
+                + std::to_string(
+                    MergedMesh.nameToVert.size()); // Randy this was causing the bug!!!!!!! the name
             // was the same. so nameToVert remained size == 1
             MergedMesh.addVertex(copiedVert); // Project AddOffset
             vertMap[otherVert] = copiedVert; // Map actual mesh vertex to merged vertex.This
@@ -757,15 +788,16 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
     }
 
     // Add faces and create a face mesh for each
-    for (auto otherFace : otherMesh.faceList) // Iterate through all the faces in the mesh (that is, the non-merger
-        // mesh, aka the one you're trying to copy faces from)
+    for (auto otherFace :
+         otherMesh.faceList) // Iterate through all the faces in the mesh (that is, the non-merger
+                             // mesh, aka the one you're trying to copy faces from)
     {
         std::vector<Vertex*> verts;
         for (auto vert : otherFace->vertices) // otherMesh vertices
         { // iterate through all the vertices on this face
             verts.emplace_back(vertMap[vert]);
         } // Add the vertex handles
-        //MergedMesh.addFace(verts, otherFace->color, otherFace->surfaceName); // Project AddOffset
+        // MergedMesh.addFace(verts, otherFace->color, otherFace->surfaceName); // Project AddOffset
         MergedMesh.addFace(verts, otherFace->surfaceName, otherFace->backfaceName);
         std::cout << "facenames:" << otherFace->surfaceName << "\n";
         std::string fName = "v" + std::to_string(FaceCount);
@@ -831,10 +863,8 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
     MergedMesh.computeNormals();
     currMesh = MergedMesh.newMakeCopy();
 }
-DSMesh CMeshMerger::getCurrMesh() { 
-    return currMesh.newMakeCopy();
-}
-    // Find closest vertex in current mesh's vertices
+DSMesh CMeshMerger::getCurrMesh() { return currMesh.newMakeCopy(); }
+// Find closest vertex in current mesh's vertices
 std::pair<Vertex*, float> CMeshMerger::FindClosestVertex(const tc::Vector3& pos)
 {
     Vertex* result;
@@ -852,7 +882,6 @@ std::pair<Vertex*, float> CMeshMerger::FindClosestVertex(const tc::Vector3& pos)
     }
     return { result, minDist };
 }
-
 
 // offset only added here
 // Randy changed it to use DSMesh
@@ -884,9 +913,8 @@ bool CMeshMerger::offset(DSMesh& _m)
             auto vert = face->vertices[i];
             Vertex* newVert = new Vertex(vert->position.x, vert->position.y, vert->position.z,
                                          _m.vertList.size());
-            newVert->name = "offsetVert" + std::to_string(i); // Randy this was the bug. Need to name the Vert before adding it! Fix this logic.
-            _m.addVertex(newVert);
-            newVerts.push_back(newVert);
+            newVert->name = "offsetVert" + std::to_string(i); // Randy this was the bug. Need to
+name the Vert before adding it! Fix this logic. _m.addVertex(newVert); newVerts.push_back(newVert);
         }
         _m.addFace(newVerts,face->surfaceName, face->backfaceName);
     }
@@ -896,7 +924,7 @@ bool CMeshMerger::offset(DSMesh& _m)
     return true;
 }
 */
-//New Version that fixes subdivision chaining (ie offset and then subdiv)
+// New Version that fixes subdivision chaining (ie offset and then subdiv)
 #include <algorithm>
 #include <map>
 #include <set>
@@ -967,7 +995,7 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width)
             faceIndices.push_back(finalVert->ID);
         }
 
-        
+
         bool isDegenerate = false;
         for (size_t i = 0; i < faceIndices.size(); ++i)
         {
@@ -1112,7 +1140,7 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width)
 }
 */
 
-//New New version
+// New New version
 tc::Vector3 Nome::Scene::CMeshMerger::calculate3PlaneIntersection(tc::Vector3 p, tc::Vector3 n1,
                                                                   tc::Vector3 n2, tc::Vector3 n3,
                                                                   double offsetDistance)
@@ -1150,14 +1178,71 @@ tc::Vector3 Nome::Scene::CMeshMerger::calculate3PlaneIntersection(tc::Vector3 p,
                        (c23.y * d1_prime + c31.y * d2_prime + c12.y * d3_prime) * invDet,
                        (c23.z * d1_prime + c31.z * d2_prime + c12.z * d3_prime) * invDet);
 }
-//normals first, then split vertices, then done
-bool CMeshMerger::offset(DSMesh& _m, double height, double width)
+// normals first, then split vertices, then done
+bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string outerRimSurface,
+                         std::string innerRimSurface, bool outerRimHidden, bool innerRimHidden)
 {
     if (height < 0 && width < 0)
         return true;
+    auto shouldOffsetFace = [](const Face* f)
+    {
+        if (!f)
+            return false;
+        //return true;
+        const std::string& n = f->name;
+
+        // These are visible/generated result faces, but they should not be
+        // source faces for the next offset pass.
+        if (n.find("_offsetInnerFace") != std::string::npos)
+            return false;
+
+        if (n.find("_offsetHoleRibbon") != std::string::npos)
+            return false;
+
+        // Offset:
+        // - original faces
+        // - _offsetOuterFace
+        // - _offsetBoundaryRibbon
+        return true;
+    };
+    width = 1 - width;
     DSMesh& out = DSMesh();
     DSMesh _m_original = _m.newMakeCopy();
     _m_original.computeNormals();
+
+    std::map<Vertex*, int> normalCount;
+
+    for (auto v : _m_original.vertList)
+    {
+        v->normal = tc::Vector3(0, 0, 0);
+    }
+
+    for (auto f : _m_original.faceList)
+    {
+        if (!shouldOffsetFace(f))
+            continue;
+
+        for (auto v : f->vertices)
+        {
+            v->normal = v->normal + f->normal;
+            normalCount[v]++;
+        }
+    }
+
+    for (auto v : _m_original.vertList)
+    {
+        if (normalCount[v] == 0)
+            continue;
+
+        double len = std::sqrt(v->normal.x * v->normal.x + v->normal.y * v->normal.y
+                               + v->normal.z * v->normal.z);
+
+        if (len > 1e-12)
+        {
+            v->normal = tc::Vector3(v->normal.x / len, v->normal.y / len, v->normal.z / len);
+        }
+    }
+
     _m.clear();
     _m.clearAndDelete();
     _m.faceList.clear();
@@ -1165,29 +1250,32 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width)
     _m.updateVertListAfterDeletion();
     _m.edgeList.clear();
     _m.boundaryEdgeList().clear();
-    std::map<std::string, Vertex*> outerVerts; // Original Vertex ID to Outer Vertex;
-    std::map<std::string, Vertex*> innerVerts; // Original Vertex ID to Inner Vertex;
-    std::map<std::string, std::vector<std::string>> outerVertsHole; // Original Vertex ID to Outer Vertex;
-    std::map<std::string, std::vector<std::string>> innerVertsHole; // Original Vertex ID to Inner Vertex;
+    std::map<Vertex*, Vertex*> outerVerts;
+    std::map<Vertex*, Vertex*> innerVerts;
+    std::map<Vertex*, std::vector<Vertex*>> outerVertsHole;
+    std::map<Vertex*, std::vector<Vertex*>> innerVertsHole;
+    std::map<Vertex*, std::vector<Face*>> vertToFaces;
 
     Vertex* outerVert;
     Vertex* innerVert;
-    std::map<std::string, std::vector<Face*>> vertToFaces;
     for (auto f : _m_original.faceList)
     {
+        if (!shouldOffsetFace(f))
+            continue;
+
         for (auto v : f->vertices)
         {
-            vertToFaces[v->name].push_back(f);
+            vertToFaces[v].push_back(f);
         }
     }
     double d = height / 2.0;
-    
+
     for (auto v : _m_original.vertList)
     {
         // Get all faces attached to this vertex
-        std::vector<Face*> adjFaces = vertToFaces[v->name];
+        std::vector<Face*> adjFaces = vertToFaces[v];
 
-       // --- MODIFIED VERTEX CALCULATION ---
+        // --- MODIFIED VERTEX CALCULATION ---
         double miterLen = d;
 
         if (!adjFaces.empty())
@@ -1220,22 +1308,22 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width)
         tc::Vector3 innerPos(v->position.x - (miterLen * v->normal.x),
                              v->position.y - (miterLen * v->normal.y),
                              v->position.z - (miterLen * v->normal.z));
-        
+
         // --- 3. CREATE VERTICES ---
         // (This is now safely INSIDE the 'v' loop)
         outerVert = new Vertex(outerPos.x, outerPos.y, outerPos.z, out.vertList.size());
         outerVert->name = v->name + "_offsetOuter"; // Safest naming convention for multi-file
-        outerVerts[v->name] = outerVert;
+        outerVerts[v] = outerVert;
         outerVert->normal = v->normal;
         out.addVertex(outerVert);
 
         innerVert = new Vertex(innerPos.x, innerPos.y, innerPos.z, out.vertList.size());
         innerVert->name = v->name + "_offsetInner"; // Safest naming convention for multi-file
-        innerVerts[v->name] = innerVert;
+        innerVerts[v] = innerVert;
         innerVert->normal = v->normal;
         out.addVertex(innerVert);
 
-        WireFrames.push_back({ outerVerts[v->name], innerVerts[v->name] });
+        WireFrames.push_back({ outerVert, innerVert });
     } // End of the 'v' loop
     std::vector<Vertex*> faceVertsInner = {};
     std::vector<Vertex*> faceVertsOuter = {};
@@ -1251,17 +1339,40 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width)
     std::vector<TempFace> outerFaces;
     std::vector<TempFace> innerFaces;
     std::vector<Face*> tmpFaceList;
-
+    auto isGeneratedFace = [](const Face* f)
+    {
+        if (!f)
+            return true;
+        //return false;
+        //return f->name.find("_offsetRibbon") != std::string::npos;
+        
+        return f->name.find("_offsetInnerFace") != std::string::npos
+            || f->name.find("_offsetHoleRibbon") != std::string::npos;
+            //|| f->name.find("_offsetBoundaryRibbon") != std::string::npos;
+        
+        /*
+            || f->name.find("_offsetOuterFace") != std::string::npos
+            
+            || f->name.find("_hole") != std::string::npos
+            || f->name.find("_offsetRibbonHoleWall") != std::string::npos;
+        */
+        return false;
+    };
 
     for (auto f : _m_original.faceList)
     {
         faceVertsInner.clear();
         faceVertsOuter.clear();
+        if (!shouldOffsetFace(f))
+
+        {
+            continue;
+        }
 
         for (auto v : f->vertices)
         {
-            faceVertsOuter.push_back(outerVerts[v->name]);
-            faceVertsInner.push_back(innerVerts[v->name]);
+            faceVertsOuter.push_back(outerVerts[v]);
+            faceVertsInner.push_back(innerVerts[v]);
         }
 
         // 2. Safely store the data WITHOUT touching the Face class
@@ -1279,58 +1390,68 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width)
             out.addFace(reversedInner, f->surfaceName, f->backfaceName);
         }
     }
-    
-    std::map<std::pair<std::string, std::string>, std::string> directedEdges;
+
+    std::map<std::pair<Vertex*, Vertex*>, std::string> directedEdges;
 
     for (auto f : _m_original.faceList)
     {
+        if (!shouldOffsetFace(f))
+            continue;
+
         for (int i = 0; i < f->vertices.size(); ++i)
         {
-            auto v1 = f->vertices[i];
-            auto v2 = f->vertices[(i + 1) % f->vertices.size()];
+            Vertex* v1 = f->vertices[i];
+            Vertex* v2 = f->vertices[(i + 1) % f->vertices.size()];
 
-            directedEdges[{ v1->name, v2->name }] = f->surfaceName;
+            directedEdges[{ v1, v2 }] = f->surfaceName;
         }
     }
-    //out.computeNormals();
-    // For each boundary edge, create a ribbon quad
+    // out.computeNormals();
+    //  For each boundary edge, create a ribbon quad
     std::vector<Vertex*> ribbonVerts;
-    for (const auto& edge : directedEdges)
+    bool addRibbons = !(std::abs(height) < 1e-8); // true;
+    if (addRibbons)
     {
-        std::string v1_name = edge.first.first;
-        std::string v2_name = edge.first.second;
-
-        // If the reverse edge exists, it's an internal edge shared by 2 faces. Skip it.
-        if (directedEdges.count({ v2_name, v1_name }) > 0)
+        for (const auto& edge : directedEdges)
         {
-            continue;
+            Vertex* v1_src = edge.first.first;
+            Vertex* v2_src = edge.first.second;
+
+            if (directedEdges.count({ v2_src, v1_src }) > 0)
+            {
+                continue;
+            }
+
+            Vertex* v1_outer = outerVerts[v1_src];
+            Vertex* v2_outer = outerVerts[v2_src];
+            Vertex* v1_inner = innerVerts[v1_src];
+            Vertex* v2_inner = innerVerts[v2_src];
+            std::string rimSurface = edge.second;
+            // Create ribbon quad with correct winding to stitch the shells
+            // The edge on the outer shell goes v1_outer -> v2_outer.
+            // To be a valid neighbor, the ribbon must traverse it backwards: v2_outer -> v1_outer.
+            ribbonVerts.clear();
+            ribbonVerts.push_back(v2_outer);
+            ribbonVerts.push_back(v1_outer);
+            ribbonVerts.push_back(v1_inner);
+            ribbonVerts.push_back(v2_inner);
+
+            if (true)
+            {
+                std::string outerHoleSurf = outerRimSurface;
+                if (outerHoleSurf.empty())
+                    outerHoleSurf = rimSurface;
+                Face* t_face = out.addFace(ribbonVerts, outerHoleSurf, "");
+                out.faceList.back()->hide = outerRimHidden; // for outer boundary ribbon
+                out.faceList.back()->name =
+                    out.faceList.back()->name + "_offsetBoundaryRibbon"; //"_offsetRibbon"; //
+                ribbonVerts.push_back(v2_outer);
+
+                WireFrames.push_back(ribbonVerts);
+                ribbonVerts.pop_back();
+            }
         }
-
-        std::string rimSurface = edge.second;
-
-        // Get corresponding inner/outer vertices
-        Vertex* v1_outer = outerVerts[v1_name];
-        Vertex* v2_outer = outerVerts[v2_name];
-        Vertex* v1_inner = innerVerts[v1_name];
-        Vertex* v2_inner = innerVerts[v2_name];
-
-        // Create ribbon quad with correct winding to stitch the shells
-        // The edge on the outer shell goes v1_outer -> v2_outer.
-        // To be a valid neighbor, the ribbon must traverse it backwards: v2_outer -> v1_outer.
-        ribbonVerts.clear();
-        ribbonVerts.push_back(v2_outer);
-        ribbonVerts.push_back(v1_outer);
-        ribbonVerts.push_back(v1_inner);
-        ribbonVerts.push_back(v2_inner);
-
-        out.addFace(ribbonVerts, rimSurface, "");
-        out.faceList.back()->name = out.faceList.back()->name + "_offsetRibbon";
-        ribbonVerts.push_back(v2_outer);
-
-        WireFrames.push_back(ribbonVerts);
-        ribbonVerts.pop_back();
     }
-
     auto getMappedCentroid = [](TempFace f)
     {
         tc::Vector3 centroid(0, 0, 0);
@@ -1351,34 +1472,19 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width)
     double scale = width; // Hole size (0.5 means the hole is 50% the size of the face)
     if (width > 0)
     {
-    for (size_t i = 0; i < outerFaces.size(); ++i)
-    {
-        TempFace f_out = outerFaces[i];
-        TempFace f_in = innerFaces[i];
-        Face* f_curr = tmpFaceList[i];
-        // Get the centroids using your built-in function
-        tc::Vector3 c_out = getMappedCentroid(f_out);
-        tc::Vector3 c_in = getMappedCentroid(f_in);
-
-        int numVerts = f_out.vertices.size();
-
-        std::vector<Vertex*> outerHoleVerts;
-        std::vector<Vertex*> innerHoleVerts;
-
-        // Generate the new hole vertices
-        for (int j = 0; j < numVerts; ++j)
+        for (size_t i = 0; i < outerFaces.size(); ++i)
         {
-            tc::Vector3 V_out = f_out.vertices[j]->position;
-            tc::Vector3 V_in = f_in.vertices[j]->position;
+            TempFace f_out = outerFaces[i];
+            TempFace f_in = innerFaces[i];
+            Face* f_curr = tmpFaceList[i];
+            // Get the centroids using your built-in function
+            tc::Vector3 c_out = getMappedCentroid(f_out);
+            tc::Vector3 c_in = getMappedCentroid(f_in);
 
-            Vertex* original = _m_original.findVertexInThisMesh(
-                f_out.vertices[j]->name.substr(0, f_out.vertices[j]->name.find("_offset")));
-            Vertex* before_original = _m_original.findVertexInThisMesh(
-                f_out.vertices[(j - 1) % f_out.vertices.size()]->name.substr(
-                    0, f_out.vertices[(j - 1) % f_out.vertices.size()]->name.find("_offset")));
-            Vertex* after_original = _m_original.findVertexInThisMesh(
-                f_out.vertices[(j + 1) % f_out.vertices.size()]->name.substr(
-                    0, f_out.vertices[(j + 1) % f_out.vertices.size()]->name.find("_offset")));
+            int numVerts = f_out.vertices.size();
+
+            std::vector<Vertex*> outerHoleVerts;
+            std::vector<Vertex*> innerHoleVerts;
             // Scale toward the centroids
             auto getCentroid = [](const std::vector<Vertex*>& verts)
             {
@@ -1394,96 +1500,123 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width)
                 double invNum = 1.0 / static_cast<double>(verts.size());
                 return tc::Vector3(centroid.x * invNum, centroid.y * invNum, centroid.z * invNum);
             };
+            auto baseName = [](const std::string& name)
+            {
+                size_t pos = name.rfind("_offset");
+                if (pos == std::string::npos)
+                    return name;
+                return name.substr(0, pos);
+            };
 
-            tc::Vector3 tmpFaceCentroid = getCentroid(f_curr->vertices);
-            // 1. Calculate the positions of the three relevant "shifted" inside points
-            tc::Vector3 p_curr =
-                tmpFaceCentroid + (original->position - tmpFaceCentroid) * scale;
-            tc::Vector3 p_before =
-                tmpFaceCentroid + (before_original->position - tmpFaceCentroid) * scale;
-            tc::Vector3 p_after = tmpFaceCentroid + (after_original->position - tmpFaceCentroid) * scale;
+            for (int j = 0; j < numVerts; ++j)
+            {
+                int prev = (j + numVerts - 1) % numVerts;
+                int next = (j + 1) % numVerts;
 
-            // 2. Create directional vectors pointing from your current point to its neighbors
-            tc::Vector3 vecBefore = p_before - p_curr;
-            tc::Vector3 vecAfter = p_after - p_curr;
+                Vertex* O_curr = f_out.vertices[j];
+                Vertex* I_curr = f_in.vertices[j];
 
-            // 3. Use the cross product to get the normal, and normalize it to a length of 1
-            // NOTE: If the normal points in the opposite direction of what you want (inward vs
-            // outward), simply reverse the order to: vecAfter.cross(vecBefore)
-            //tc::Vector3 avgNormal = vecBefore.CrossProduct(vecAfter).Normalized();
-            tc::Vector3 avgNormal = (before_original->normal + after_original->normal).Normalized();
-            //avgNormal.Normalize();
-            //tc::Vector3 tmpFaceCentroid = getCentroid(f_curr->vertices);
-            tc::Vector3 H_out_pos = p_curr
-                +  avgNormal * d; // c_out over centroid, from outer to interior by 50% - for
-                                       // all end lines - 
-            tc::Vector3 H_in_pos = p_curr
-                - avgNormal * d; // c_in over centroid
+                tc::Vector3 H_out_pos = c_out + (O_curr->position - c_out) * width;
+                tc::Vector3 H_in_pos = c_in + (I_curr->position - c_in) * width;
 
-            Vertex* h_out = new Vertex(H_out_pos.x, H_out_pos.y, H_out_pos.z, _m.vertList.size());
-            h_out->name = f_out.name + "_holeOut_" + std::to_string(j);
-            out.addVertex(h_out);
-            outerHoleVerts.push_back(h_out);
-            outerVertsHole[f_out.vertices[j]->name].push_back(h_out->name); 
-            std::cout << "Adding...:"  << f_out.vertices[j]->name << " | " << h_out->name << "\n";
+                Vertex* h_out =
+                    new Vertex(H_out_pos.x, H_out_pos.y, H_out_pos.z, out.vertList.size());
 
-            Vertex* h_in = new Vertex(H_in_pos.x, H_in_pos.y, H_in_pos.z, _m.vertList.size());
-            h_in->name = f_in.name + "_holeIn_" + std::to_string(j);
-            out.addVertex(h_in);
-            innerHoleVerts.push_back(h_in);
-            innerVertsHole[f_in.vertices[j]->name].push_back(h_in->name); 
+                h_out->name =
+                    f_out.name + "_holeOut_" + std::to_string(i) + "_" + std::to_string(j);
+                
+                h_out->normal = O_curr->normal;
 
+                out.addVertex(h_out);
+                outerHoleVerts.push_back(h_out);
+                outerVertsHole[O_curr].push_back(h_out);
+
+                Vertex* h_in = new Vertex(H_in_pos.x, H_in_pos.y, H_in_pos.z, out.vertList.size());
+
+                h_in->name = f_in.name + "_holeIn_" + std::to_string(i) + "_" + std::to_string(j);
+                h_in->normal = I_curr->normal;
+
+                out.addVertex(h_in);
+                innerHoleVerts.push_back(h_in);
+                innerVertsHole[I_curr].push_back(h_in);
+            }
+            innerHoleVerts.push_back(innerHoleVerts.front());
+            outerHoleVerts.push_back(outerHoleVerts.front());
+
+            WireFrames.push_back(innerHoleVerts);
+            WireFrames.push_back(outerHoleVerts);
+            innerHoleVerts.pop_back();
+            outerHoleVerts.pop_back();
+            std::vector<Vertex*> outVerts = f_out.vertices;
+            std::vector<Vertex*> inVerts = f_in.vertices;
+            std::string surfOut = f_out.surfaceName;
+            std::string backOut = ""; // f_out->backfaceName;
+            std::string surfIn = f_in.surfaceName;
+            std::string backIn = ""; // f_in->backfaceName;
+            bool flatOffset = std::abs(height) < 1e-8;
+
+            // Build the new geometry (The rings of trapezoids + the tube walls)
+            for (int j = 0; j < numVerts; ++j)
+            {
+                int next = (j + 1) % numVerts;
+                bool isRibbon = f_curr && f_curr->name.rfind("_offsetRibbon") != std::string::npos;
+                bool isBoundaryRibbon =
+                   false && ( f_curr && f_curr->name.find("_offsetBoundaryRibbon") != std::string::npos);
+               // if (isRibbon)
+                //   continue;
+                // Because we didn't reverse the array, O_curr and I_curr are the EXACT SAME CORNER!
+                Vertex* O_curr = outVerts[j];
+                Vertex* O_next = outVerts[next];
+                Vertex* I_curr = inVerts[j];
+                Vertex* I_next = inVerts[next];
+
+                Vertex* H_out_curr = outerHoleVerts[j];
+                Vertex* H_out_next = outerHoleVerts[next];
+                Vertex* H_in_curr = innerHoleVerts[j];
+                Vertex* H_in_next = innerHoleVerts[next];
+                if (flatOffset)
+                {
+                    out.addFace({ O_curr, O_next, H_out_next, H_out_curr }, surfOut, "");
+                    out.faceList.back()->name = f_curr->name + "_offsetOuterFace";
+                    WireFrames.push_back({ O_curr, O_next, H_out_next, H_out_curr, O_curr });
+                    continue;
+                }
+                // 1. OUTER SHELL (Normal points OUT)
+                out.addFace({ O_curr, O_next, H_out_next, H_out_curr }, surfOut, "");
+                out.faceList.back()->name = f_curr->name + "_offsetOuterFace_" + std::to_string(i)
+                    + "_" + std::to_string(j);
+                // out.faceList.back()->name = out.faceList.back()->name + "_offsetRibbon";
+                WireFrames.push_back({ O_curr, O_next, H_out_next, H_out_curr, O_curr });
+
+                // 2. INNER SHELL (Normal MUST point IN)
+                // Winding is reversed compared to outer shell
+                out.addFace({ I_curr, H_in_curr, H_in_next, I_next }, surfIn, "");
+                //out.addFace({ I_curr, I_next, H_in_next, H_in_curr }, surfIn, "");
+
+                out.faceList.back()->name = f_curr->name + "_offsetInnerFace_" + std::to_string(i)
+                    + "_" + std::to_string(j);
+                // out.faceList.back()->name = out.faceList.back()->name + "_offsetRibbon";
+
+                WireFrames.push_back({ I_curr, H_in_curr, H_in_next, I_next, I_curr });
+
+                // 3. TUBE WALL (Straight down!)
+                if (!isBoundaryRibbon)
+                {
+                    // Because O_curr and I_curr match, this bridges cleanly without crisscrossing!
+                    std::string innerHoleSurf = innerRimSurface;
+                    if (innerHoleSurf.empty())
+                        innerHoleSurf = surfOut;
+                    out.addFace({ H_out_curr, H_out_next, H_in_next, H_in_curr }, innerHoleSurf,
+                                "");
+                    out.faceList.back()->name = f_curr->name + "_offsetHoleRibbon_"
+                        + std::to_string(i) + "_" + std::to_string(j);
+                    out.faceList.back()->hide = innerRimHidden; // for hole ribbon
+                    WireFrames.push_back(
+                        { H_out_curr, H_out_next, H_in_next, H_in_curr, H_out_curr });
+                    WireFrames.push_back({ H_out_curr, H_in_curr });
+                }
+            }
         }
-        innerHoleVerts.push_back(innerHoleVerts.front());
-        outerHoleVerts.push_back(outerHoleVerts.front());
-
-        WireFrames.push_back(innerHoleVerts);
-        WireFrames.push_back(outerHoleVerts);
-        innerHoleVerts.pop_back();
-        outerHoleVerts.pop_back();
-        std::vector<Vertex*> outVerts = f_out.vertices;
-        std::vector<Vertex*> inVerts = f_in.vertices;
-        std::string surfOut = f_out.surfaceName;
-        std::string backOut = ""; // f_out->backfaceName;
-        std::string surfIn = f_in.surfaceName;
-        std::string backIn = ""; // f_in->backfaceName;
-
-        // Build the new geometry (The rings of trapezoids + the tube walls)
-        for (int j = 0; j < numVerts; ++j)
-        {
-            int next = (j + 1) % numVerts;
-
-            // Because we didn't reverse the array, O_curr and I_curr are the EXACT SAME CORNER!
-            Vertex* O_curr = outVerts[j];
-            Vertex* O_next = outVerts[next];
-            Vertex* I_curr = inVerts[j];
-            Vertex* I_next = inVerts[next];
-
-            Vertex* H_out_curr = outerHoleVerts[j];
-            Vertex* H_out_next = outerHoleVerts[next];
-            Vertex* H_in_curr = innerHoleVerts[j];
-            Vertex* H_in_next = innerHoleVerts[next];
-
-            // 1. OUTER SHELL (Normal points OUT)
-            out.addFace({ O_curr, O_next, H_out_next, H_out_curr }, surfOut, "");
-            //out.faceList.back()->name = out.faceList.back()->name + "_offsetRibbon";
-            WireFrames.push_back({ O_curr, O_next, H_out_next, H_out_curr, O_curr });
-
-            // 2. INNER SHELL (Normal MUST point IN)
-            // Winding is reversed compared to outer shell
-            out.addFace({ I_curr, H_in_curr, H_in_next, I_next }, surfIn, "");
-            //out.faceList.back()->name = out.faceList.back()->name + "_offsetRibbon";
-
-            WireFrames.push_back({ I_curr, H_in_curr, H_in_next, I_next, I_curr });
-
-            // 3. TUBE WALL (Straight down!)
-            // Because O_curr and I_curr match, this bridges cleanly without crisscrossing!
-            out.addFace({ H_out_curr, H_out_next, H_in_next, H_in_curr }, surfOut, "");
-            out.faceList.back()->name = out.faceList.back()->name + "_offsetRibbon";
-            WireFrames.push_back({ H_out_curr, H_out_next, H_in_next, H_in_curr, H_out_curr });
-            WireFrames.push_back({ H_out_curr, H_in_curr });
-        }
-    }
     }
     /*
     for (size_t i = 0; i < outerFaces.size(); ++i)
@@ -1491,48 +1624,44 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width)
         delete outerFaces[i];
         delete innerFaces[i];
     }*/
-    //out.computeNormals();
+    // out.computeNormals();
     _m_original.computeNormals();
     for (auto v : _m_original.vertList)
     {
-        if (outerVerts.count(v->name) > 0)
+        auto outIt = outerVerts.find(v);
+        if (outIt != outerVerts.end())
         {
-            Vertex* tmpOut = out.findVertexInThisMesh(v->name + "_offsetOuter");
-            if (tmpOut == nullptr)
-                std::cout << "uh oh";
-            std::cout << "Setting outer to original" << tmpOut->name << ": (" << v->normal.x << ","
-                      << v->normal.y << "," << v->normal.z << ")\n";
+            Vertex* tmpOut = outIt->second;
             tmpOut->normal = v->normal;
-            std::cout << "Searching...:" << v->name << "\n";
-            if (outerVertsHole.count(v->name + "_offsetOuter") > 0)
+
+            auto holeIt = outerVertsHole.find(tmpOut);
+            if (holeIt != outerVertsHole.end())
             {
-                for (int k = 0; k < outerVertsHole[v->name + "_offsetOuter"].size(); k++){
-                    Vertex* holeOut =
-                        out.findVertexInThisMesh(outerVertsHole[v->name + "_offsetOuter"][k]);
+                for (auto holeOut : holeIt->second)
+                {
                     if (holeOut)
                         holeOut->normal = v->normal;
                 }
-                
             }
-            //std::cout << ">>>>update outer\n";
         }
-        if (innerVerts.count(v->name) > 0)
+
+        auto inIt = innerVerts.find(v);
+        if (inIt != innerVerts.end())
         {
-            out.findVertexInThisMesh(v->name + "_offsetInner")->normal = -1* v->normal;
-            if (innerVertsHole.count(v->name + "_offsetInner") > 0)
+            Vertex* tmpIn = inIt->second;
+            tmpIn->normal = -1 * v->normal;
+
+            auto holeIt = innerVertsHole.find(tmpIn);
+            if (holeIt != innerVertsHole.end())
             {
-                for (int k = 0; k < innerVertsHole[v->name + "_offsetInner"].size(); k++)
+                for (auto holeIn : holeIt->second)
                 {
-                    Vertex* holeIn =
-                        out.findVertexInThisMesh(innerVertsHole[v->name + "_offsetInner"][k]);
                     if (holeIn)
-                        holeIn->normal = v->normal*-1.0f;
+                        holeIn->normal = v->normal * -1.0f;
                 }
             }
-            //std::cout << ">>>>update inner\n";
         }
     }
-    
     out.buildBoundary();
     /*
     for (auto v : _m_original.vertList)
@@ -1556,7 +1685,7 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width)
         if (v)
             v->sharpness = 0.0f;
     }
-    for (auto edge : out.edges()) 
+    for (auto edge : out.edges())
     {
         if (edge != nullptr)
         {
@@ -1761,14 +1890,14 @@ if (isSharp)
   
 
     // Instantiate a Far::TopologyRefiner from the descriptor
-    Far::TopologyRefiner * refiner = GetRefiner(_m, isSharp);
-    
+    Far::TopologyRefiner* refiner = GetRefiner(_m, isSharp);
+
     Far::TopologyRefiner::UniformOptions uniop(n);
-    //uniop.orderVerticesFromFacesFirst = true;
+    // uniop.orderVerticesFromFacesFirst = true;
     refiner->RefineUniform(uniop);
 
     std::vector<Vertex> vbuffer(refiner->GetNumVerticesTotal());
-    Vertex * verts = &vbuffer[0];
+    Vertex* verts = &vbuffer[0];
 
     for (int i = 0; i < (int)_m.vertList.size(); ++i)
     {
@@ -1779,9 +1908,10 @@ if (isSharp)
     // Interpolate vertex primvar data
     Far::PrimvarRefiner primvarRefiner(*refiner);
 
-    Vertex * src = verts;
-    for (int level = 1; level <= n; ++level) {
-        Vertex * dst = src + refiner->GetLevel(level-1).GetNumVertices();
+    Vertex* src = verts;
+    for (int level = 1; level <= n; ++level)
+    {
+        Vertex* dst = src + refiner->GetLevel(level - 1).GetNumVertices();
         primvarRefiner.Interpolate(level, src, dst);
         src = dst;
     }
@@ -1794,19 +1924,21 @@ if (isSharp)
     _m.boundaryEdgeList().clear();
     { // Output OBJ of the highest level refined -----------
         /// to debug
-        Far::TopologyLevel const & refLastLevel = refiner->GetLevel(n);
+        Far::TopologyLevel const& refLastLevel = refiner->GetLevel(n);
         int nverts = refLastLevel.GetNumVertices();
         int nfaces = refLastLevel.GetNumFaces();
 
         // Print vertex positions
         int firstOfLastVerts = refiner->GetNumVerticesTotal() - nverts;
 
-        for (int vert = 0; vert < nverts; ++vert) {
-            float const * pos = verts[vert + firstOfLastVerts].GetPosition();
+        for (int vert = 0; vert < nverts; ++vert)
+        {
+            float const* pos = verts[vert + firstOfLastVerts].GetPosition();
             _m.addVertex(pos[0], pos[1], pos[2]);
         }
         // Print faces
-        for (int face = 0; face < nfaces; face++) {
+        for (int face = 0; face < nfaces; face++)
+        {
             Far::ConstIndexArray fverts = refLastLevel.GetFaceVertices(face);
             auto curr = refLastLevel.GetFaceParentFace(face);
             int temp = n - 1;
@@ -1823,23 +1955,23 @@ if (isSharp)
                 idx = refiner->GetLevel(l).GetFaceParentFace(idx);
             }
             // all refined Catmark faces should be quads
-            assert(fverts.size()==4);
+            assert(fverts.size() == 4);
             std::vector<Vertex*> vertices;
             for (int i = 0; i < 4; ++i)
             {
                 vertices.push_back(_m.vertList.at(fverts[i]));
             }
-            //int index = (face * faceList.size()) / nfaces;
+            // int index = (face * faceList.size()) / nfaces;
             int index = idx;
-            //floor(face / static_cast<int>(std::pow(4, n)));
-            //int index = floor(face / floor(nfaces / faceList.size()));
-            //int index = (face * faceList.size()) / nfaces;
+            // floor(face / static_cast<int>(std::pow(4, n)));
+            // int index = floor(face / floor(nfaces / faceList.size()));
+            // int index = (face * faceList.size()) / nfaces;
             if (index >= faceList.size())
             {
                 std::cout << "exceeded: " << index << "\n";
                 index = faceList.size() - 1;
             }
-            
+
             std::string surfaceName = faceList.at(index)->surfaceName;
             std::string backfaceName = faceList.at(index)->backfaceName;
             if (surfaceName.empty())
@@ -1850,7 +1982,7 @@ if (isSharp)
             {
                 backfaceName = "";
             }
-            
+
             _m.addFace(vertices, surfaceName, backfaceName);
             WireFrames.push_back(vertices);
         }
@@ -1894,7 +2026,8 @@ void CMeshMerger::ccSubdivision(int level)
         compileNewMesh(newMesh.faceList);
         setAllNewPointPointersToNull();
 
-        // Horribly messy. Organize this better in the future so subdivision cleans up all data structures accordingly
+        // Horribly messy. Organize this better in the future so subdivision cleans up all data
+        // structures accordingly
         for (int i = 0; i < newMesh.faceList.size(); i++)
         {
             Face* currFace = newMesh.faceList[i];
@@ -1905,7 +2038,7 @@ void CMeshMerger::ccSubdivision(int level)
 
         for (int i = 0; i < newMesh.vertList.size(); i++)
         {
-            Vertex * currVert = newMesh.vertList[i];
+            Vertex* currVert = newMesh.vertList[i];
             std::string vertName = "subdivVert" + std::to_string(i);
             currVert->name = vertName;
             newMesh.nameToVert[vertName] = newMesh.vertList[i];
@@ -1915,7 +2048,7 @@ void CMeshMerger::ccSubdivision(int level)
         currMesh = newMesh.newMakeCopy();
         newMesh.clear();
     }
-    //return currMesh;
+    // return currMesh;
 }
 
 void CMeshMerger::makeFacePoints(vector<Vertex*>& newVertList)
@@ -1996,9 +2129,11 @@ void CMeshMerger::makeEdgePoints(vector<Vertex*>& newVertList)
                         newEdgePoint->position = (faceVert1->position + faceVert2->position
                                                   + edgeVert1->position + edgeVert2->position)
                             / (float)4.0;
-                    } else {
-                        newEdgePoint->position = (faceVert1->position + edgeVert1->position)
-                                / (float)2.0;
+                    }
+                    else
+                    {
+                        newEdgePoint->position =
+                            (faceVert1->position + edgeVert1->position) / (float)2.0;
                     }
                 }
                 currEdge->edgePoint = newEdgePoint;

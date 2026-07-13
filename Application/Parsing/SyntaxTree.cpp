@@ -246,6 +246,28 @@ ANamedArgument* ACommand::GetNamedArgument(const std::string& name) const
     return nullptr;
 }
 
+std::vector<ANamedArgument*> ACommand::GetNamedArguments() const
+{ 
+    std::vector<ANamedArgument*> args = {}; 
+    for (const auto& [name, arg] : NamedArguments)
+    {
+        args.push_back(arg);
+    }
+
+    return args;
+}
+
+std::vector<std::string> ACommand::GetNamedArgumentsNames() const
+{
+    std::vector<std::string> args = {};
+    for (const auto& [name, arg] : NamedArguments)
+    {
+        args.push_back(name);
+    }
+
+    return args;
+}
+
 std::vector<ACommand*> ACommand::GetSubCommands() const
 {
     std::vector<ACommand*> result;

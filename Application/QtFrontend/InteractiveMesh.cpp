@@ -78,10 +78,10 @@ void CInteractiveMesh::UpdateGeometry(bool showVertBox, bool showBackFace, bool 
                     meshInstance->GetSelectedFaceHandles(); // Randy added on 12/3
 
             auto DSFaceWithColorVector = meshInstance->GetDSFaceWithColorVector();
-
-            CDataStructureMeshToQGeometry DSmeshToQGeometry(meshInstance->GetDSMesh(), InstanceColor, InstanceBackColor,
+            CDataStructureMeshToQGeometry DSmeshToQGeometry(meshInstance->GetDSMesh(), InstanceColor, InstanceBackColor, 
                                                             true, showBackFace, showFrontFace); // Project SwitchDS
 
+            std::cout << InstanceColor[0] << InstanceColor[1] << InstanceColor[2] << '\n';
             // Geometry = meshToQGeometry.GetGeometry();
             Geometry = DSmeshToQGeometry.GetGeometry();
             Geometry->setParent(this);

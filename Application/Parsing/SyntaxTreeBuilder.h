@@ -60,7 +60,10 @@ public:
     antlrcpp::Any visitArgBotCap(NomParser::ArgBotCapContext* context) override;
     antlrcpp::Any visitArgTopCap(NomParser::ArgTopCapContext* context) override;
     antlrcpp::Any visitArgSubdivisionID(NomParser::ArgSubdivisionIDContext* ctx) override; 
-
+    antlrcpp::Any visitArgOUTERRIMSURFACE(NomParser::ArgOUTERRIMSURFACEContext* context) override;
+    antlrcpp::Any visitArgINNERRIMSURFACE(NomParser::ArgINNERRIMSURFACEContext* context) override;
+    antlrcpp::Any visitArgOUTERRIMHIDDEN(NomParser::ArgOUTERRIMHIDDENContext* context) override;
+    antlrcpp::Any visitArgINNERRIMHIDDEN(NomParser::ArgINNERRIMHIDDENContext* context) override;
     antlrcpp::Any visitCmdExprListOne(NomParser::CmdExprListOneContext* context) override;
     antlrcpp::Any visitCmdGeneral(NomParser::CmdGeneralContext* context) override; // Brandon's gen shape generator
     antlrcpp::Any visitCmdGeneralParametric(NomParser::CmdGeneralParametricContext* context) override; // Brandon's gen parametric shape generator
