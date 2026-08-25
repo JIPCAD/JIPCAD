@@ -1206,9 +1206,121 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
         return true;
     };
     width = 1 - width;
-    DSMesh& out = DSMesh();
+    DSMesh out;
     DSMesh _m_original = _m.newMakeCopy();
     _m_original.computeNormals();
+
+    struct PendingHoleSharpEdge
+{
+    Vertex* a;
+    Vertex* b;
+    float sharpness;
+};
+
+std::vector<PendingHoleSharpEdge> pendingHoleSharpEdges;
+
+// Avoid relying on edgeTable/findEdge for the source lookup.
+auto getSourceEdgeSharpness =
+    [&_m_original](Vertex* a, Vertex* b) -> float
+{
+    if (!a || !b)
+        return 0.0f;
+
+    for (Edge* edge : _m_original.edges())
+    {
+        if (!edge || !edge->v0() || !edge->v1())
+            continue;
+
+        const bool sameEndpoints =
+            (edge->v0() == a && edge->v1() == b)
+            || (edge->v0() == b && edge->v1() == a);
+
+        if (sameEndpoints)
+            return edge->sharpness;
+    }
+
+    return 0.0f;
+};
+
+    // Apply a crease to an output edge and its endpoint vertices.
+    // Use this for copied source edges and through-thickness corner edges.
+    auto applySharpness = [](DSMesh& mesh,
+                             Vertex* a,
+                             Vertex* b,
+                             float sharpness)
+    {
+        if (!a || !b || sharpness <= 0.0f)
+            return;
+
+        Edge* edge = mesh.findEdge(a, b, false);
+
+        if (!edge)
+        {
+            std::cout << "[offset] Could not find generated edge "
+                      << a->name << " - " << b->name << std::endl;
+            return;
+        }
+
+        edge->sharpness = std::max(edge->sharpness, sharpness);
+        edge->isSharp = true;
+
+    
+    };
+
+    // Apply a crease only to an edge. Hole edges use this so the ends of
+    // partially sharp holes can still blend into neighboring smooth edges.
+    auto applyEdgeSharpness = [](DSMesh& mesh,
+                                 Vertex* a,
+                                 Vertex* b,
+                                 float sharpness)
+    {
+        if (!a || !b || sharpness <= 0.0f)
+            return;
+
+        Edge* edge = mesh.findEdge(a, b, false);
+
+        if (!edge)
+        {
+            std::cout << "[offset] Could not find generated hole edge "
+                      << a->name << " - " << b->name << std::endl;
+            return;
+        }
+
+        edge->sharpness = std::max(edge->sharpness, sharpness);
+        edge->isSharp = true;
+
+        std::cout << "[offset] transferred sharpness "
+                  << edge->sharpness
+                  << " to hole edge "
+                  << a->name << " - "
+                  << b->name << std::endl;
+    };
+
+    auto applyHoleEdgeSharpness = [](DSMesh& mesh,
+                                 Vertex* a,
+                                 Vertex* b,
+                                 float sharpness)
+{
+    if (!a || !b || sharpness <= 0.0f)
+        return;
+
+    Edge* edge = mesh.findEdge(a, b, false);
+
+    if (!edge)
+    {
+        std::cout << "[offset] Could not find generated hole edge "
+                  << a->name << " - "
+                  << b->name << std::endl;
+        return;
+    }
+
+    // Keep the hole perimeter edge sharp.
+    edge->sharpness = std::max(edge->sharpness, sharpness);
+    edge->isSharp = true;
+
+    // Do not set a->sharpness or b->sharpness.
+    // Explicitly sharp vertices caused the corner fragments.
+};
 
     std::map<Vertex*, int> normalCount;
 
@@ -1312,16 +1424,18 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
         // --- 3. CREATE VERTICES ---
         // (This is now safely INSIDE the 'v' loop)
         outerVert = new Vertex(outerPos.x, outerPos.y, outerPos.z, out.vertList.size());
-        outerVert->name = v->name + "_offsetOuter"; // Safest naming convention for multi-file
-        outerVerts[v] = outerVert;
-        outerVert->normal = v->normal;
-        out.addVertex(outerVert);
+        outerVert->name = v->name + "_offsetOuter";
+outerVert->normal = v->normal;
+outerVert->sharpness = v->sharpness;
+outerVerts[v] = outerVert;
+out.addVertex(outerVert);
 
         innerVert = new Vertex(innerPos.x, innerPos.y, innerPos.z, out.vertList.size());
-        innerVert->name = v->name + "_offsetInner"; // Safest naming convention for multi-file
-        innerVerts[v] = innerVert;
-        innerVert->normal = v->normal;
-        out.addVertex(innerVert);
+       innerVert->name = v->name + "_offsetInner";
+innerVert->normal = v->normal;
+innerVert->sharpness = v->sharpness;
+innerVerts[v] = innerVert;
+out.addVertex(innerVert);
 
         WireFrames.push_back({ outerVert, innerVert });
     } // End of the 'v' loop
@@ -1555,32 +1669,62 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
             std::string backIn = ""; // f_in->backfaceName;
             bool flatOffset = std::abs(height) < 1e-8;
 
-            // Build the new geometry (The rings of trapezoids + the tube walls)
+            // Build the new geometry (the rings of trapezoids and the tube walls).
             for (int j = 0; j < numVerts; ++j)
             {
-                int next = (j + 1) % numVerts;
-                bool isRibbon = f_curr && f_curr->name.rfind("_offsetRibbon") != std::string::npos;
+                const int nextIndex = (j + 1) % numVerts;
+
+                Vertex* sourceV0 = f_curr->vertices[j];
+                Vertex* sourceV1 = f_curr->vertices[nextIndex];
+
+               const float sourceSharpness =
+    getSourceEdgeSharpness(sourceV0, sourceV1);
+
+                bool isRibbon =
+                    f_curr && f_curr->name.rfind("_offsetRibbon") != std::string::npos;
                 bool isBoundaryRibbon =
-                   false && ( f_curr && f_curr->name.find("_offsetBoundaryRibbon") != std::string::npos);
-               // if (isRibbon)
-                //   continue;
-                // Because we didn't reverse the array, O_curr and I_curr are the EXACT SAME CORNER!
+                    false
+                    && (f_curr
+                        && f_curr->name.find("_offsetBoundaryRibbon")
+                            != std::string::npos);
+
+                // Because the inner array was not reversed, O_curr and I_curr
+                // represent the same original corner.
                 Vertex* O_curr = outVerts[j];
-                Vertex* O_next = outVerts[next];
+                Vertex* O_next = outVerts[nextIndex];
                 Vertex* I_curr = inVerts[j];
-                Vertex* I_next = inVerts[next];
+                Vertex* I_next = inVerts[nextIndex];
 
                 Vertex* H_out_curr = outerHoleVerts[j];
-                Vertex* H_out_next = outerHoleVerts[next];
+                Vertex* H_out_next = outerHoleVerts[nextIndex];
                 Vertex* H_in_curr = innerHoleVerts[j];
-                Vertex* H_in_next = innerHoleVerts[next];
+                Vertex* H_in_next = innerHoleVerts[nextIndex];
                 if (flatOffset)
-                {
-                    out.addFace({ O_curr, O_next, H_out_next, H_out_curr }, surfOut, "");
-                    out.faceList.back()->name = f_curr->name + "_offsetOuterFace";
-                    WireFrames.push_back({ O_curr, O_next, H_out_next, H_out_curr, O_curr });
-                    continue;
-                }
+{
+    out.addFace(
+        { O_curr, O_next, H_out_next, H_out_curr },
+        surfOut,
+        ""
+    );
+
+    out.faceList.back()->name =
+        f_curr->name + "_offsetOuterFace";
+
+    WireFrames.push_back(
+        { O_curr, O_next, H_out_next, H_out_curr, O_curr }
+    );
+
+   if (sourceSharpness > 0.0f)
+{
+    pendingHoleSharpEdges.push_back({
+        H_out_curr,
+        H_out_next,
+        sourceSharpness
+    });
+}
+
+    continue;
+}
                 // 1. OUTER SHELL (Normal points OUT)
                 out.addFace({ O_curr, O_next, H_out_next, H_out_curr }, surfOut, "");
                 out.faceList.back()->name = f_curr->name + "_offsetOuterFace_" + std::to_string(i)
@@ -1615,6 +1759,22 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
                         { H_out_curr, H_out_next, H_in_next, H_in_curr, H_out_curr });
                     WireFrames.push_back({ H_out_curr, H_in_curr });
                 }
+               if (sourceSharpness > 0.0f)
+{
+    // Outer hole perimeter.
+    pendingHoleSharpEdges.push_back({
+        H_out_curr,
+        H_out_next,
+        sourceSharpness
+    });
+
+    // Matching inner hole perimeter.
+    pendingHoleSharpEdges.push_back({
+        H_in_curr,
+        H_in_next,
+        sourceSharpness
+    });
+}
             }
         }
     }
@@ -1663,6 +1823,67 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
         }
     }
     out.buildBoundary();
+
+    auto findOutputEdge =
+    [&out](Vertex* a, Vertex* b) -> Edge*
+{
+    if (!a || !b)
+        return nullptr;
+
+    for (Edge* edge : out.edges())
+    {
+        if (!edge || !edge->v0() || !edge->v1())
+            continue;
+
+        const bool sameEndpoints =
+            (edge->v0() == a && edge->v1() == b)
+            || (edge->v0() == b && edge->v1() == a);
+
+        if (sameEndpoints)
+            return edge;
+    }
+
+    return nullptr;
+};
+
+int appliedHoleSharpEdges = 0;
+
+for (const PendingHoleSharpEdge& pending : pendingHoleSharpEdges)
+{
+    Edge* edge = findOutputEdge(pending.a, pending.b);
+
+    if (!edge)
+    {
+        std::cout
+            << "[offset] FINAL hole edge not found: "
+            << pending.a->name << " - "
+            << pending.b->name
+            << std::endl;
+
+        continue;
+    }
+
+    edge->sharpness =
+        std::max(edge->sharpness, pending.sharpness);
+
+    edge->isSharp = true;
+
+    ++appliedHoleSharpEdges;
+
+    std::cout
+        << "[offset] FINAL sharp hole edge "
+        << edge->v0()->name << " - "
+        << edge->v1()->name
+        << " sharpness = "
+        << edge->sharpness
+        << std::endl;
+}
+
+std::cout
+    << "[offset] applied sharpness to "
+    << appliedHoleSharpEdges
+    << " generated hole edge(s)"
+    << std::endl;
     /*
     for (auto v : _m_original.vertList)
     {
@@ -1680,21 +1901,76 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
             innerVerts[v->name]->normal = v->normal;
         }
     }*/
-    for (auto v : out.vertList)
+// All faces have already been added, so out.edgeList now contains
+// the real edges created by out.addFace(...).
+// Transfer source-edge sharpness to the corresponding offset geometry.
+for (Edge* sourceEdge : _m_original.edges())
+{
+    if (!sourceEdge ||
+        !sourceEdge->v0() ||
+        !sourceEdge->v1() ||
+        sourceEdge->sharpness <= 0.0f)
     {
-        if (v)
-            v->sharpness = 0.0f;
+        continue;
     }
-    for (auto edge : out.edges())
+
+    Vertex* sourceV0 = sourceEdge->v0();
+    Vertex* sourceV1 = sourceEdge->v1();
+    const float sharpness = sourceEdge->sharpness;
+
+    auto outer0It = outerVerts.find(sourceV0);
+    auto outer1It = outerVerts.find(sourceV1);
+    auto inner0It = innerVerts.find(sourceV0);
+    auto inner1It = innerVerts.find(sourceV1);
+
+    Vertex* outerV0 =
+        outer0It != outerVerts.end() ? outer0It->second : nullptr;
+    Vertex* outerV1 =
+        outer1It != outerVerts.end() ? outer1It->second : nullptr;
+    Vertex* innerV0 =
+        inner0It != innerVerts.end() ? inner0It->second : nullptr;
+    Vertex* innerV1 =
+        inner1It != innerVerts.end() ? inner1It->second : nullptr;
+
+    // The two copies of the original sharp edge.
+    applySharpness(out, outerV0, outerV1, sharpness);
+    applySharpness(out, innerV0, innerV1, sharpness);
+
+    // A boundary edge generates a side ribbon. Preserve the sharp
+    // corners at both ends of that ribbon through the thickness.
+    const bool isBoundaryEdge =
+        sourceEdge->fa == nullptr || sourceEdge->fb == nullptr;
+
+    if (isBoundaryEdge && std::abs(height) > 1e-8)
     {
-        if (edge != nullptr)
-        {
-            edge->isSharp = false;
-            edge->sharpness = 0.0f;
-        }
+        applySharpness(out, outerV0, innerV0, sharpness);
+        applySharpness(out, outerV1, innerV1, sharpness);
     }
-    _m = out;
-    return true;
+}
+int sharpEdgeCount = 0;
+
+for (Edge* edge : out.edges())
+{
+    if (edge && edge->sharpness > 0.0f)
+    {
+        ++sharpEdgeCount;
+
+        std::cout << "[offset] sharp output edge "
+                  << edge->v0()->name << " - "
+                  << edge->v1()->name
+                  << " sharpness = "
+                  << edge->sharpness
+                  << std::endl;
+    }
+}
+
+std::cout << "[offset] total sharp output edges = "
+          << sharpEdgeCount << std::endl;
+out.buildBoundary();
+out.computeNormals();
+
+_m = out;
+return true;
 }
 
 std::pair<Vertex*, float> FindClosestVert(const tc::Vector3& pos, std::vector<Vertex*> list)
