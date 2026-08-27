@@ -1360,6 +1360,8 @@ for (Edge* newEdge : newMesh.edgeList)
     }
 
     newEdge->sharpness = oldEdge->sharpness;
+newEdge->isSharp =
+    oldEdge->isSharp || oldEdge->sharpness > 0.0f;
     newEdge->isSharp = oldEdge->sharpness > 0.0f;
 
     if (newEdge->sharpness > 0.0f)

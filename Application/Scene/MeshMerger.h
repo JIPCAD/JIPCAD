@@ -122,8 +122,8 @@ private:
     double h = 0.0f, w = 0.0f;
     std::string _outerRimSurface;
     std::string _innerRimSurface;
-    bool _outerRimHidden;
-    bool _innerRimHidden;
+   bool _outerRimHidden = false;
+bool _innerRimHidden = false;
     bool offsetIdent = false;
     bool isSharp = true;
     // true == NOME_OFFSET_DEFAULT, false == NOME_OFFSET_GRID

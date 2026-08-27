@@ -22,6 +22,27 @@ DEFINE_META_OBJECT(CMeshMerger)
 
 inline static const float Epsilon = 0.01f;
 
+inline static const char* OpenSubdivRuleName(Sdc::Crease::Rule rule)
+{
+    switch (rule)
+    {
+    case Sdc::Crease::RULE_SMOOTH:
+        return "SMOOTH";
+
+    case Sdc::Crease::RULE_DART:
+        return "DART";
+
+    case Sdc::Crease::RULE_CREASE:
+        return "CREASE";
+
+    case Sdc::Crease::RULE_CORNER:
+        return "CORNER";
+
+    default:
+        return "UNKNOWN";
+    }
+}
+
 void CMeshMerger::UpdateEntity()
 {
     if (!IsDirty())
@@ -296,7 +317,6 @@ void CMeshMerger::Catmull2(CMeshInstance& meshInstance, bool shouldMergePoints =
         Catmull2(meshInstance, shouldMergePoints);
     // MergeIn(meshInstance, shouldMergePoints);
 }
-
 void CMeshMerger::Catmull()
 {
     bool needSubdivision = subdivisionLevel != 0;
@@ -311,10 +331,12 @@ void CMeshMerger::Catmull()
         // nothing to do
         return;
     }
+
     WireFrames.clear();
     ClearLineStrips();
     LineStrips.clear();
     DSFaceWithColor.clear();
+
     // OpenMesh::Subdivider::Uniform::CatmullClarkT<CMeshImpl> catmull; //
     // https://www.graphics.rwth-aachen.de/media/openmesh_static/Documentations/OpenMesh-4.0-Documentation/a00020.html
     // Execute 2 subdivision steps
@@ -322,8 +344,18 @@ void CMeshMerger::Catmull()
     MergedMesh.clearAndDelete();
     // catmull.attach(otherMesh);
     // prepare(otherMesh);
+
     bool didOffset = false;
-    if (needSubdivision)
+
+    if (needOffset)
+    {
+        // offset(otherMesh);
+        offset(otherMesh, h, w, _outerRimSurface, _innerRimSurface, _outerRimHidden, _innerRimHidden);
+        std::cout << "Apply offset, may take some time..." << std::endl;
+        didOffset = true;
+    }
+
+    while (subdivisionLevel > 0)
     {
         // std::cout << "\nsubdivLevel again: " << subdivisionLevel << "\n";
         subdivide(otherMesh, 1); //, isSharp); // Randy commented this out for now. add back asap
@@ -332,13 +364,7 @@ void CMeshMerger::Catmull()
         std::cout << "Apply catmullclark subdivision, may take some time..." << std::endl;
         subdivisionLevel--;
     }
-    if (needOffset)
-    {
-        // offset(otherMesh);
-        offset(otherMesh, h, w, _outerRimSurface, _innerRimSurface, _outerRimHidden, _innerRimHidden);
-        std::cout << "Apply offset, may take some time..." << std::endl;
-        didOffset = true;
-    }
+
     currMesh = otherMesh.newMakeCopy();
 
     if (didOffset)
@@ -393,8 +419,7 @@ void CMeshMerger::Catmull()
     // allows for the coloring to be consistent throughout the mesh.
     // When applying multiple levels at once, you will have coloring clipping between faces
     // and other undefined coloring behavior.
-    if (subdivisionLevel > 0)
-        Catmull();
+
     // MergeIn(meshInstance, shouldMergePoints);
 }
 
@@ -688,9 +713,6 @@ void CMeshMerger::MergeCurr()
             mergedEdge->sharpness = std::max(mergedEdge->sharpness, edge->sharpness);
             mergedEdge->isSharp = true;
 
-            mergedV0->sharpness = std::max(mergedV0->sharpness, edge->sharpness);
-            mergedV1->sharpness = std::max(mergedV1->sharpness, edge->sharpness);
-
             std::cout << "[mergeCurr] transferred sharpness "
                       << mergedEdge->sharpness
                       << " to edge "
@@ -848,9 +870,6 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
     {
         mergedEdge->sharpness = std::max(mergedEdge->sharpness, edge->sharpness);
         mergedEdge->isSharp = true;
-
-        mergedV0->sharpness = std::max(mergedV0->sharpness, edge->sharpness);
-        mergedV1->sharpness = std::max(mergedV1->sharpness, edge->sharpness);
 
         std::cout << "[merge] transferred sharpness "
                   << mergedEdge->sharpness << " to edge "
@@ -1206,9 +1225,124 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
         return true;
     };
     width = 1 - width;
-    DSMesh& out = DSMesh();
+    DSMesh out;
     DSMesh _m_original = _m.newMakeCopy();
     _m_original.computeNormals();
+
+    struct PendingHoleSharpEdge
+{
+    Vertex* a;
+    Vertex* b;
+    float sharpness;
+};
+
+std::vector<PendingHoleSharpEdge> pendingHoleSharpEdges;
+
+// Avoid relying on edgeTable/findEdge for the source lookup.
+// Avoid relying on edgeTable/findEdge for the source lookup.
+auto getSourceEdgeSharpness =
+    [&_m_original](Vertex* a, Vertex* b) -> float
+{
+    if (!a || !b)
+        return 0.0f;
+
+    for (Edge* edge : _m_original.edges())
+    {
+        if (!edge || !edge->v0() || !edge->v1())
+            continue;
+
+        const bool sameEndpoints =
+            (edge->v0() == a && edge->v1() == b)
+            || (edge->v0() == b && edge->v1() == a);
+
+        if (sameEndpoints)
+            return edge->sharpness;
+    }
+
+    return 0.0f;
+};
+
+
+
+    // Apply a crease to an output edge and its endpoint vertices.
+    // Use this for copied source edges and through-thickness corner edges.
+    auto applySharpness = [](DSMesh& mesh,
+                             Vertex* a,
+                             Vertex* b,
+                             float sharpness)
+    {
+        if (!a || !b || sharpness <= 0.0f)
+            return;
+
+        Edge* edge = mesh.findEdge(a, b, false);
+
+        if (!edge)
+        {
+            std::cout << "[offset] Could not find generated edge "
+                      << a->name << " - " << b->name << std::endl;
+            return;
+        }
+
+        edge->sharpness = std::max(edge->sharpness, sharpness);
+        edge->isSharp = true;
+
+    
+    };
+
+    // Apply a crease only to an edge. Hole edges use this so the ends of
+    // partially sharp holes can still blend into neighboring smooth edges.
+    auto applyEdgeSharpness = [](DSMesh& mesh,
+                                 Vertex* a,
+                                 Vertex* b,
+                                 float sharpness)
+    {
+        if (!a || !b || sharpness <= 0.0f)
+            return;
+
+        Edge* edge = mesh.findEdge(a, b, false);
+
+        if (!edge)
+        {
+            std::cout << "[offset] Could not find generated hole edge "
+                      << a->name << " - " << b->name << std::endl;
+            return;
+        }
+
+        edge->sharpness = std::max(edge->sharpness, sharpness);
+        edge->isSharp = true;
+
+        std::cout << "[offset] transferred sharpness "
+                  << edge->sharpness
+                  << " to hole edge "
+                  << a->name << " - "
+                  << b->name << std::endl;
+    };
+
+    auto applyHoleEdgeSharpness = [](DSMesh& mesh,
+                                 Vertex* a,
+                                 Vertex* b,
+                                 float sharpness)
+{
+    if (!a || !b || sharpness <= 0.0f)
+        return;
+
+    Edge* edge = mesh.findEdge(a, b, false);
+
+    if (!edge)
+    {
+        std::cout << "[offset] Could not find generated hole edge "
+                  << a->name << " - "
+                  << b->name << std::endl;
+        return;
+    }
+
+    // Keep the hole perimeter edge sharp.
+    edge->sharpness = std::max(edge->sharpness, sharpness);
+    edge->isSharp = true;
+
+    // Do not set a->sharpness or b->sharpness.
+    // Explicitly sharp vertices caused the corner fragments.
+};
 
     std::map<Vertex*, int> normalCount;
 
@@ -1268,7 +1402,8 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
             vertToFaces[v].push_back(f);
         }
     }
-    double d = height / 2.0;
+    const bool flatOffset = std::abs(height) < 1e-8;
+double d = height / 2.0;
 
     for (auto v : _m_original.vertList)
     {
@@ -1311,19 +1446,45 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
 
         // --- 3. CREATE VERTICES ---
         // (This is now safely INSIDE the 'v' loop)
-        outerVert = new Vertex(outerPos.x, outerPos.y, outerPos.z, out.vertList.size());
-        outerVert->name = v->name + "_offsetOuter"; // Safest naming convention for multi-file
-        outerVerts[v] = outerVert;
-        outerVert->normal = v->normal;
-        out.addVertex(outerVert);
+        outerVert = new Vertex(
+    outerPos.x,
+    outerPos.y,
+    outerPos.z,
+    out.vertList.size()
+);
 
-        innerVert = new Vertex(innerPos.x, innerPos.y, innerPos.z, out.vertList.size());
-        innerVert->name = v->name + "_offsetInner"; // Safest naming convention for multi-file
-        innerVerts[v] = innerVert;
-        innerVert->normal = v->normal;
-        out.addVertex(innerVert);
+outerVert->name = v->name + "_offsetOuter";
+outerVert->normal = v->normal;
+outerVert->sharpness = v->sharpness;
 
-        WireFrames.push_back({ outerVert, innerVert });
+outerVerts[v] = outerVert;
+out.addVertex(outerVert);
+
+if (flatOffset)
+{
+    // A flat offset has only one geometric shell.
+    // Reuse the outer vertex instead of creating an unused duplicate.
+    innerVert = outerVert;
+    innerVerts[v] = outerVert;
+}
+else
+{
+    innerVert = new Vertex(
+        innerPos.x,
+        innerPos.y,
+        innerPos.z,
+        out.vertList.size()
+    );
+
+    innerVert->name = v->name + "_offsetInner";
+    innerVert->normal = v->normal;
+    innerVert->sharpness = v->sharpness;
+
+    innerVerts[v] = innerVert;
+    out.addVertex(innerVert);
+
+    WireFrames.push_back({ outerVert, innerVert });
+}
     } // End of the 'v' loop
     std::vector<Vertex*> faceVertsInner = {};
     std::vector<Vertex*> faceVertsOuter = {};
@@ -1520,26 +1681,56 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
                 tc::Vector3 H_in_pos = c_in + (I_curr->position - c_in) * width;
 
                 Vertex* h_out =
-                    new Vertex(H_out_pos.x, H_out_pos.y, H_out_pos.z, out.vertList.size());
+    new Vertex(
+        H_out_pos.x,
+        H_out_pos.y,
+        H_out_pos.z,
+        out.vertList.size()
+    );
 
-                h_out->name =
-                    f_out.name + "_holeOut_" + std::to_string(i) + "_" + std::to_string(j);
-                
-                h_out->normal = O_curr->normal;
+h_out->name =
+    f_out.name + "_holeOut_"
+    + std::to_string(i) + "_"
+    + std::to_string(j);
 
-                out.addVertex(h_out);
-                outerHoleVerts.push_back(h_out);
-                outerVertsHole[O_curr].push_back(h_out);
+h_out->normal = O_curr->normal;
 
-                Vertex* h_in = new Vertex(H_in_pos.x, H_in_pos.y, H_in_pos.z, out.vertList.size());
+out.addVertex(h_out);
+outerHoleVerts.push_back(h_out);
+outerVertsHole[O_curr].push_back(h_out);
 
-                h_in->name = f_in.name + "_holeIn_" + std::to_string(i) + "_" + std::to_string(j);
-                h_in->normal = I_curr->normal;
+Vertex* h_in = nullptr;
 
-                out.addVertex(h_in);
-                innerHoleVerts.push_back(h_in);
-                innerVertsHole[I_curr].push_back(h_in);
+if (flatOffset)
+{
+    // A flat offset has no separate inner hole rim.
+    h_in = h_out;
+}
+else
+{
+    h_in =
+        new Vertex(
+            H_in_pos.x,
+            H_in_pos.y,
+            H_in_pos.z,
+            out.vertList.size()
+        );
+
+    h_in->name =
+        f_in.name + "_holeIn_"
+        + std::to_string(i) + "_"
+        + std::to_string(j);
+
+    h_in->normal = I_curr->normal;
+
+    out.addVertex(h_in);
+}
+
+innerHoleVerts.push_back(h_in);
+innerVertsHole[I_curr].push_back(h_in);
             }
+           
+
             innerHoleVerts.push_back(innerHoleVerts.front());
             outerHoleVerts.push_back(outerHoleVerts.front());
 
@@ -1553,34 +1744,99 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
             std::string backOut = ""; // f_out->backfaceName;
             std::string surfIn = f_in.surfaceName;
             std::string backIn = ""; // f_in->backfaceName;
-            bool flatOffset = std::abs(height) < 1e-8;
+           
 
-            // Build the new geometry (The rings of trapezoids + the tube walls)
-            for (int j = 0; j < numVerts; ++j)
+            // Build the new geometry (the rings of trapezoids and the tube walls).
+            for (int j = 0; j < numVerts; ++j)// 3. TUBE WALL (Straight down!)
             {
-                int next = (j + 1) % numVerts;
-                bool isRibbon = f_curr && f_curr->name.rfind("_offsetRibbon") != std::string::npos;
+                const int nextIndex = (j + 1) % numVerts;
+Vertex* sourceV0 = f_curr->vertices[j];
+Vertex* sourceV1 = f_curr->vertices[nextIndex];
+
+const float sourceSharpness =
+    getSourceEdgeSharpness(sourceV0, sourceV1);
+
+const int prevIndex =
+    (j + numVerts - 1) % numVerts;
+
+Vertex* sourcePrev =
+    f_curr->vertices[prevIndex];
+
+const float previousSharpness =
+    getSourceEdgeSharpness(sourcePrev, sourceV0);
+
+const float cornerSharpness =
+    std::max(previousSharpness, sourceSharpness);
+
+                bool isRibbon =
+                    f_curr && f_curr->name.rfind("_offsetRibbon") != std::string::npos;
                 bool isBoundaryRibbon =
-                   false && ( f_curr && f_curr->name.find("_offsetBoundaryRibbon") != std::string::npos);
-               // if (isRibbon)
-                //   continue;
-                // Because we didn't reverse the array, O_curr and I_curr are the EXACT SAME CORNER!
+                    false
+                    && (f_curr
+                        && f_curr->name.find("_offsetBoundaryRibbon")
+                            != std::string::npos);
+
+                // Because the inner array was not reversed, O_curr and I_curr
+                // represent the same original corner.
                 Vertex* O_curr = outVerts[j];
-                Vertex* O_next = outVerts[next];
+                Vertex* O_next = outVerts[nextIndex];
                 Vertex* I_curr = inVerts[j];
-                Vertex* I_next = inVerts[next];
+                Vertex* I_next = inVerts[nextIndex];
 
                 Vertex* H_out_curr = outerHoleVerts[j];
-                Vertex* H_out_next = outerHoleVerts[next];
+                Vertex* H_out_next = outerHoleVerts[nextIndex];
                 Vertex* H_in_curr = innerHoleVerts[j];
-                Vertex* H_in_next = innerHoleVerts[next];
-                if (flatOffset)
+                Vertex* H_in_next = innerHoleVerts[nextIndex];
+                // The edges from each source corner to its generated hole corner
+                // are artificial seams introduced by offset().  If the source corner
+                // is sharp, leaving these seams smooth lets Catmull-Clark pull their
+                // edge points toward the center of the ring, which rounds/folds the
+                // surface across an otherwise sharp square hole.  Preserve the source
+                // corner on these generated radial edges as well.
+                if (cornerSharpness > 0.0f)
                 {
-                    out.addFace({ O_curr, O_next, H_out_next, H_out_curr }, surfOut, "");
-                    out.faceList.back()->name = f_curr->name + "_offsetOuterFace";
-                    WireFrames.push_back({ O_curr, O_next, H_out_next, H_out_curr, O_curr });
-                    continue;
+                    pendingHoleSharpEdges.push_back({
+                        O_curr,
+                        H_out_curr,
+                        cornerSharpness
+                    });
+
+                    if (!flatOffset)
+                    {
+                        pendingHoleSharpEdges.push_back({
+                            I_curr,
+                            H_in_curr,
+                            cornerSharpness
+                        });
+                    }
                 }
+
+                if (flatOffset)
+{
+    out.addFace(
+        { O_curr, O_next, H_out_next, H_out_curr },
+        surfOut,
+        ""
+    );
+
+    out.faceList.back()->name =
+        f_curr->name + "_offsetOuterFace";
+
+    WireFrames.push_back(
+        { O_curr, O_next, H_out_next, H_out_curr, O_curr }
+    );
+
+   if (sourceSharpness > 0.0f)
+{
+    pendingHoleSharpEdges.push_back({
+        H_out_curr,
+        H_out_next,
+        sourceSharpness
+    });
+}
+
+    continue;
+}
                 // 1. OUTER SHELL (Normal points OUT)
                 out.addFace({ O_curr, O_next, H_out_next, H_out_curr }, surfOut, "");
                 out.faceList.back()->name = f_curr->name + "_offsetOuterFace_" + std::to_string(i)
@@ -1598,7 +1854,14 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
                 // out.faceList.back()->name = out.faceList.back()->name + "_offsetRibbon";
 
                 WireFrames.push_back({ I_curr, H_in_curr, H_in_next, I_next, I_curr });
-
+                if (cornerSharpness > 0.0f)
+    {
+        pendingHoleSharpEdges.push_back({
+            H_out_curr,
+            H_in_curr,
+            cornerSharpness
+        });
+    }
                 // 3. TUBE WALL (Straight down!)
                 if (!isBoundaryRibbon)
                 {
@@ -1615,6 +1878,22 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
                         { H_out_curr, H_out_next, H_in_next, H_in_curr, H_out_curr });
                     WireFrames.push_back({ H_out_curr, H_in_curr });
                 }
+               if (sourceSharpness > 0.0f)
+{
+    // Outer hole perimeter.
+    pendingHoleSharpEdges.push_back({
+        H_out_curr,
+        H_out_next,
+        sourceSharpness
+    });
+
+    // Matching inner hole perimeter.
+    pendingHoleSharpEdges.push_back({
+        H_in_curr,
+        H_in_next,
+        sourceSharpness
+    });
+}
             }
         }
     }
@@ -1663,6 +1942,67 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
         }
     }
     out.buildBoundary();
+
+    auto findOutputEdge =
+    [&out](Vertex* a, Vertex* b) -> Edge*
+{
+    if (!a || !b)
+        return nullptr;
+
+    for (Edge* edge : out.edges())
+    {
+        if (!edge || !edge->v0() || !edge->v1())
+            continue;
+
+        const bool sameEndpoints =
+            (edge->v0() == a && edge->v1() == b)
+            || (edge->v0() == b && edge->v1() == a);
+
+        if (sameEndpoints)
+            return edge;
+    }
+
+    return nullptr;
+};
+
+int appliedHoleSharpEdges = 0;
+
+for (const PendingHoleSharpEdge& pending : pendingHoleSharpEdges)
+{
+    Edge* edge = findOutputEdge(pending.a, pending.b);
+
+    if (!edge)
+    {
+        std::cout
+            << "[offset] FINAL hole edge not found: "
+            << pending.a->name << " - "
+            << pending.b->name
+            << std::endl;
+
+        continue;
+    }
+
+    edge->sharpness =
+        std::max(edge->sharpness, pending.sharpness);
+
+    edge->isSharp = true;
+
+    ++appliedHoleSharpEdges;
+
+    std::cout
+        << "[offset] FINAL sharp hole edge "
+        << edge->v0()->name << " - "
+        << edge->v1()->name
+        << " sharpness = "
+        << edge->sharpness
+        << std::endl;
+}
+
+std::cout
+    << "[offset] applied sharpness to "
+    << appliedHoleSharpEdges
+    << " generated hole edge(s)"
+    << std::endl;
     /*
     for (auto v : _m_original.vertList)
     {
@@ -1680,21 +2020,76 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
             innerVerts[v->name]->normal = v->normal;
         }
     }*/
-    for (auto v : out.vertList)
+// All faces have already been added, so out.edgeList now contains
+// the real edges created by out.addFace(...).
+// Transfer source-edge sharpness to the corresponding offset geometry.
+for (Edge* sourceEdge : _m_original.edges())
+{
+    if (!sourceEdge ||
+        !sourceEdge->v0() ||
+        !sourceEdge->v1() ||
+        sourceEdge->sharpness <= 0.0f)
     {
-        if (v)
-            v->sharpness = 0.0f;
+        continue;
     }
-    for (auto edge : out.edges())
+
+    Vertex* sourceV0 = sourceEdge->v0();
+    Vertex* sourceV1 = sourceEdge->v1();
+    const float sharpness = sourceEdge->sharpness;
+
+    auto outer0It = outerVerts.find(sourceV0);
+    auto outer1It = outerVerts.find(sourceV1);
+    auto inner0It = innerVerts.find(sourceV0);
+    auto inner1It = innerVerts.find(sourceV1);
+
+    Vertex* outerV0 =
+        outer0It != outerVerts.end() ? outer0It->second : nullptr;
+    Vertex* outerV1 =
+        outer1It != outerVerts.end() ? outer1It->second : nullptr;
+    Vertex* innerV0 =
+        inner0It != innerVerts.end() ? inner0It->second : nullptr;
+    Vertex* innerV1 =
+        inner1It != innerVerts.end() ? inner1It->second : nullptr;
+
+    // The two copies of the original sharp edge.
+    applySharpness(out, outerV0, outerV1, sharpness);
+    applySharpness(out, innerV0, innerV1, sharpness);
+
+    // A boundary edge generates a side ribbon. Preserve the sharp
+    // corners at both ends of that ribbon through the thickness.
+    const bool isBoundaryEdge =
+        sourceEdge->fa == nullptr || sourceEdge->fb == nullptr;
+
+    if (isBoundaryEdge && std::abs(height) > 1e-8)
     {
-        if (edge != nullptr)
-        {
-            edge->isSharp = false;
-            edge->sharpness = 0.0f;
-        }
+        applySharpness(out, outerV0, innerV0, sharpness);
+        applySharpness(out, outerV1, innerV1, sharpness);
     }
-    _m = out;
-    return true;
+}
+int sharpEdgeCount = 0;
+
+for (Edge* edge : out.edges())
+{
+    if (edge && edge->sharpness > 0.0f)
+    {
+        ++sharpEdgeCount;
+
+        std::cout << "[offset] sharp output edge "
+                  << edge->v0()->name << " - "
+                  << edge->v1()->name
+                  << " sharpness = "
+                  << edge->sharpness
+                  << std::endl;
+    }
+}
+
+std::cout << "[offset] total sharp output edges = "
+          << sharpEdgeCount << std::endl;
+out.buildBoundary();
+out.computeNormals();
+
+_m = out;
+return true;
 }
 
 std::pair<Vertex*, float> FindClosestVert(const tc::Vector3& pos, std::vector<Vertex*> list)
@@ -1726,126 +2121,149 @@ void CMeshMerger::MergeClear()
     MergedMesh.clear();
 }
 
-struct SharpSegment
-{
-    tc::Vector3 a;
-    tc::Vector3 b;
-    float sharpness;
-};
-
-static float DistSq(const tc::Vector3& p, const tc::Vector3& q)
-{
-    float dx = p.x - q.x;
-    float dy = p.y - q.y;
-    float dz = p.z - q.z;
-    return dx * dx + dy * dy + dz * dz;
-}
-
-static float DotVec(const tc::Vector3& a, const tc::Vector3& b)
-{
-    return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-static tc::Vector3 SubVec(const tc::Vector3& a, const tc::Vector3& b)
-{
-    return tc::Vector3(a.x - b.x, a.y - b.y, a.z - b.z);
-}
-
-static bool PointOnSegment(
-    const tc::Vector3& p,
-    const tc::Vector3& a,
-    const tc::Vector3& b,
-    float eps,
-    float& tOut
-)
-{
-    tc::Vector3 ab = SubVec(b, a);
-    tc::Vector3 ap = SubVec(p, a);
-
-    float abLenSq = DotVec(ab, ab);
-
-    if (abLenSq < eps * eps)
-    {
-        tOut = 0.0f;
-        return DistSq(p, a) < eps * eps;
-    }
-
-    float t = DotVec(ap, ab) / abLenSq;
-    tOut = t;
-
-    if (t < -eps || t > 1.0f + eps)
-    {
-        return false;
-    }
-
-    tc::Vector3 projected(
-        a.x + t * ab.x,
-        a.y + t * ab.y,
-        a.z + t * ab.z
-    );
-
-    return DistSq(p, projected) < eps * eps;
-}
-
-static void ReapplySharpnessToSubdividedEdges(
+// Copy the feature tags that OpenSubdiv itself produced on the refined level
+// back into the rebuilt DSMesh.
+//
+// This is intentionally simpler than reconstructing parent/child ancestry ourselves:
+// OpenSubdiv already knows exactly which child edges/vertices remain sharp after
+// Catmull-Clark refinement.  Reading GetEdgeSharpness()/GetVertexSharpness() from
+// the final level prevents us from inventing extra sharp edges and makes the next
+// one-level Catmull() pass receive the exact refined crease data.
+static void ApplyOpenSubdivSharpnessToRefinedMesh(
     DSMesh& mesh,
-    const std::vector<SharpSegment>& oldSharpSegments
-)
+    Far::TopologyLevel const& refinedLevel)
 {
-    const float eps = 0.001f;
-
-    int reappliedCount = 0;
-
-    for (auto* edge : mesh.edges())
+    // Start with a clean feature state.
+    for (Edge* edge : mesh.edges())
     {
-        if (!edge || !edge->v0() || !edge->v1())
+        if (!edge)
+            continue;
+
+        edge->sharpness = 0.0f;
+        edge->isSharp = false;
+    }
+
+    for (Vertex* vertex : mesh.vertList)
+    {
+        if (vertex)
+            vertex->sharpness = 0.0f;
+    }
+
+    int sharpEdgeCount = 0;
+    int sharpVertexCount = 0;
+
+    // The rebuilt DSMesh vertices are created in the same order as the vertices
+    // in refinedLevel, so topology vertex index == mesh.vertList index.
+    const int topologyEdgeCount = refinedLevel.GetNumEdges();
+
+    for (int edgeIndex = 0; edgeIndex < topologyEdgeCount; ++edgeIndex)
+    {
+        const float sharpness = refinedLevel.GetEdgeSharpness(edgeIndex);
+
+        if (sharpness <= 0.0f)
+            continue;
+
+        Far::ConstIndexArray edgeVertices =
+            refinedLevel.GetEdgeVertices(edgeIndex);
+
+        if (edgeVertices.size() != 2)
+            continue;
+
+        const int v0Index = edgeVertices[0];
+        const int v1Index = edgeVertices[1];
+
+        if (v0Index < 0 || v1Index < 0
+            || v0Index >= static_cast<int>(mesh.vertList.size())
+            || v1Index >= static_cast<int>(mesh.vertList.size()))
         {
+            std::cout << "[subdivide] refined sharp edge "
+                      << edgeIndex
+                      << " has invalid endpoint indices "
+                      << v0Index << ", " << v1Index
+                      << std::endl;
             continue;
         }
 
-        tc::Vector3 p0 = edge->v0()->position;
-        tc::Vector3 p1 = edge->v1()->position;
+        Vertex* v0 = mesh.vertList[v0Index];
+        Vertex* v1 = mesh.vertList[v1Index];
 
-        for (const auto& segment : oldSharpSegments)
+        if (!v0 || !v1)
+            continue;
+
+        Edge* meshEdge = nullptr;
+
+        // Avoid TopologyLevel::FindEdge() and DSMesh::findEdge() here.  The former
+        // caused the earlier final-level adjacency assertion, and the latter depends
+        // on edge-table state.  Pointer endpoint matching is unambiguous here.
+        for (Edge* candidate : mesh.edges())
         {
-            float t0 = 0.0f;
-            float t1 = 0.0f;
-
-            bool p0OnSegment = PointOnSegment(p0, segment.a, segment.b, eps, t0);
-            bool p1OnSegment = PointOnSegment(p1, segment.a, segment.b, eps, t1);
-
-            if (!p0OnSegment || !p1OnSegment)
-            {
+            if (!candidate || !candidate->v0() || !candidate->v1())
                 continue;
-            }
 
-            if (std::abs(t0 - t1) < 0.0001f)
+            const bool sameEndpoints =
+                (candidate->v0() == v0 && candidate->v1() == v1)
+                || (candidate->v0() == v1 && candidate->v1() == v0);
+
+            if (sameEndpoints)
             {
-                continue;
+                meshEdge = candidate;
+                break;
             }
-
-            edge->sharpness = std::max(edge->sharpness, segment.sharpness);
-            edge->isSharp = true;
-
-            edge->v0()->sharpness = std::max(edge->v0()->sharpness, segment.sharpness);
-            edge->v1()->sharpness = std::max(edge->v1()->sharpness, segment.sharpness);
-
-            ++reappliedCount;
-
-            std::cout << "[subdivide] re-applied sharpness "
-                      << edge->sharpness
-                      << " to child edge "
-                      << edge->v0()->name << " - "
-                      << edge->v1()->name
-                      << std::endl;
-
-            break;
         }
+
+        if (!meshEdge)
+        {
+            std::cout << "[subdivide] could not map OpenSubdiv sharp edge "
+                      << edgeIndex << " to DSMesh edge "
+                      << v0Index << " - " << v1Index
+                      << std::endl;
+            continue;
+        }
+
+        meshEdge->sharpness = sharpness;
+        meshEdge->isSharp = true;
+        ++sharpEdgeCount;
+
+        std::cout << "[subdivide] OpenSubdiv child crease "
+                  << meshEdge->v0()->name << " - "
+                  << meshEdge->v1()->name
+                  << " sharpness = " << sharpness
+                  << std::endl;
     }
 
-    std::cout << "[subdivide] re-applied sharpness to "
-              << reappliedCount
-              << " child edge(s)"
+    const int topologyVertexCount = refinedLevel.GetNumVertices();
+
+    for (int vertexIndex = 0; vertexIndex < topologyVertexCount; ++vertexIndex)
+    {
+        const float sharpness =
+            refinedLevel.GetVertexSharpness(vertexIndex);
+
+        if (sharpness <= 0.0f)
+            continue;
+
+        if (vertexIndex >= static_cast<int>(mesh.vertList.size()))
+            continue;
+
+        Vertex* vertex = mesh.vertList[vertexIndex];
+
+        if (!vertex)
+            continue;
+
+        vertex->sharpness = sharpness;
+        ++sharpVertexCount;
+
+        std::cout << "[subdivide] OpenSubdiv child corner "
+                  << vertex->name
+                  << " sharpness = " << sharpness
+                  << std::endl;
+
+    }
+
+    std::cout << "[subdivide] copied "
+              << sharpEdgeCount
+              << " refined crease edge(s) and "
+              << sharpVertexCount
+              << " refined sharp vertex/vertices back to DSMesh"
               << std::endl;
 }
 
@@ -1854,45 +2272,18 @@ bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
     DSMesh myCopy = _m.newMakeCopy();
     std::vector<Face*> faceList = myCopy.faceList;
 
-    std::vector<SharpSegment> oldSharpSegments;
-
-if (isSharp)
-{
-    for (auto* edge : _m.edges())
-    {
-        if (!edge || !edge->v0() || !edge->v1())
-        {
-            continue;
-        }
-
-        if (edge->sharpness > 0.0f)
-        {
-            oldSharpSegments.push_back({
-                edge->v0()->position,
-                edge->v1()->position,
-                edge->sharpness
-            });
-
-            std::cout << "[subdivide] saved sharp parent edge "
-                      << edge->v0()->name << " - "
-                      << edge->v1()->name
-                      << " sharpness = "
-                      << edge->sharpness
-                      << std::endl;
-        }
-    }
-
-    std::cout << "[subdivide] saved "
-              << oldSharpSegments.size()
-              << " sharp parent edge(s)"
-              << std::endl;
-}
-  
-
-    // Instantiate a Far::TopologyRefiner from the descriptor
+    // Instantiate a Far::TopologyRefiner from the descriptor.
+    // GetRefiner reads the sharpness currently stored on _m's edges.
     Far::TopologyRefiner* refiner = GetRefiner(_m, isSharp);
 
     Far::TopologyRefiner::UniformOptions uniop(n);
+
+    // We inspect edge topology on the final refined level in order to restore
+    // sharpness to descendant edges. OpenSubdiv otherwise keeps only minimal
+    // topology on the last level (face->vertex data), which leaves the final
+    // edge->vertex tables empty and makes GetEdgeVertices()/FindEdge() unsafe.
+    uniop.fullTopologyInLastLevel = true;
+
     // uniop.orderVerticesFromFacesFirst = true;
     refiner->RefineUniform(uniop);
 
@@ -1905,16 +2296,51 @@ if (isSharp)
         verts[i].SetPosition(v->position.x, v->position.y, v->position.z);
     }
 
-    // Interpolate vertex primvar data
+    // Interpolate vertex primvar data.
     Far::PrimvarRefiner primvarRefiner(*refiner);
 
     Vertex* src = verts;
-    for (int level = 1; level <= n; ++level)
+    for (int level = 1; level <= static_cast<int>(n); ++level)
     {
         Vertex* dst = src + refiner->GetLevel(level - 1).GetNumVertices();
         primvarRefiner.Interpolate(level, src, dst);
         src = dst;
     }
+
+    const int originalVertexCount =
+        static_cast<int>(_m.vertList.size());
+
+    // DEBUG: preserve the input vertex names and positions so we can verify
+    // that OpenSubdiv's CORNER rule is actually keeping those vertex points
+    // fixed during primvar interpolation.  Catmull() calls subdivide(..., 1),
+    // so vertex i on the refined level is the child vertex point of input i.
+    std::vector<std::string> originalVertexNames;
+    std::vector<tc::Vector3> originalVertexPositions;
+    originalVertexNames.reserve(originalVertexCount);
+    originalVertexPositions.reserve(originalVertexCount);
+
+    for (int i = 0; i < originalVertexCount; ++i)
+    {
+        Vertex* inputVertex = _m.vertList[i];
+
+        if (inputVertex)
+        {
+            originalVertexNames.push_back(inputVertex->name);
+            originalVertexPositions.push_back(inputVertex->position);
+        }
+        else
+        {
+            originalVertexNames.push_back("<null>");
+            originalVertexPositions.push_back(tc::Vector3(0, 0, 0));
+        }
+    }
+
+    // WireFrames stores raw Vertex* pointers into the current DSMesh.
+    // The mesh is about to be deleted and rebuilt, so keeping the old
+    // entries would leave dangling pointers and draw stale/floating lines.
+    // Each subdivision pass rebuilds WireFrames from the newly created faces.
+    WireFrames.clear();
+
     _m.clear();
     _m.clearAndDelete();
     _m.updateVertListAfterDeletion();
@@ -1922,63 +2348,105 @@ if (isSharp)
     _m.vertList.clear();
     _m.edgeList.clear();
     _m.boundaryEdgeList().clear();
-    { // Output OBJ of the highest level refined -----------
-        /// to debug
+
+    { // Output the highest refined level back into DSMesh.
         Far::TopologyLevel const& refLastLevel = refiner->GetLevel(n);
+
+        // DEBUG: inspect OpenSubdiv's actual vertex rule for the vertices
+        // inherited from the input level. Do not filter on explicit vertex
+        // sharpness: a vertex can be classified as CORNER purely from the
+        // incident crease topology even when GetVertexSharpness() is zero.
+        const int debugVertexCount =
+            std::min(
+                refLastLevel.GetNumVertices(),
+                originalVertexCount
+            );
+
         int nverts = refLastLevel.GetNumVertices();
         int nfaces = refLastLevel.GetNumFaces();
 
-        // Print vertex positions
         int firstOfLastVerts = refiner->GetNumVerticesTotal() - nverts;
+
+        for (int vertexIndex = 0;
+             vertexIndex < debugVertexCount;
+             ++vertexIndex)
+        {
+            const float sharpness =
+                refLastLevel.GetVertexSharpness(vertexIndex);
+
+            const Sdc::Crease::Rule rule =
+                refLastLevel.GetVertexRule(vertexIndex);
+
+            float const* refinedPos =
+                verts[vertexIndex + firstOfLastVerts].GetPosition();
+
+            const tc::Vector3& inputPos =
+                originalVertexPositions[vertexIndex];
+
+            const double dx = refinedPos[0] - inputPos.x;
+            const double dy = refinedPos[1] - inputPos.y;
+            const double dz = refinedPos[2] - inputPos.z;
+            const double delta = std::sqrt(dx * dx + dy * dy + dz * dz);
+
+            std::cout
+                << "[OpenSubdiv] position-check "
+                << originalVertexNames[vertexIndex]
+                << " index = " << vertexIndex
+                << " rule = " << OpenSubdivRuleName(rule)
+                << " vertexSharpness = " << sharpness
+                << " input = ("
+                << inputPos.x << ", "
+                << inputPos.y << ", "
+                << inputPos.z << ")"
+                << " refined = ("
+                << refinedPos[0] << ", "
+                << refinedPos[1] << ", "
+                << refinedPos[2] << ")"
+                << " delta = " << delta
+                << std::endl;
+        }
 
         for (int vert = 0; vert < nverts; ++vert)
         {
             float const* pos = verts[vert + firstOfLastVerts].GetPosition();
             _m.addVertex(pos[0], pos[1], pos[2]);
         }
-        // Print faces
-        for (int face = 0; face < nfaces; face++)
+
+        for (int face = 0; face < nfaces; ++face)
         {
             Far::ConstIndexArray fverts = refLastLevel.GetFaceVertices(face);
-            auto curr = refLastLevel.GetFaceParentFace(face);
-            int temp = n - 1;
-            /*
-            while (temp > 0)
-            {
-                curr = refLastLevel.GetFaceParentFace(curr);
-                temp--;
-            }
-            */
+
             int idx = face;
-            for (int l = n; l > 0; --l)
+            for (int l = static_cast<int>(n); l > 0; --l)
             {
                 idx = refiner->GetLevel(l).GetFaceParentFace(idx);
             }
-            // all refined Catmark faces should be quads
+
+            // All refined Catmark faces should be quads.
             assert(fverts.size() == 4);
+
             std::vector<Vertex*> vertices;
             for (int i = 0; i < 4; ++i)
             {
                 vertices.push_back(_m.vertList.at(fverts[i]));
             }
-            // int index = (face * faceList.size()) / nfaces;
+
             int index = idx;
-            // floor(face / static_cast<int>(std::pow(4, n)));
-            // int index = floor(face / floor(nfaces / faceList.size()));
-            // int index = (face * faceList.size()) / nfaces;
-            if (index >= faceList.size())
+            if (index >= static_cast<int>(faceList.size()))
             {
                 std::cout << "exceeded: " << index << "\n";
-                index = faceList.size() - 1;
+                index = static_cast<int>(faceList.size()) - 1;
             }
 
             std::string surfaceName = faceList.at(index)->surfaceName;
             std::string backfaceName = faceList.at(index)->backfaceName;
+
             if (surfaceName.empty())
             {
                 surfaceName = "";
             }
-            if (backfaceName.empty() || (backfaceName.substr(0, 10)).compare("SubdivVert") == 0)
+            if (backfaceName.empty()
+                || (backfaceName.substr(0, 10)).compare("SubdivVert") == 0)
             {
                 backfaceName = "";
             }
@@ -1986,29 +2454,46 @@ if (isSharp)
             _m.addFace(vertices, surfaceName, backfaceName);
             WireFrames.push_back(vertices);
         }
+
+        // addFace() has now rebuilt the real DSMesh edges. Copy the crease/corner
+        // state that OpenSubdiv actually produced on this refined level. This is the
+        // state that must feed the next recursive one-level subdivision pass.
         if (isSharp)
-{
-    ReapplySharpnessToSubdividedEdges(_m, oldSharpSegments);
-}
+        {
+            ApplyOpenSubdivSharpnessToRefinedMesh(
+                _m,
+                refLastLevel
+            );
+        }
 
-_m.computeNormals();
-_m.buildBoundary();
+        _m.computeNormals();
+        _m.buildBoundary();
 
-for (int i = 0; i < (int)_m.vertList.size(); ++i)
-    _m.vertList[i]->ID = i;
+        for (int i = 0; i < (int)_m.vertList.size(); ++i)
+        {
+            _m.vertList[i]->ID = i;
+        }
         for (int i = 0; i < (int)_m.faceList.size(); ++i)
+        {
             _m.faceList[i]->id = i;
+        }
+
         int maxID = -1;
         for (auto* v : _m.vertList)
-            maxID = std::max(int(maxID), int(v->ID));
+        {
+            maxID = std::max(maxID, static_cast<int>(v->ID));
+        }
+
         std::cout << "verts=" << _m.vertList.size() << " maxID=" << maxID << "\n";
-        std::cout << "vertList=" << _m.vertList.size() << " faceList=" << _m.faceList.size()
+        std::cout << "vertList=" << _m.vertList.size()
+                  << " faceList=" << _m.faceList.size()
                   << " edgeList=" << _m.edgeList.size()
-                  << " nameToVert=" << _m.nameToVert.size() // if exists
-                  << " nameToFace=" << _m.nameToFace.size() // if exists
+                  << " nameToVert=" << _m.nameToVert.size()
+                  << " nameToFace=" << _m.nameToFace.size()
                   << "\n";
     }
 
+    delete refiner;
     return true;
 }
 
