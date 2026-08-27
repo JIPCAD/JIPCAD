@@ -11,13 +11,18 @@ using namespace OpenSubdiv;
 Sdc::SchemeType SubdivisionType() {
     return Sdc::SCHEME_CATMARK;
 }
-Sdc::Options SubdivisionOptions() {
+Sdc::Options SubdivisionOptions()
+{
     Sdc::Options options;
 
-    options.SetVtxBoundaryInterpolation(Sdc::Options::VTX_BOUNDARY_EDGE_ONLY);
-    //options.SetVtxBoundaryInterpolation(Sdc::Options::VTX_BOUNDARY_EDGE_AND_CORNER);
-    // options.SetCreasingMethod(Sdc::Options::CREASE_CHAIKIN);
-    options.SetFVarLinearInterpolation(Sdc::Options::FVAR_LINEAR_NONE);
+    options.SetVtxBoundaryInterpolation(
+        Sdc::Options::VTX_BOUNDARY_EDGE_AND_CORNER
+    );
+
+    options.SetFVarLinearInterpolation(
+        Sdc::Options::FVAR_LINEAR_NONE
+    );
+
     return options;
 }
 
@@ -41,6 +46,27 @@ for (auto* edge : _m.edges())
                   << std::endl;
     }
 }
+int incomingSharpVertices = 0;
+
+for (auto* vertex : _m.vertList)
+{
+    if (vertex && vertex->sharpness > 0.0f)
+    {
+        ++incomingSharpVertices;
+
+        std::cout
+            << "[OpenSubdiv] incoming sharp vertex "
+            << vertex->name
+            << " sharpness = "
+            << vertex->sharpness
+            << std::endl;
+    }
+}
+
+std::cout
+    << "[OpenSubdiv] incoming sharp vertex count = "
+    << incomingSharpVertices
+    << std::endl;
 
 std::cout << "[OpenSubdiv] incoming sharp edge count = "
           << incomingSharpEdges << std::endl;
@@ -115,9 +141,3 @@ desc.creaseWeights = creaseWeights.data();
         desc,
         Far::TopologyRefinerFactory<Descriptor>::Options(SubdivisionType(), SubdivisionOptions()));
 }
-
-
-
-
-
-
