@@ -80,7 +80,7 @@ instance imerge_trefoil merge_trefoil endinstance
 offset offset_trefoil
     offset_type NOME_OFFSET_DEFAULT
     height 0.1
-    hole 0.1
+    hole 0.8
     instance imerge_trefoil merge_trefoil endinstance
 endoffset
 instance ioffset_trefoil offset_trefoil endinstance
@@ -89,7 +89,7 @@ instance ioffset_trefoil offset_trefoil endinstance
 subdivision subdiv_trefoil
   sd_type NOME_SD_CC_sharp
   sd_level 2
-  instance ioffset_trefoil offset_trefoil  endinstance
+  instance ioffset_trefoil merge_trefoil endinstance
 endsubdivision
 instance isubdiv_trefoil subdiv_trefoil endinstance
 

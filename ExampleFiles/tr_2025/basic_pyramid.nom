@@ -42,7 +42,7 @@ instance imerge_pyramid merge_pyramid endinstance
 ### subdivision subdiv_pyramid
 ###   sd_type NOME_SD_CC_sharp
 ###   sd_level 3
-###   instance imerge_pyramid merge_pyramid  endinstance
+###   instance imerge_pyramid merge_pyramid endinstance
 ### endsubdivision
 ### instance isubdiv_pyramid subdiv_pyramid endinstance
 
@@ -50,14 +50,14 @@ instance imerge_pyramid merge_pyramid endinstance
 ### subdivision subdiv_pyramid
 ###   sd_type NOME_SD_CC_sharp
 ###   sd_level 1
-###   instance imerge_pyramid merge_pyramid  endinstance
+###   instance imerge_pyramid merge_pyramid endinstance
 ### endsubdivision
 ### instance isubdiv_pyramid subdiv_pyramid endinstance
 
 ### subdivision subdiv_pyramid2
 ###   sd_type NOME_SD_CC_sharp
 ###   sd_level 2
-###   instance isubdiv_pyramid subdiv_pyramid  endinstance
+###   instance isubdiv_pyramid merge_pyramid endinstance
 ### endsubdivision
 ### instance isubdiv_pyramid2 subdiv_pyramid2 endinstance
 
@@ -65,7 +65,7 @@ instance imerge_pyramid merge_pyramid endinstance
 ### subdivision subdiv_pyramid
 ###   sd_type NOME_SD_CC_sharp
 ###   sd_level 1
-###   instance imerge_pyramid merge_pyramid  endinstance
+###   instance imerge_pyramid merge_pyramid endinstance
 ### endsubdivision
 ### instance isubdiv_pyramid subdiv_pyramid endinstance
 
@@ -73,24 +73,24 @@ instance imerge_pyramid merge_pyramid endinstance
 ###     offset_type NOME_OFFSET_DEFAULT
 ###     height 0.2
 ###     hole 0.3
-###     instance isubdiv_pyramid subdiv_pyramid endinstance
+###     instance isubdiv_pyramid merge_pyramid endinstance
 ### endoffset
 ### instance ioffset_pyramid offset_pyramid endinstance
 
 ###### Figure 9. Chain Offset -> Offset Generator
-### offset offset_pyramid
-###     offset_type NOME_OFFSET_DEFAULT
-###     height 0.3
-###     hole 0.3
-###     instance imerge_pyramid merge_pyramid endinstance
-### endoffset
-### instance ioffset_pyramid offset_pyramid endinstance
+offset offset_pyramid
+    offset_type NOME_OFFSET_DEFAULT
+    height 0.3
+    hole 0.3
+    instance imerge_pyramid merge_pyramid endinstance
+endoffset
+instance ioffset_pyramid offset_pyramid endinstance
 
 ### offset offset_pyramid2
 ###     offset_type NOME_OFFSET_DEFAULT
 ###     height 0.1
 ###     hole 0.1
-###     instance ioffset_pyramid offset_pyramid endinstance
+###     instance ioffset_pyramid merge_pyramid endinstance
 ### endoffset
 ### instance ioffset_pyramid2 offset_pyramid2 endinstance
 
@@ -106,7 +106,7 @@ instance imerge_pyramid merge_pyramid endinstance
 ### subdivision subdiv_pyramid
 ###   sd_type NOME_SD_CC_sharp
 ###   sd_level 3
-###   instance ioffset_pyramid offset_pyramid  endinstance
+###   instance ioffset_pyramid merge_pyramid  endinstance
 ### endsubdivision
 ### instance isubdiv_pyramid subdiv_pyramid endinstance
 
