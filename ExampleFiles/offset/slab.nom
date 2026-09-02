@@ -41,6 +41,6 @@ offset offset_slab
     hole 1.0
     instance imerge_slab merge_slab endinstance
 endoffset
-instance ioffset_slab offset_slab endinstance
+instance ioffset_slab offset_slab vertexnormal 1.0 endinstance
 
 ###########################  END  ###############################
