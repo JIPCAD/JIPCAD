@@ -1,11 +1,11 @@
-###########  Soapy_Pentafoil.nom  ###############
+###########  soapy_pentafoil.jip  ###############
 ### Demonstrates updated generators: 
 ### Merge, Subdivision, Offset, Normal Vectors
 ### with a colorful pentafoil soap film
 #####################################################
 
-### Import Color Definitions
-include :intro_imports\colors.nom endinclude
+############### Import Color Definitions ###############
+include :intro_imports\colors.jip endinclude
 
 ############  Adjustable Parameters on Sliders  ##################################
 bank p
@@ -48,8 +48,8 @@ point b8 ( {expr $p.prad*cos(0.0174533*( $p.psep+144))}  {expr $p.prad*sin(0.017
 point i8 ( {expr $p.irad*cos(0.0174533*( -108))}         {expr $p.irad*sin(0.0174533*( -108))}          0 ) endpoint
 point b9 ( {expr $p.prad*cos(0.0174533*(-$p.psep))}      {expr $p.prad*sin(0.0174533*(-$p.psep))}       {expr -$p.ptik} ) endpoint
 
-# polyline ctrlpoly  ( b0 i0 b1  b2 i2 b3  b4 i4 b5  b6 i6 b7  b8 i8 b9  b0 )     endpolyline
-# instance cp0  ctrlpoly   surface B   endinstance
+### polyline ctrlpoly  ( b0 i0 b1  b2 i2 b3  b4 i4 b5  b6 i6 b7  b8 i8 b9  b0 )     endpolyline
+### instance cp0  ctrlpoly   surface B   endinstance
 
 bspline  bsp   order 4    ( b0 i0 b1  b2 i2 b3  b4 i4 b5  b6 i6 b7  b8 i8 b9  b0 i0 b1 )    segs  {expr $p.pseg}   endbspline
 
@@ -80,51 +80,29 @@ mesh cross
   face f4 (.pfoil.v20 .pfoil.v88 .pfoil.v54 ) endface
 endmesh
 
-###### Uncomment the following sections one at a time to see the results
+###### Figure 13a. Initial Pentafoil Model
+###### Figure 13b. Turn on WireFrame using pull-down menu: Render Config -> WireFrame
+merge merge_pentafoil
+    instance sC  skirt   surface C   endinstance
+    instance sY  skirt   surface Y   rotate(0 0 1)(72)   endinstance
+    instance sO  skirt   surface G   rotate(0 0 1)(144)   endinstance
+    instance sR  skirt   surface R   rotate(0 0 1)(216)   endinstance
+    instance sM  skirt   surface M   rotate(0 0 1)(288)   endinstance   
 
-###### 1. Basic Pentafoil Instances
-instance sC  skirt   surface C   endinstance
-instance sY  skirt   surface Y   rotate(0 0 1)(72)   endinstance
-instance sO  skirt   surface G   rotate(0 0 1)(144)   endinstance
-instance sR  skirt   surface R   rotate(0 0 1)(216)   endinstance
-instance sM  skirt   surface M   rotate(0 0 1)(288)   endinstance   
+    instance mC  cross   surface C     endinstance
+    instance mY  cross   surface Y   rotate(0 0 1)(72)   endinstance
+    instance mO  cross   surface G   rotate(0 0 1)(144)   endinstance
+    instance mR  cross   surface R   rotate(0 0 1)(216)   endinstance
+    instance mM  cross   surface M   rotate(0 0 1)(288)   endinstance
+endmerge
+instance imerge_pentafoil merge_pentafoil endinstance
 
-instance mC  cross   surface C     endinstance
-instance mY  cross   surface Y   rotate(0 0 1)(72)   endinstance
-instance mO  cross   surface G   rotate(0 0 1)(144)   endinstance
-instance mR  cross   surface R   rotate(0 0 1)(216)   endinstance
-instance mM  cross   surface M   rotate(0 0 1)(288)   endinstance
-
-###### 2. Full Pipeline: Merge, Subdivision, Offset
-###### NOTE: Sliders do not work after merge
-### merge merge_pentafoil
-###     instance sC  skirt   surface C   endinstance
-###     instance sY  skirt   surface Y   rotate(0 0 1)(72)   endinstance
-###     instance sO  skirt   surface G   rotate(0 0 1)(144)   endinstance
-###     instance sR  skirt   surface R   rotate(0 0 1)(216)   endinstance
-###     instance sM  skirt   surface M   rotate(0 0 1)(288)   endinstance   
-
-###     instance mC  cross   surface C     endinstance
-###     instance mY  cross   surface Y   rotate(0 0 1)(72)   endinstance
-###     instance mO  cross   surface G   rotate(0 0 1)(144)   endinstance
-###     instance mR  cross   surface R   rotate(0 0 1)(216)   endinstance
-###     instance mM  cross   surface M   rotate(0 0 1)(288)   endinstance
-### endmerge
-### instance imerge_pentafoil merge_pentafoil endinstance
-
-### subdivision subdiv_pentafoil
-###   sd_type NOME_SD_CC_sharp
-###   sd_level 3 ### or use a custom variable such as {expr $p.varLevel}
-###   instance imerge_pentafoil merge_pentafoil  endinstance
-### endsubdivision
-### instance isubdiv_pentafoil subdiv_pentafoil endinstance
-
-### offset offset_pentafoil
-###     offset_type NOME_OFFSET_DEFAULT
-###     height 0.1 ### or use a custom variable such as {expr $p.varHeight}
-###     hole 0.1  ### or use a custom variable such as {expr $p.varHole}
-###     instance imerge_pentafoil merge_pentafoil endinstance
-### endoffset
-### instance ioffset_pentafoil offset_pentafoil endinstance
+###### Figure 13c. Apply subdivision
+subdivision subdiv_pentafoil
+  sd_type NOME_SD_CC_sharp
+  sd_level 2
+  instance imerge_pentafoil merge_pentafoil  endinstance
+endsubdivision
+instance isubdiv_pentafoil subdiv_pentafoil endinstance
 
 ###################  END  ###########################################

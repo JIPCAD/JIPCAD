@@ -1,11 +1,11 @@
-###########  Soapy_Rainbow_Trefoil.nom  ###############
+###########  soapy_rainbow_trefoil.jip  ###############
 ### Demonstrates updated generators: 
 ### Merge, Subdivision, Offset, Normal Vectors
 ### with a colorful trefoil soap film
 #####################################################
 
-### Import Color Definitions
-include :intro_imports\colors.nom endinclude
+############### Import Color Definitions ###############
+include :intro_imports\colors.jip endinclude
 surface K  color  (0   0   0  ) endsurface   # blacK
 
 ##################  Coordinate System  ################
@@ -27,7 +27,7 @@ endgroup
 
 ############  Adjustable Parameters on Sliders  ##################################
 bank p
-   set radi      1.5   0.1     2    0.1    ## radi
+   set radi      1.5   0.1       2    0.1    ## radi
    set rado      3       1       5    0.1    ## rado
    set wida     30       1      90    1      ## width-angle
    set dz        1       0       3    0.1    ## delta z
@@ -55,7 +55,7 @@ polyline  tref  ( pa pb pc pd pe pf pg ph pi pa )  endpolyline
 ### instance itref tref  surface K    endinstance  
 
 bspline curve  order 4  ( pi  pa pb pc pd pe pf pg ph pi pa  pb )    segs {expr $p.segC}  endbspline
-instance icurve curve  surface Y    endinstance       # scale(0.2 0.2 0.2)
+instance icurve curve  surface Y    endinstance
 
 ##########################  Soap Film Faces   #####################################
 mesh TempMesh0
@@ -68,35 +68,29 @@ mesh TempMesh0
  face new6 ( .icurve.v57 .icurve.v56 .icurve.v23 .icurve.v24 )  surface P   endface
 endmesh
 
-###### Uncomment the following sections one at a time to see the results
+###### Figure 12a. Initial Trefoil Model
+merge merge_trefoil
+    instance instTempMesh0a TempMesh0 endinstance
+    instance instTempMesh0b TempMesh0   rotate(0 0 1)(120)  endinstance
+    instance instTempMesh0c TempMesh0   rotate(0 0 1)(240)  endinstance
+endmerge
+instance imerge_trefoil merge_trefoil endinstance
 
-###### 1. Basic Trefoil Instances
-instance instTempMesh0a TempMesh0 endinstance
-instance instTempMesh0b TempMesh0   rotate(0 0 1)(120)  endinstance
-instance instTempMesh0c TempMesh0   rotate(0 0 1)(240)  endinstance
+###### Figure 12b. Apply gridded offset
+offset offset_trefoil
+    offset_type NOME_OFFSET_DEFAULT
+    height 0.1
+    hole 0.8
+    instance imerge_trefoil merge_trefoil endinstance
+endoffset
+instance ioffset_trefoil offset_trefoil endinstance
 
-###### 2. Full Pipeline: Merge, Subdivision, Offset
-###### NOTE: Sliders do not work after merge
-### merge merge_trefoil
-###     instance instTempMesh0a TempMesh0 endinstance
-###     instance instTempMesh0b TempMesh0   rotate(0 0 1)(120)  endinstance
-###     instance instTempMesh0c TempMesh0   rotate(0 0 1)(240)  endinstance
-### endmerge
-### instance imerge_trefoil merge_trefoil endinstance
-
-### subdivision subdiv_trefoil
-###   sd_type NOME_SD_CC_sharp
-###   sd_level 3 ### or use a custom variable such as {expr $p.varLevel}
-###   instance imerge_trefoil merge_trefoil  endinstance
-### endsubdivision
-### instance isubdiv_trefoil subdiv_trefoil endinstance
-
-### offset offset_trefoil
-###     offset_type NOME_OFFSET_DEFAULT
-###     height 0.1 ### or use a custom variable such as {expr $p.varHeight}
-###     hole 0.1  ### or use a custom variable such as {expr $p.varHole}
-###     instance imerge_trefoil merge_trefoil endinstance
-### endoffset
-### instance ioffset_trefoil offset_trefoil endinstance
+###### Figure 12c. Apply subdivision
+subdivision subdiv_trefoil
+  sd_type NOME_SD_CC_sharp
+  sd_level 2
+  instance ioffset_trefoil merge_trefoil endinstance
+endsubdivision
+instance isubdiv_trefoil subdiv_trefoil endinstance
 
 ##############################  END  ############################################

@@ -4,7 +4,7 @@
 #####################################################
 
 ############### Import Color Definitions ###############
-include :intro_imports\colors.nom endinclude
+include :intro_imports\colors.jip endinclude
 
 ###############  Sphere Geometry  #####################################
 sphere cap   ( 6  300  90 -60  8  5 2 ) endsphere  
