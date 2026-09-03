@@ -1,0 +1,87 @@
+#################  basic_pyramid.jip  ###############
+### Demonstrates updated generators: 
+### Merge, Subdivision, Offset, Normal Vectors
+#####################################################
+
+### Import Color Definitions
+include :intro_imports\colors.jip endinclude
+
+###############  Scene parameter sliders ###############
+bank p
+  set tx         0    -0.5  0.5  0.1   ##  "shift peak in x"
+  set ty         0    -0.5  0.5  0.1   ##  "shift peak in y"
+  set tz         1     0    3    0.1   ##  "height of the pyramid tip"
+
+  list ( tx ty tz )
+endbank
+
+###############  Pyramid Geometry  #####################################
+mesh pyramid
+  point vx  ( 2  0  0 ) endpoint
+  point vy  ( 0  2  0 ) endpoint
+  point va  (-2  0  0 ) endpoint
+  point vb  ( 0 -2  0 ) endpoint
+  point vz  ( {expr  $p.tx} {expr  $p.ty} {expr  $p.tz} ) endpoint
+
+  face fxy (vz vx vy)  surface R  endface  ## pyr-faces
+  face fya (vz vy va)  surface G  endface
+  face fab (vz va vb)  surface B  endface
+endmesh
+
+###### Uncomment the following sections one at a time to see the results
+
+###### 1. Basic Pyramid Instance
+### instance ipyramid pyramid endinstance
+
+###### 2. In-code merge generator with color preservation
+###### NOTE: Sliders do not work after merge
+### merge merge_pyramid
+###     instance ipyramid pyramid endinstance
+### endmerge
+### instance imerge_pyramid merge_pyramid endinstance
+
+###### 3.1 Display Normal Vectors with Instance Generator
+### merge merge_pyramid
+###     instance ipyramid pyramid endinstance
+### endmerge
+### instance imerge_pyramid merge_pyramid facenormal 1.0 surface R vertexnormal 0.5 surface B endsurfaceendinstance
+
+###### 3.2 In-code Normal Vector generator
+### merge merge_pyramid
+###     instance ipyramid pyramid endinstance
+### endmerge
+### instance imerge_pyramid merge_pyramid endinstance
+
+### vertexnormal norm_pyramid 0.5 surface R
+###   instance imerge_pyramid merge_pyramid  endinstance
+### endvertexnormal
+### instance inorm_pyramid norm_pyramid endinstance
+
+###### 4. In-code Subdivision Generator, with color preservation
+### merge merge_pyramid
+###     instance ipyramid pyramid  endinstance
+### endmerge
+### instance imerge_pyramid merge_pyramid endinstance
+
+### subdivision subdiv_pyramid
+###   sd_type NOME_SD_CC_sharp
+###   sd_level 3 ### or use a custom variable such as {expr $p.varLevel}
+###   instance imerge_pyramid merge_pyramid  endinstance
+### endsubdivision
+### instance isubdiv_pyramid subdiv_pyramid endinstance
+
+###### 5. In-code Offset Generator
+merge merge_pyramid
+    instance ipyramid pyramid  endinstance
+endmerge
+instance imerge_pyramid merge_pyramid endinstance
+
+offset offset_pyramid
+    offset_type NOME_OFFSET_DEFAULT
+    height 0.2 ### or use a custom variable such as {expr $p.varHeight}
+    hole 0.3  ### or use a custom variable such as {expr $p.varHole}
+    instance imerge_pyramid merge_pyramid endinstance
+endoffset
+instance ioffset_pyramid offset_pyramid endinstance
+
+###########################  END  ###############################

@@ -1,0 +1,113 @@
+#################  basic_pyramid.jip  ###############
+### Demonstrates updated generators: 
+### Merge, Subdivision, Offset, Normal Vectors
+#####################################################
+
+############### Import Color Definitions ###############
+include :intro_imports\colors.jip endinclude
+
+###############  Scene parameter sliders ###############
+bank p
+  set tx         0    -0.5  0.5  0.1   ##  "shift peak in x"
+  set ty         0    -0.5  0.5  0.1   ##  "shift peak in y"
+  set tz         1     0    3    0.1   ##  "height of the pyramid tip"
+
+  list ( tx ty tz )
+endbank
+
+###############  Pyramid Geometry  #####################################
+mesh pyramid
+  point vx  ( 2  0  0 ) endpoint
+  point vy  ( 0  2  0 ) endpoint
+  point va  (-2  0  0 ) endpoint
+  point vb  ( 0 -2  0 ) endpoint
+  point vz  ( {expr  $p.tx} {expr  $p.ty} {expr  $p.tz} ) endpoint
+
+  face fxy (vz vx vy)  surface R  endface  ## pyr-faces
+  face fya (vz vy va)  surface G  endface
+  face fab (vz va vb)  surface B  endface
+endmesh
+
+merge merge_pyramid
+    instance ipyramid pyramid endinstance
+endmerge
+
+############### Uncomment following sections one at a time to see the results.
+###### Figure 1. In-code merge generator with color preservation
+###### Note: Sliders do not work after merge
+instance imerge_pyramid merge_pyramid endinstance
+
+###### Figure 2. In-code Subdivision Generator, with color preservation
+###### To show wireframe, use the pull-down menu inside JIPCAD: Render Config -> WireFrame
+### subdivision subdiv_pyramid
+###   sd_type NOME_SD_CC_sharp
+###   sd_level 3
+###   instance imerge_pyramid merge_pyramid endinstance
+### endsubdivision
+### instance isubdiv_pyramid subdiv_pyramid endinstance
+
+###### Figure 7. Chain Subdivision -> Subdivision Generator
+### subdivision subdiv_pyramid
+###   sd_type NOME_SD_CC_sharp
+###   sd_level 1
+###   instance imerge_pyramid merge_pyramid endinstance
+### endsubdivision
+### instance isubdiv_pyramid subdiv_pyramid endinstance
+
+### subdivision subdiv_pyramid2
+###   sd_type NOME_SD_CC_sharp
+###   sd_level 2
+###   instance isubdiv_pyramid merge_pyramid endinstance
+### endsubdivision
+### instance isubdiv_pyramid2 subdiv_pyramid2 endinstance
+
+###### Figure 8. Chain Subdivision -> Offset Generator
+### subdivision subdiv_pyramid
+###   sd_type NOME_SD_CC_sharp
+###   sd_level 1
+###   instance imerge_pyramid merge_pyramid endinstance
+### endsubdivision
+### instance isubdiv_pyramid subdiv_pyramid endinstance
+
+### offset offset_pyramid
+###     offset_type NOME_OFFSET_DEFAULT
+###     height 0.2
+###     hole 0.3
+###     instance isubdiv_pyramid merge_pyramid endinstance
+### endoffset
+### instance ioffset_pyramid offset_pyramid endinstance
+
+###### Figure 9. Chain Offset -> Offset Generator
+### offset offset_pyramid
+###     offset_type NOME_OFFSET_DEFAULT
+###     height 0.3
+###     hole 0.3
+###     instance imerge_pyramid merge_pyramid endinstance
+### endoffset
+### instance ioffset_pyramid offset_pyramid endinstance
+
+### offset offset_pyramid2
+###     offset_type NOME_OFFSET_DEFAULT
+###     height 0.1
+###     hole 0.1
+###     instance ioffset_pyramid merge_pyramid endinstance
+### endoffset
+### instance ioffset_pyramid2 offset_pyramid2 endinstance
+
+###### Figure 10. Chain Offset -> Subdivision Generator
+### offset offset_pyramid
+###     offset_type NOME_OFFSET_DEFAULT
+###     height 0.1
+###     hole 0.4
+###     instance imerge_pyramid merge_pyramid endinstance
+### endoffset
+### instance ioffset_pyramid offset_pyramid endinstance
+
+### subdivision subdiv_pyramid
+###   sd_type NOME_SD_CC_sharp
+###   sd_level 3
+###   instance ioffset_pyramid merge_pyramid  endinstance
+### endsubdivision
+### instance isubdiv_pyramid subdiv_pyramid endinstance
+
+###########################  END  ###############################
