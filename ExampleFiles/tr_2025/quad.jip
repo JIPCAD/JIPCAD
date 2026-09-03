@@ -1,0 +1,53 @@
+#########################  quad.jip  #########################
+### Demonstrates subdivision with sharp-edge preservation
+##############################################################
+
+###############  Quadrilateral Geometry  #####################################
+mesh quad
+  point P1 ( 2  2  1) endpoint
+  point P2 (-2  2 -1) endpoint
+  point P3 (-2 -2  1) endpoint
+  point P4 ( 2 -2 -1) endpoint
+  face fq (P1 P2 P3 P4) endface
+endmesh
+
+merge merge_quad
+    instance iquad quad endinstance
+endmerge
+
+############### Uncomment following sections one at a time to see the results.
+###### Figure 2(B).a. Original Quad geometry
+### instance  imerge_quad merge_quad  endinstance
+
+###### Figure 2(B).b. Quad after 3 levels of subdivision with sharp-edge preservation
+### subdivision subdiv_quad
+###   sd_type NOME_SD_CC_sharp
+###   sd_level 3
+###   instance imerge_quad merge_quad endinstance
+### endsubdivision
+### instance isubdiv_quad subdiv_quad endinstance
+
+###### Figure 2(B).c. Quad after 3 levels of subdivision with sharp-edge preservation
+mesh sharp_quad
+  point P1 ( 2  2  1) endpoint
+  point P2 (-2  2 -1) endpoint
+  point P3 (-2 -2  1) endpoint
+  point P4 ( 2 -2 -1) endpoint
+  face fq (P1 P2 P3 P4) endface
+
+  sharp 9  ( P1  P2  )  endsharp
+  sharp 9  ( P2  P3  )  endsharp
+  sharp 9  ( P3  P4  )  endsharp
+  sharp 9  ( P4  P1  )  endsharp
+endmesh
+
+merge merge_sharp_quad
+    instance isharp_quad sharp_quad endinstance
+endmerge
+
+subdivision subdiv_sharp_quad
+  sd_type NOME_SD_CC_sharp
+  sd_level 3
+  instance imerge_sharp_quad merge_sharp_quad endinstance
+endsubdivision
+instance isubdiv_sharp_quad subdiv_sharp_quad endinstance
