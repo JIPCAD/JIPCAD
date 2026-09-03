@@ -34,9 +34,15 @@ endmesh
 merge merge_pyramid
     instance ipyramid pyramid endinstance
 endmerge
-instance imerge_pyramid merge_pyramid endinstance
 
-###### Figure 5. Offset Generator, with Vertex Normals
+############### Uncomment following figures one at a time to see the results.
+###### Figure 5a. Input geometry
+### instance imerge_pyramid merge_pyramid endinstance
+
+###### Figure 5b. Input geometry with Vertex Normals
+### instance imerge_pyramid merge_pyramid vertexnormal 1.0 endinstance
+
+###### Figure 5c. Input geometry offset, with newVertex Normals
 offset offset_pyramid
     offset_type NOME_OFFSET_DEFAULT
     height 0.2
@@ -44,6 +50,5 @@ offset offset_pyramid
     instance imerge_pyramid merge_pyramid endinstance
 endoffset
 instance ioffset_pyramid offset_pyramid vertexnormal 1.0 endinstance
-### instance ioffset_pyramid offset_pyramid endinstance
 
 ###########################  END  ###############################
