@@ -895,6 +895,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                 auto* outerRimHiddenInfo = command_to_review.provided_command->GetNamedArgument("outerrimhidden");
                 bool outerRimHidden = false;
                 if (outerRimHiddenInfo){
+                    std::cout << "\nHiding outer rims\n";
                     outerRimHidden = true;
                 }
 
@@ -902,6 +903,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                 bool innerRimHidden = false;
                 if (innerRimHiddenInfo)
                 {
+                    std::cout << "\nHiding inner rims\n";
                     innerRimHidden = true;
                 }
                 
@@ -1550,305 +1552,204 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
     */
     else if (cmd->GetCommand() == "facenormal")
     {
-        // Robert 2/19/2025
-        // Gather all instances to merge
-        std::cout << "\nranfacehereidkwhy\n";
+        // --- 1. Parse Named Argument & Multiplier ---
+        float vertexNormalMultiplier = 1.0f; // Default length scale
+        auto* vertexNormalMultiplierInfo = cmd->GetNamedArgument("size");
+        if (!vertexNormalMultiplierInfo)
+        {
+            std::cout << "Size is not defined";
+            return;
+        }
+        auto items =
+            std::any_cast<AST::ANamedArgument*>(vertexNormalMultiplierInfo)->GetArguments();
+        // vertexNormalMultiplierInfo->GetArguments();
+        try
+        {
+            std::ostringstream oss;
+            oss << vertexNormalMultiplierInfo[0];
+
+            std::string result = oss.str();
+            result = result.substr(5, result.length());
+
+            if (GEnv.Scene->GetBankAndSet().GetSlider(result) == nullptr)
+                throw AST::CSemanticError("Size is not slider, will now check for value",
+                                          items.at(0));
+
+            vertexNormalMultiplier = GEnv.Scene->GetBankAndSet().GetSlider(result)->GetValue();
+        }
+        catch (const AST::CSemanticError& e)
+        {
+            try
+            {
+                CExprEvalDirect eval;
+                auto tempHeight = std::any_cast<float>(items.at(0)->Accept(&eval));
+                vertexNormalMultiplier = static_cast<double>(tempHeight);
+            }
+            catch (const AST::CSemanticError& e)
+            {
+                throw AST::CSemanticError("Size is not properly defined", items.at(0));
+            }
+        }
+
+        // --- 2. Extract Target Mesh Instance Names ---
         std::string instanceNames = "";
         for (auto* sub : cmd->GetSubCommands())
         {
-            // std::cout << "sub: " << sub->GetName() << "\n" << endl;
             instanceNames += sub->GetName() + ":::";
             VisitCommandSyncScene(sub, scene, false);
         }
         GEnv.Scene->Update();
-
-        // tc::TAutoPtr<Scene::CMeshMerger> merger = new Scene::CMeshMerger(cmd->GetName());
-        tc::TAutoPtr<Scene::CMeshMerger> merger =
-            new Scene::CMeshMerger(cmd->GetName());
-        bool flag = false;
-        bool isInstance = false;
+        // --- 3. Scene Traversal & Normal Visualization ---
+        // --- 3. Scene Traversal & Normal Visualization ---
         GEnv.Scene->ForEachSceneTreeNode(
             [&](Scene::CSceneTreeNode* node)
             {
-                /*
-                if (node->GetOwner()->GetName() == "globalMergeNode")
+                auto* entity = node->GetInstanceEntity();
+                if (!entity)
                 {
-                    flag = true;
-                    return;
+                    entity = node->GetOwner()->GetEntity();
                 }
-                */
-                auto* entity = node->GetInstanceEntity(); // Else, get the instance
 
-                if (!entity) // Check to see if the an entity is instantiable
-                {
-                    entity = node->GetOwner()
-                                 ->GetEntity(); // If it's not instantiable, get entity instead
-                }
                 if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
                 {
-                    // std::cout << "meshName: " << node->GetOwner()->GetName() << "\n" << endl;
+                    bool isInstance = false;
                     size_t start = 0;
                     size_t end;
 
-                    // Loop through and extract words split by ":::".
+                    // Check if this node matches any subcommand target names
                     while ((end = instanceNames.find(":::", start)) != std::string::npos)
                     {
-                        // Extract word between start and end
                         std::string word = instanceNames.substr(start, end - start);
-                        // std::cout << "Word: " << word << std::endl;
                         if (word.compare(node->GetOwner()->GetName()) == 0)
+                        {
                             isInstance = true;
-                        // Move start position to the next part after ":::"
+                            break;
+                        }
                         start = end + 3;
                     }
+
                     if (isInstance)
                     {
-                        // merger->MergeIn(*mesh, true);
-                        // entity->isMerged = true;
-                        // auto* meshObj = dynamic_cast<Scene::>(entity);
-                        mesh->GetDSMesh().computeNormals();
-                        std::vector<tc::TAutoPtr<Scene::CPolyline>> polyLines = {};
-                        std::vector<Face*> faceList = mesh->GetDSMesh().faceList;
-                        for (auto* f : faceList)
-                        {
-                            Vertex center =
-                                mesh->GetDSMesh().centerPoint(f); // Gets center point of face
-                            Vertex distant = Vertex();
-                            distant.position =
-                                center.position + f->normal; // Get the point the normal points to
-                            std::vector<Vertex*> vertList = {};
+                        // 1. Instantiate CMeshMerger for normal generation
+                        tc::TAutoPtr<Scene::CMeshMerger> merger =
+                            new Scene::CMeshMerger(entity->GetName() + "_fnormals");
 
-                            Vertex temp = Vertex();
-                            temp.SetPosition((center.position.x + distant.position.x) / 2 + 0.1,
-                                             (center.position.y + distant.position.y) / 2 + 0.1,
-                                             (center.position.z + distant.position.z) / 2 + 0.1);
-                            // vertList.push_back(&temp);
-                            std::cout << center.position.x << "\t" << center.position.y << "\t"
-                                      << center.position.z << "\n";
-                            std::cout << distant.position.x << "\t" << distant.position.y << "\t"
-                                      << distant.position.z << "\n";
-                            vertList.push_back(&center);
-                            vertList.push_back(&temp);
-                            vertList.push_back(&distant);
-                            // mesh->GetDSMesh().createEdge(&center, &distant);
-                            // AddLineStrip("normalLine" + f->name, vertList);
-                            // mesh->GetDSMesh().addVertex(&center);
-                            // mesh->GetDSMesh().addVertex(&distant);
-                            // mesh->GetDSMesh().createEdge(&center, &distant);
-                            mesh->GetDSMesh().addVertex(&center);
-                            mesh->GetDSMesh().addVertex(&temp);
-                            mesh->GetDSMesh().addVertex(&distant);
-                            mesh->GetDSMesh().createEdge(&center, &distant);
-                            // mesh->GetDSMesh().addFace(vertList, "", "", false);
-                            // CPolyline p = CPolyline();
-                            // mesh->GetDSMesh();
-                            // std::vector<std::string> huh;
-                            // huh.push_back(f->name);
-                            // mesh->RemoveFace(huh);
-                            // mesh->Instantiate(node);
+                        // 2. Generate vertex normals using the engine's built-in tool
+                        // (hasFaceNormal = false, faceNormalMultiplier = 0.0f, hasVertexNormal =
+                        // true)
+                        merger->CreateNormals(mesh->GetDSMesh(), true, vertexNormalMultiplier,
+                                              false,
+                                              0.0f);
+                        merger->MarkDirty();
 
-                            // std::cout << vertList.size() << "size\n";
-                            // meshObj->AddLineStrip("normalLine" + f->name, vertList);
-                            // mesh->GetDSMesh().addFace(vertList, "", "", false);
-                            // p.AddLineStrip("normalLine" + f->name, vertList);
-                            // auto* sceneNode =
-                            // InstanciateUnder->CreateChildNode(cmd->GetName()+f->name);
-                            // sceneNode->SetEntity(entity);
-                            //->SetEntity((Scene::CEntity)(&mesh));
-                            // p.Instantiate(node);
-                            // tc::TAutoPtr<Scene::CMesh> poly = &p;
-                            // polyLines.push_back(&p);
-                            // tc::static_pointer_cast<Scene::CEntity>
-                            // GEnv.Scene->AddEntity(&p);
-                            // GEnv.Scene->Update();
-                            // entity->MarkDirty();
-                            // entity->UpdateEntity();
-                        }
-                        mesh->RemoveFace({ faceList.at(1)->name });
-                        merger->MergeIn(*mesh, false);
-                        entity->isMerged = true;
-                        GEnv.Scene->Update();
-                        if (flag)
-                        {
-                            // repeated merges will not do anything which is cool.
-                            return;
-                        }
-
-                        // TODO: 10/22 added.  These lines work to reset the scene
-                        GEnv.Scene->ForEachSceneTreeNode(
-                            [&](Scene::CSceneTreeNode* node)
-                            {
-                                if (node->GetOwner()->GetName() != "globalMergeNode")
-                                    node->GetOwner()->SetEntity(nullptr);
-                            });
-
-                        GEnv.Scene->AddEntity(tc::static_pointer_cast<Scene::CEntity>(
-                            merger)); // Merger now has all the vertices set, so we can add it into
-                                      // the scene as a new entity
-                        auto* sn = GEnv.Scene->GetRootNode()->FindOrCreateChildNode(
-                            "globalMergeNode"); // Add it into the Scene Tree by creating a new node
-                                                // called globalMergeNode. Notice, this is the same
-                                                // name everytime you Merge. This means you can only
-                                                // have one merger mesh each time. It will override
-                                                // previous merger meshes with the new vertices.
-                        sn->SetEntity(merger.Get()); // Set sn, which is the scene node, to point to
-                                                     // entity merger
-                        std::cout << merger.Get()->Faces.GetSize() << "\t ~\n";
+                        // 3. Attach to a UNIQUE node in the scene tree so it isn't overwritten
+                        auto* normalNode = GEnv.Scene->GetRootNode()->FindOrCreateChildNode(
+                            entity->GetName() + "_fnormals");
+                        normalNode->SetEntity(merger.Get());
                     }
-                    if (entity)
-                    {
-                        // node->GetOwner()->GetScene()->RemoveEntity(entity->GetName(), true);
-                        // node->GetOwner()->GetScene()->AddEntity(entity);
-                    }
-                    
-                    isInstance = false;
                 }
             });
-        /*
-        for (auto* sub : cmd->GetSubCommands())
-        {
-            std::cout << "sub: " << sub->GetName() << "\n" << endl;
-            //instanceNames += sub->GetName() + ":::";
-            //VisitCommandSyncScene(sub, scene, false);
-        }
-        */
+
         GEnv.Scene->Update();
-        /*
-        if (flag)
-        {
-            return;
-        }
-        GEnv.Scene->ForEachSceneTreeNode(
-            [&](Scene::CSceneTreeNode* node)
-            {
-                if (node->GetOwner()->GetName() != "globalMergeNode")
-                    node->GetOwner()->SetEntity(nullptr);
-            });
-            */
-        // GEnv.Scene->AddEntity(tc::static_pointer_cast<Scene::CEntity>(merger)); // Merger now has
-        // all the vertices set, so we can add it into the scene as a
-        //  new entity
-        // auto* sn = GEnv.Scene->GetRootNode()->FindOrCreateChildNode("globalMergeNode"); // Add it
-        // into the Scene Tree by creating a new node called
-        //  globalMergeNode. Notice, this is the same name everytime you
-        //  Merge. This means you can only have one merger mesh each time. It
-        //  will override previous merger meshes with the new vertices.
-        // sn->SetEntity(merger.Get()); // Set sn, which is the scene node, to point to entity
-        // merger
     }
     else if (cmd->GetCommand() == "vertexnormal")
     {
-        /*
-            Way to fix instantiation issue
-            When any of these are run, add them to a list with (ID, cmd) ie (myMerge, merge)
-            Within the instance field in this file i will check if the id to instantiate matches one in the list, if it does execute that instead
-        */
-        // Robert 2/19/2025
+        // --- 1. Parse Named Argument & Multiplier ---
+        float vertexNormalMultiplier = 1.0f; // Default length scale 
+        auto* vertexNormalMultiplierInfo = cmd->GetNamedArgument("size");
+        if (!vertexNormalMultiplierInfo)
+        {
+            std::cout << "Size is not defined";
+            return;
+        }
+        auto items = std::any_cast<AST::ANamedArgument*>(vertexNormalMultiplierInfo)->GetArguments();
+        //vertexNormalMultiplierInfo->GetArguments();
+        try
+        {
+            std::ostringstream oss;
+            oss << vertexNormalMultiplierInfo[0];
+
+            std::string result = oss.str();
+            result = result.substr(5, result.length());
+
+            if (GEnv.Scene->GetBankAndSet().GetSlider(result) == nullptr)
+                throw AST::CSemanticError("Size is not slider, will now check for value",
+                                          items.at(0));
+
+            vertexNormalMultiplier = GEnv.Scene->GetBankAndSet().GetSlider(result)->GetValue();
+        }
+        catch (const AST::CSemanticError& e)
+        {
+            try
+            {
+                CExprEvalDirect eval;
+                auto tempHeight = std::any_cast<float>(items.at(0)->Accept(&eval));
+                vertexNormalMultiplier = static_cast<double>(tempHeight);
+            }
+            catch (const AST::CSemanticError& e)
+            {
+                throw AST::CSemanticError("Size is not properly defined", items.at(0));
+            }
+        }
+        
+
+        // --- 2. Extract Target Mesh Instance Names ---
         std::string instanceNames = "";
         for (auto* sub : cmd->GetSubCommands())
         {
-            // std::cout << "sub: " << sub->GetName() << "\n" << endl;
             instanceNames += sub->GetName() + ":::";
             VisitCommandSyncScene(sub, scene, false);
         }
         GEnv.Scene->Update();
-
-        // tc::TAutoPtr<Scene::CMeshMerger> merger = new Scene::CMeshMerger(cmd->GetName());
-        bool flag = false;
-        bool isInstance = false;
+        // --- 3. Scene Traversal & Normal Visualization ---
         GEnv.Scene->ForEachSceneTreeNode(
             [&](Scene::CSceneTreeNode* node)
             {
-                /*
-                if (node->GetOwner()->GetName() == "globalMergeNode")
+                auto* entity = node->GetInstanceEntity();
+                if (!entity)
                 {
-                    flag = true;
-                    return;
+                    entity = node->GetOwner()->GetEntity();
                 }
-                */
-                auto* entity = node->GetInstanceEntity(); // Else, get the instance
 
-                if (!entity) // Check to see if the an entity is instantiable
-                {
-                    entity = node->GetOwner()
-                                 ->GetEntity(); // If it's not instantiable, get entity instead
-                }
                 if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
                 {
-                    // std::cout << "meshName: " << node->GetOwner()->GetName() << "\n" << endl;
+                    bool isInstance = false;
                     size_t start = 0;
                     size_t end;
 
-                    // Loop through and extract words split by ":::".
+                    // Check if this node matches any subcommand target names
                     while ((end = instanceNames.find(":::", start)) != std::string::npos)
                     {
-                        // Extract word between start and end
                         std::string word = instanceNames.substr(start, end - start);
-                        // std::cout << "Word: " << word << std::endl;
                         if (word.compare(node->GetOwner()->GetName()) == 0)
+                        {
                             isInstance = true;
-                        // Move start position to the next part after ":::"
+                            break;
+                        }
                         start = end + 3;
                     }
+
                     if (isInstance)
                     {
-                        // merger->MergeIn(*mesh, true);
-                        // entity->isMerged = true;
-                        mesh->GetDSMesh().computeNormals();
-                        std::vector<tc::TAutoPtr<Scene::CPolyline>> polyLines = {};
-                        std::vector<Vertex*> vertList = mesh->GetDSMesh().vertList;
-                        for (auto* f : vertList)
-                        {
-                            //Vertex center = mesh->GetDSMesh().centerPoint(f); // Gets center point of face
-                            Vertex distant = Vertex();
-                            distant.position =
-                                (Vector3)(f->GetPosition()) + f->normal; // Get the point the normal points to //add scale
-                            std::vector<Vertex*> vertList = {};
-                            Vector3 pos = (Vector3)(f->GetPosition());
-                            //vertList.push_back(&center);
-                            //vertList.push_back(&distant);
-                            std::cout << pos.x << "\t" << pos.y << "\t"
-                                      << pos.z << "\n";
-                            std::cout << distant.position.x << "\t" << distant.position.y << "\t"
-                                      << distant.position.z << "\n";
-                            CPolyline p = CPolyline();
-                            //mesh->GetDSMesh().createEdge(&center, &distant);
-                            p.AddLineStrip("normalLine" + f->name, vertList);
-                            tc::TAutoPtr<Scene::CPolyline> poly = &p;
-                            // polyLines.push_back(&p);
-                            p.MarkDirty();
-                            p.UpdateEntity();
-                            //GEnv.Scene->AddEntity(tc::static_pointer_cast<Scene::CEntity>(poly));
-                            //GEnv.Scene->Update();
-                            //std::cout << "ra2\n";
+                        // 1. Instantiate CMeshMerger for normal generation
+                        tc::TAutoPtr<Scene::CMeshMerger> merger =
+                            new Scene::CMeshMerger(entity->GetName() + "_vnormals");
 
-                            GEnv.Scene->AddEntity(tc::static_pointer_cast<Scene::CEntity>(
-                                poly)); // Merger now has all the vertices set, so we can add it
-                                          // into the scene as a new entity
-                            auto* sn = GEnv.Scene->GetRootNode()->FindOrCreateChildNode(
-                                "tempNode"); // Add it into the Scene Tree by creating a new
-                                                    // node called globalMergeNode. Notice, this is
-                                                    // the same name everytime you Merge. This means
-                                                    // you can only have one merger mesh each time.
-                                                    // It will override previous merger meshes with
-                                                    // the new vertices.
-                            sn->SetEntity(tc::static_pointer_cast<Scene::CEntity>(
-                                poly)); // Set sn, which is the scene node, to
-                                                         // point to entity merger
+                        // 2. Generate vertex normals using the engine's built-in tool
+                        // (hasFaceNormal = false, faceNormalMultiplier = 0.0f, hasVertexNormal =
+                        // true)
+                        merger->CreateNormals(mesh->GetDSMesh(), false, 0.0f, true,
+                                              vertexNormalMultiplier);
+                        merger->MarkDirty();
 
-                        }
-                        // node->GetOwner()->SetEntity((polyLines.at(0).Get()));
-                        std::cout << "ra\n";
+                        // 3. Attach to a UNIQUE node in the scene tree so it isn't overwritten
+                        auto* normalNode = GEnv.Scene->GetRootNode()->FindOrCreateChildNode(
+                            entity->GetName() + "_vnormals");
+                        normalNode->SetEntity(merger.Get());
                     }
-                    isInstance = false;
                 }
             });
-        for (auto* sub : cmd->GetSubCommands())
-        {
-            std::cout << "sub: " << sub->GetName() << "\n" << endl;
-            // instanceNames += sub->GetName() + ":::";
-            VisitCommandSyncScene(sub, scene, false);
-        }
+
         GEnv.Scene->Update();
     }
     else if (cmd->GetCommand() == "offset")

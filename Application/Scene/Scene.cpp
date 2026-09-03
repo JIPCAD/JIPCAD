@@ -316,7 +316,11 @@ void CScene::DFSTreeNodeUpdate(CSceneTreeNode* treeNode, bool markDirty)
 
     const auto& childNodes = treeNode->GetChildren();
     for (CSceneTreeNode* child : childNodes)
-        DFSTreeNodeUpdate(child, markDirty);
+    {
+        if (child != nullptr)
+            DFSTreeNodeUpdate(child, markDirty);
+
+    }
 
     if (auto* ent = treeNode->GetEntity())
     {

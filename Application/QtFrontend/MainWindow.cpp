@@ -1151,6 +1151,7 @@ void CMainWindow::LoadNomeFile(const std::string& filePath, bool includeAxes) {
                 // Sample input: subdivision/sharp_specs.nom
                 // Note that the .nom is optional and its prescence will not have any affect (and neither if you were not to have it)
                 fileName.erase(0, 1);
+                std::cout << "Reviewing " << fileName << "\n";
                 std::string command = "python retrieveFile.py " + fileName;
                 FILE* pipe = _popen(command.c_str(), "r");
                 std::string tempResult = "";
@@ -1174,6 +1175,9 @@ void CMainWindow::LoadNomeFile(const std::string& filePath, bool includeAxes) {
                 {
                     result += tempResult;
                     result += "\n";
+                }
+                else{
+                    std::cout << "\nFailed to retrieve file " << fileName << "\n";
                 }
             }
             else

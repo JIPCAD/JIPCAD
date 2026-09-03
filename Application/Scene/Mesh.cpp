@@ -320,10 +320,17 @@ void CMeshInstance::CopyFromGenerator()
         bn = GetSceneTreeNode()->GetOwner()->GetBackface().Get()->GetName();
     std::array<float, 3> arr = { 0.0f, 0.0f, 0.0f };
     for (auto currFace : currMesh.faceList) {
+        if (currFace == nullptr)
+            continue;
         //std::cout << currFace->color[0] << currFace->color[1] << currFace->color[2] << " ---\n";
         //std::cout << currFace->surfaceName<<" --surf\n";
         if (currFace->surfaceName != "") {
             CSurface* surface = dynamic_cast<CSurface*>(scene->FindEntity(currFace->surfaceName).Get());
+            if (surface == nullptr)
+            {
+                std::cout << "\n--bad surface--\n";
+                continue;
+            }
             currFace->color = {surface->ColorR.GetValue(0.f), surface->ColorG.GetValue(0.f),
                                 surface->ColorB.GetValue(0.f)};
         }

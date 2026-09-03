@@ -8,6 +8,16 @@
 #include <algorithm>
 #include <vector>
 #include <limits>
+
+
+#ifdef PI
+#undef PI
+#endif
+
+#include <Eigen/Core>
+#include <igl/copyleft/cgal/outer_hull.h>
+#include <igl/copyleft/cgal/mesh_boolean.h>
+#include <igl/MeshBooleanType.h>
 using namespace std;
 
 
@@ -883,301 +893,12 @@ std::pair<Vertex*, float> CMeshMerger::FindClosestVertex(const tc::Vector3& pos)
     return { result, minDist };
 }
 
-// offset only added here
-// Randy changed it to use DSMesh
-// working with color
-/*
-bool CMeshMerger::offset(DSMesh& _m)
-{
-    double height = Height.GetValue(h);
-    double width = Width.GetValue(w);
-    if (height <= 0 && width <= 0)
-    {
-        return true;
-    }
-    COffsetRefiner offsetRefiner(_m, offsetFlag);
-    offsetRefiner.Refine(height, width);
-    _m.clear(); // TODO: is this not doing anyhting???
-
-    std::vector<Vertex*> vertices = offsetRefiner.GetVertices();
-    std::vector<Face*> faces = offsetRefiner.GetFaces();
-
-    // Offset verts and faces
-    printf("============ output verts and faces ======\n"); // TODO: debug below...
-    // for (int index = 0; index < faces.size(); index++)
-    for (auto face : faces)
-    {
-        std::vector<Vertex*> newVerts;
-        for (int i = 0; i < face->vertices.size(); i++)
-        {
-            auto vert = face->vertices[i];
-            Vertex* newVert = new Vertex(vert->position.x, vert->position.y, vert->position.z,
-                                         _m.vertList.size());
-            newVert->name = "offsetVert" + std::to_string(i); // Randy this was the bug. Need to
-name the Vert before adding it! Fix this logic. _m.addVertex(newVert); newVerts.push_back(newVert);
-        }
-        _m.addFace(newVerts,face->surfaceName, face->backfaceName);
-    }
-
-   _m.buildBoundary(); // Randy added this on 2/26
-    _m.computeNormals();
-    return true;
-}
-*/
-// New Version that fixes subdivision chaining (ie offset and then subdiv)
 #include <algorithm>
 #include <map>
 #include <set>
 #include <string>
 #include <vector>
-/*
-bool CMeshMerger::offset(DSMesh& _m, double height, double width)
-{
-    //double height = Height.GetValue(h);
-    //double width = Width.GetValue(w);
-    if (height <= 0 && width <= 0)
-        return true;
 
-    COffsetRefiner offsetRefiner(_m, offsetFlag);
-    offsetRefiner.Refine(height, width);
-
-    std::vector<Face*> rawFaces = offsetRefiner.GetFaces();
-    std::sort(rawFaces.begin(), rawFaces.end(),
-              [](Face* a, Face* b)
-              {
-                  return a->vertices.size() > b->vertices.size();
-              });
-    _m.clear();
-
-    // Welding Cache
-    std::map<std::string, Vertex*> uniqueVerts;
-
-    // Face Deduplication
-    std::set<std::vector<int>> existingFaces;
-
-    // Ensures we never add a 3rd face to an edge, preventing Non-Manifold errors.
-    std::map<std::pair<int, int>, int> edgeUsage;
-
-    printf("============ output verts and faces with MANIFOLD GUARD ======\n");
-
-    int addedFaceCount = 0;
-    int skippedCount = 0;
-
-    for (auto face : rawFaces)
-    {
-        std::vector<Vertex*> faceVerts;
-        std::vector<int> faceIndices;
-
-        // Merge vertices in the same position
-        for (int i = 0; i < face->vertices.size(); i++)
-        {
-            auto sourceVert = face->vertices[i];
-
-            char buffer[64];
-            snprintf(buffer, sizeof(buffer), "%.4f_%.4f_%.4f", sourceVert->position.x,
-                     sourceVert->position.y, sourceVert->position.z);
-            std::string key = buffer;
-
-            Vertex* finalVert = nullptr;
-            if (uniqueVerts.find(key) != uniqueVerts.end())
-            {
-                finalVert = uniqueVerts[key];
-            }
-            else
-            {
-                finalVert = new Vertex(sourceVert->position.x, sourceVert->position.y,
-                                       sourceVert->position.z, _m.vertList.size());
-                finalVert->name = "offsetVert" + std::to_string(_m.vertList.size());
-                _m.addVertex(finalVert);
-                uniqueVerts[key] = finalVert;
-            }
-            faceVerts.push_back(finalVert);
-            faceIndices.push_back(finalVert->ID);
-        }
-
-
-        bool isDegenerate = false;
-        for (size_t i = 0; i < faceIndices.size(); ++i)
-        {
-            if (faceIndices[i] == faceIndices[(i + 1) % faceIndices.size()])
-            {
-                isDegenerate = true;
-                break;
-            }
-        }
-        if (isDegenerate)
-            continue;
-        WireFrames.push_back(faceVerts);
-        std::vector<int> sortedIndices = faceIndices;
-        std::sort(sortedIndices.begin(), sortedIndices.end());
-        if (existingFaces.count(sortedIndices))
-            continue;
-
-        Vector3 v0 = faceVerts[0]->position;
-        Vector3 v1 = faceVerts[1]->position;
-        Vector3 v2 = faceVerts[2]->position;
-
-        // We check squared length against a tiny epsilon
-        float e0Sq = (v1 - v0).LengthSquared();
-        float e1Sq = (v2 - v1).LengthSquared();
-        float e2Sq = (v0 - v2).LengthSquared();
-
-        if (e0Sq < 1e-8f || e1Sq < 1e-8f || e2Sq < 1e-8f)
-        {
-            skippedCount++;
-            continue;
-        }
-
-        // Previous check was scale dependent. This one is consistent.
-        // We reject anything below 0.005 (approx 1:10 aspect ratio).
-        Vector3 edgeA = v1 - v0;
-        Vector3 edgeB = v2 - v0;
-        Vector3 cross = edgeA.CrossProduct(edgeB);
-        float doubleArea = cross.Length();
-        float perimeter = sqrt(e0Sq) + sqrt(e1Sq) + sqrt(e2Sq);
-
-        if (perimeter < 1e-9f)
-        {
-            skippedCount++;
-            continue;
-        } // Prevent divide by zero
-
-        // Ratio = Area / Perimeter^2
-        // A sliver has a very small area relative to its perimeter squared.
-        float aspect = doubleArea / (perimeter * perimeter);
-
-        if (aspect < 0.005f)
-        {
-            skippedCount++;
-            continue;
-        }
-
-        // Ensure strictly positive facing.
-        if (face->normal.LengthSquared() > 0.001f)
-        {
-            if (cross.DotProduct(face->normal) < 1e-4f)
-            {
-                skippedCount++;
-                continue;
-            }
-        }
-        // Check if adding this face would overload any edge ( > 2 faces)
-        bool isManifold = true;
-        for (size_t i = 0; i < faceIndices.size(); ++i)
-        {
-            int u = faceIndices[i];
-            int v = faceIndices[(i + 1) % faceIndices.size()];
-
-            std::pair<int, int> edgeKey = std::minmax(u, v);
-
-            if (edgeUsage[edgeKey] >= 2)
-            {
-                isManifold = false;
-                break;
-            }
-        }
-
-        if (!isManifold)
-        {
-            skippedCount++;
-            continue;
-        }
-
-        for (size_t i = 0; i < faceIndices.size(); ++i)
-        {
-            int u = faceIndices[i];
-            int v = faceIndices[(i + 1) % faceIndices.size()];
-            edgeUsage[std::minmax(u, v)]++;
-        }
-
-        existingFaces.insert(sortedIndices);
-
-        _m.addFace(faceVerts, face->surfaceName, face->backfaceName);
-        addedFaceCount++;
-    }
-    std::vector<bool> vertIsUsed(_m.vertList.size(), false);
-    for (auto face : _m.faceList)
-    {
-        for (auto v : face->vertices)
-        {
-            vertIsUsed[v->ID] = true;
-        }
-    }
-
-    // 2. Create a compact list and delete unused vertices
-    std::vector<Vertex*> packedVerts;
-    packedVerts.reserve(_m.vertList.size()); // Reserve max potential size
-
-    for (size_t i = 0; i < _m.vertList.size(); ++i)
-    {
-        Vertex* v = _m.vertList[i];
-        if (vertIsUsed[i])
-        {
-            // Update ID to match the new contiguous index
-            v->ID = (int)packedVerts.size();
-            packedVerts.push_back(v);
-        }
-        else
-        {
-            // Vertex was created but its face was rejected. Delete it.
-            delete v;
-        }
-    }
-
-    // 3. Swap the clean list back into the mesh
-    _m.vertList = packedVerts;
-    printf("Rebuild Complete: Added %d faces, Skipped %d non-manifold faces.\n", addedFaceCount,
-           skippedCount);
-
-    _m.buildBoundary();
-
-    if (addedFaceCount > 0)
-    {
-        _m.computeNormals();
-    }
-
-    return true;
-}
-*/
-
-// New New version
-tc::Vector3 Nome::Scene::CMeshMerger::calculate3PlaneIntersection(tc::Vector3 p, tc::Vector3 n1,
-                                                                  tc::Vector3 n2, tc::Vector3 n3,
-                                                                  double offsetDistance)
-{
-    // Original distances from origin
-    double d1 = (n1.x * p.x) + (n1.y * p.y) + (n1.z * p.z);
-    double d2 = (n2.x * p.x) + (n2.y * p.y) + (n2.z * p.z);
-    double d3 = (n3.x * p.x) + (n3.y * p.y) + (n3.z * p.z);
-
-    // Offset distances
-    double d1_prime = d1 + offsetDistance;
-    double d2_prime = d2 + offsetDistance;
-    double d3_prime = d3 + offsetDistance;
-
-    // Cross products
-    tc::Vector3 c23(n2.y * n3.z - n2.z * n3.y, n2.z * n3.x - n2.x * n3.z,
-                    n2.x * n3.y - n2.y * n3.x);
-    tc::Vector3 c31(n3.y * n1.z - n3.z * n1.y, n3.z * n1.x - n3.x * n1.z,
-                    n3.x * n1.y - n3.y * n1.x);
-    tc::Vector3 c12(n1.y * n2.z - n1.z * n2.y, n1.z * n2.x - n1.x * n2.z,
-                    n1.x * n2.y - n1.y * n2.x);
-
-    // Scalar triple product (determinant)
-    double determinant = (n1.x * c23.x) + (n1.y * c23.y) + (n1.z * c23.z);
-
-    // If determinant is near 0, planes are parallel (degenerate). Return a zero-vector as a flag.
-    if (std::abs(determinant) < 0.0001)
-    {
-        return tc::Vector3(0, 0, 0);
-    }
-
-    // Combine terms and divide by determinant
-    double invDet = 1.0 / determinant;
-    return tc::Vector3((c23.x * d1_prime + c31.x * d2_prime + c12.x * d3_prime) * invDet,
-                       (c23.y * d1_prime + c31.y * d2_prime + c12.y * d3_prime) * invDet,
-                       (c23.z * d1_prime + c31.z * d2_prime + c12.z * d3_prime) * invDet);
-}
 // normals first, then split vertices, then done
 bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string outerRimSurface,
                          std::string innerRimSurface, bool outerRimHidden, bool innerRimHidden)
@@ -1188,7 +909,7 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
     {
         if (!f)
             return false;
-        //return true;
+        return true;
         const std::string& n = f->name;
 
         // These are visible/generated result faces, but they should not be
@@ -1206,6 +927,8 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
         return true;
     };
     width = 1 - width;
+    if (width >= 1)
+        width = 0;
     DSMesh& out = DSMesh();
     DSMesh _m_original = _m.newMakeCopy();
     _m_original.computeNormals();
@@ -1343,16 +1066,16 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
     {
         if (!f)
             return true;
-        //return false;
-        //return f->name.find("_offsetRibbon") != std::string::npos;
-        
+        // return false;
+        // return f->name.find("_offsetRibbon") != std::string::npos;
+
         return f->name.find("_offsetInnerFace") != std::string::npos
             || f->name.find("_offsetHoleRibbon") != std::string::npos;
-            //|| f->name.find("_offsetBoundaryRibbon") != std::string::npos;
-        
+        //|| f->name.find("_offsetBoundaryRibbon") != std::string::npos;
+
         /*
             || f->name.find("_offsetOuterFace") != std::string::npos
-            
+
             || f->name.find("_hole") != std::string::npos
             || f->name.find("_offsetRibbonHoleWall") != std::string::npos;
         */
@@ -1442,7 +1165,10 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
                 if (outerHoleSurf.empty())
                     outerHoleSurf = rimSurface;
                 Face* t_face = out.addFace(ribbonVerts, outerHoleSurf, "");
-                out.faceList.back()->hide = outerRimHidden; // for outer boundary ribbon
+                if (outerRimHidden != true)
+                    out.faceList.back()->hide = false; // for outer boundary ribbon
+                else
+                    out.faceList.back()->hide = true;
                 out.faceList.back()->name =
                     out.faceList.back()->name + "_offsetBoundaryRibbon"; //"_offsetRibbon"; //
                 ribbonVerts.push_back(v2_outer);
@@ -1483,6 +1209,13 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
 
             int numVerts = f_out.vertices.size();
 
+            tc::Vector3 c_orig(0, 0, 0);
+            for (auto v : f_curr->vertices)
+            {
+                c_orig = c_orig + v->position;
+            }
+            c_orig = tc::Vector3(c_orig.x / numVerts, c_orig.y / numVerts, c_orig.z / numVerts);
+
             std::vector<Vertex*> outerHoleVerts;
             std::vector<Vertex*> innerHoleVerts;
             // Scale toward the centroids
@@ -1515,16 +1248,26 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
 
                 Vertex* O_curr = f_out.vertices[j];
                 Vertex* I_curr = f_in.vertices[j];
+                Vertex* V_orig = f_curr->vertices[j];
 
+                tc::Vector3 H_orig_pos = c_orig + (V_orig->position - c_orig) * width;
+                /*
                 tc::Vector3 H_out_pos = c_out + (O_curr->position - c_out) * width;
                 tc::Vector3 H_in_pos = c_in + (I_curr->position - c_in) * width;
+                */
+                tc::Vector3 H_out_pos(H_orig_pos.x + (d * f_curr->normal.x),
+                                      H_orig_pos.y + (d * f_curr->normal.y),
+                                      H_orig_pos.z + (d * f_curr->normal.z));
 
+                tc::Vector3 H_in_pos(H_orig_pos.x - (d * f_curr->normal.x),
+                                     H_orig_pos.y - (d * f_curr->normal.y),
+                                     H_orig_pos.z - (d * f_curr->normal.z));
                 Vertex* h_out =
                     new Vertex(H_out_pos.x, H_out_pos.y, H_out_pos.z, out.vertList.size());
 
                 h_out->name =
                     f_out.name + "_holeOut_" + std::to_string(i) + "_" + std::to_string(j);
-                
+
                 h_out->normal = O_curr->normal;
 
                 out.addVertex(h_out);
@@ -1560,9 +1303,9 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
             {
                 int next = (j + 1) % numVerts;
                 bool isRibbon = f_curr && f_curr->name.rfind("_offsetRibbon") != std::string::npos;
-                bool isBoundaryRibbon =
-                   false && ( f_curr && f_curr->name.find("_offsetBoundaryRibbon") != std::string::npos);
-               // if (isRibbon)
+                bool isBoundaryRibbon = false
+                    && (f_curr && f_curr->name.find("_offsetBoundaryRibbon") != std::string::npos);
+                // if (isRibbon)
                 //   continue;
                 // Because we didn't reverse the array, O_curr and I_curr are the EXACT SAME CORNER!
                 Vertex* O_curr = outVerts[j];
@@ -1591,7 +1334,7 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
                 // 2. INNER SHELL (Normal MUST point IN)
                 // Winding is reversed compared to outer shell
                 out.addFace({ I_curr, H_in_curr, H_in_next, I_next }, surfIn, "");
-                //out.addFace({ I_curr, I_next, H_in_next, H_in_curr }, surfIn, "");
+                // out.addFace({ I_curr, I_next, H_in_next, H_in_curr }, surfIn, "");
 
                 out.faceList.back()->name = f_curr->name + "_offsetInnerFace_" + std::to_string(i)
                     + "_" + std::to_string(j);
@@ -1610,7 +1353,10 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
                                 "");
                     out.faceList.back()->name = f_curr->name + "_offsetHoleRibbon_"
                         + std::to_string(i) + "_" + std::to_string(j);
-                    out.faceList.back()->hide = innerRimHidden; // for hole ribbon
+                    if (innerRimHidden != true)
+                        out.faceList.back()->hide = false; // for hole ribbon
+                    else
+                        out.faceList.back()->hide = true;
                     WireFrames.push_back(
                         { H_out_curr, H_out_next, H_in_next, H_in_curr, H_out_curr });
                     WireFrames.push_back({ H_out_curr, H_in_curr });
@@ -1695,30 +1441,9 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
     }
     _m = out;
     return true;
+ 
 }
 
-std::pair<Vertex*, float> FindClosestVert(const tc::Vector3& pos, std::vector<Vertex*> list)
-{
-    Vertex* result = NULL;
-    float minDist = std::numeric_limits<float>::max();
-    // TODO: linear search for the time being
-    for (const auto& v : list) // Project AddOffset
-    {
-        Vector3 pp = v->position;
-        float dist = pos.DistanceToPoint(pp);
-        cout << "";
-        if (dist < minDist)
-        {
-            minDist = dist;
-            result = v;
-        }
-    }
-    if (result == NULL)
-    {
-        return { NULL, -1 };
-    }
-    return { result, minDist };
-}
 
 void CMeshMerger::MergeClear()
 {

@@ -217,6 +217,7 @@ argSdFlag : SD_TYPE ident;
 argSdLevel : SD_LEVEL expression;
 argFaceNormal : FACENORMAL expression;
 argVertexNormal : VERTEXNORMAL expression;
+argNormalSize : SIZE expression;
 argOffsetFlag : OFFSET_TYPE ident;
 argHeight : HEIGHT expression;
 argWidth : HOLE expression;
@@ -319,6 +320,8 @@ command
    | open=BANK name=ident set* list end=ENDBANK # CmdBank
    | open=DELETE deleteFace* end=ENDDELETE # CmdDelete
    | open=SUBDIVISION name=ident argSdFlag* argSdLevel* command* end=ENDSUBDIVISION # CmdSubdivision
+   | open=VERTEXNORMAL name=ident argNormalSize* command* end=ENDVERTEXNORMAL # CmdVertexNormal
+   | open=FACENORMAL name=ident argNormalSize* command* end=ENDFACENORMAL # CmdFaceNormal
    | open=SHARP expression idList+ end=ENDSHARP # CmdSharp
    | open=OFFSET name=ident argOffsetFlag* argHeight* (argWidth)* argOUTERRIMSURFACE* argINNERRIMSURFACE* argOUTERRIMHIDDEN* argINNERRIMHIDDEN* command* end=ENDOFFSET # CmdOffset
    | open=INCLUDE name=ident end=ENDINCLUDE # CmdInclude

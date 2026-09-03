@@ -43,6 +43,7 @@ public:
     antlrcpp::Any visitArgFaceNormal(NomParser::ArgFaceNormalContext* ctx) override;
     antlrcpp::Any visitArgVertexNormal(NomParser::ArgVertexNormalContext* ctx) override;
     antlrcpp::Any visitArgSdLevel(NomParser::ArgSdLevelContext* ctx) override;
+    antlrcpp::Any visitArgNormalSize(NomParser::ArgNormalSizeContext* context) override;
     antlrcpp::Any visitArgSdFlag(NomParser::ArgSdFlagContext* ctx) override;
     antlrcpp::Any visitArgLightType(NomParser::ArgLightTypeContext* ctx) override;
     antlrcpp::Any visitArgFunc(NomParser::ArgFuncContext* ctx) override; // Brandon's gen shape generator
@@ -103,7 +104,8 @@ public:
     antlrcpp::Any visitCmdOffset(NomParser::CmdOffsetContext* context) override;
     antlrcpp::Any visitCmdSubdivision(NomParser::CmdSubdivisionContext* context) override;
     antlrcpp::Any visitCmdInitSubdivide(NomParser::CmdInitSubdivideContext* context) override;
-
+    antlrcpp::Any visitCmdFaceNormal(NomParser::CmdFaceNormalContext* ctx) override;
+    antlrcpp::Any visitCmdVertexNormal(NomParser::CmdVertexNormalContext* ctx) override;
     antlrcpp::Any visitCmdInitColor(NomParser::CmdInitColorContext* context) override;
     antlrcpp::Any visitVector3(NomParser::Vector3Context *context) override;
 
