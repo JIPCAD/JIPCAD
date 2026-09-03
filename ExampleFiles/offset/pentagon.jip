@@ -1,0 +1,112 @@
+#################  pentagon.jip  ###############
+### Demonstrates updated generators for Tech Report: 
+### Merge, Subdivision, Offset, Normal Vectors
+### with a Pentagon model
+#####################################################
+
+### Import Color Definitions
+include :intro_imports\colors.jip endinclude
+surface V  color  (0.5 0.1 1  ) endsurface   # Violet
+
+###############  Pentagon Geometry  #####################################
+###### Figure 3a. Single Planar Pentagon with Face-normals and Vertex-normals
+### point 	Yz  ( 0  1.618034  0.618034 )   endpoint
+### point 	Zx  ( 0.618034  0  1.618034 )   endpoint 
+### point 	Za  ( -0.618034  0  1.618034 )  endpoint
+### point 	XYZ ( 1.0  1.0  1.0 )           endpoint
+### point 	AYZ ( -1.0  1.0  1.0 )          endpoint
+
+### mesh pentagon3a
+###   face faceA (Zx XYZ Yz AYZ Za) surface R endface
+### endmesh
+### instance pentagon3ai pentagon3a endinstance
+
+###### Figure 3b. Non-Planar Pentagon Face split into 5 triangles with Face-normals
+### point 	Yz  ( 0  1.618034  0.618034 )   endpoint
+### point 	Zx  ( 0.618034  0  1.618034 )   endpoint 
+### point 	Za  ( -0.618034  0  1.618034 )  endpoint
+### point 	XYZ ( 1.0  1.0  1.0 )           endpoint
+### point 	AYZ ( -1.0  1.0  1.0 )          endpoint
+### point   mid ( 0 0.82607 1.342820 )      endpoint
+
+### mesh pentagon3b
+###   face faceA (mid Zx XYZ) surface G endface
+###   face faceB (mid XYZ Yz) surface B endface
+###   face faceC (mid Yz AYZ) surface U endface
+###   face faceD (mid AYZ Za) surface V endface
+###   face faceE (mid Za Zx)  surface Z endface
+### endmesh
+### instance pentagon3bi pentagon3b endinstance
+
+###### Figure 4a. Three Planar Pentagons sharing a Vertex with Avg. Vertex-Normals
+### point 	AYC  ( -1.0  1.0  -1.0 )        endpoint
+### point 	Ay   ( -1.618034  0.618034  0 ) endpoint
+### point 	AYZ  ( -1.0  1.0  1.0 )         endpoint
+### point 	Yz   ( 0  1.618034  0.618034 )  endpoint
+### point 	Yc   ( 0  1.618034  -0.618034 ) endpoint
+
+### point 	Xy   ( 1.618034  0.618034  0 )  endpoint    
+### point 	XYC  ( 1.0  1.0  -1.0 )         endpoint
+### point 	XYZ  ( 1.0  1.0  1.0 )          endpoint
+
+### point   Zx   ( 0.618034  0  1.618034 )  endpoint 
+### point   Za   ( -0.618034  0  1.618034 ) endpoint
+
+### mesh pentagon4a1
+###   face face4a1 (AYC Ay, AYZ Yz Yc) surface U endface
+### endmesh
+### instance pentagon4a1i pentagon4a1 endinstance
+
+### mesh pentagon4a2
+###   face face4a2 (Xy  XYC Yc Yz XYZ) surface R endface
+### endmesh
+### instance pentagon4a2i pentagon4a2 endinstance
+
+### mesh pentagon4a3
+###   face face4a3 (Zx  XYZ Yz AYZ Za) surface Y endface
+### endmesh
+### instance pentagon4a3i pentagon4a3 endinstance
+
+###### Figure 4b. Three Non-Planar Pentagons sharing a Vertex and the triangles facets used in averaging
+point 	AYC  ( -1.0  1.0  -1.0 )        endpoint
+point 	Ay   ( -1.618034  0.618034  0 ) endpoint
+point 	AYZ  ( -1.0  1.0  1.0 )         endpoint
+point 	Yz   ( 0  1.618034  0.618034 )  endpoint
+point 	Yc   ( 0  1.618034  -0.618034 ) endpoint
+point   mid1 ( -0.8 1.3 0 )             endpoint
+
+point 	Xy   ( 1.618034  0.618034  0 )  endpoint    
+point 	XYC  ( 1.0  1.0  -1.0 )         endpoint
+point 	XYZ  ( 1.0  1.0  1.0 )          endpoint
+point   mid2 ( 0.8 1.3 0 )              endpoint
+
+point   Zx   ( 0.618034  0  1.618034 )  endpoint 
+point   Za   ( -0.618034  0  1.618034 ) endpoint
+point   mid3 ( 0 0.82607 1.342820 )     endpoint
+
+mesh pentagon1
+  face face1A (mid1 AYC Ay) surface B endface
+  face face1B (mid1 Ay AYZ) surface Z endface
+  face face1C (mid1 AYZ Yz) surface V endface
+  face face1D (mid1 Yz Yc)  surface P endface
+  face face1E (mid1 Yc AYC) surface C endface
+endmesh
+instance pentagon1i pentagon1 endinstance
+
+mesh pentagon2
+  face face2A (mid2 Xy  XYC) surface L endface
+  face face2B (mid2 XYC Yc)  surface G endface
+  face face2C (mid2 Yc  Yz)  surface A endface
+  face face2D (mid2 Yz  XYZ) surface M endface
+  face face2E (mid2 XYZ Xy)  surface U endface
+endmesh
+instance pentagon2i pentagon2 endinstance
+
+mesh pentagon3
+  face face3A (mid3 Zx  XYZ) surface U endface
+  face face3B (mid3 XYZ Yz)  surface Y endface
+  face face3C (mid3 Yz  AYZ) surface O endface
+  face face3D (mid3 AYZ Za)  surface G endface
+  face face3E (mid3 Za  Zx)  surface R endface
+endmesh
+instance pentagon3i pentagon3 endinstance

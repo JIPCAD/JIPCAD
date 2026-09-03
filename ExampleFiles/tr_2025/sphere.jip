@@ -1,0 +1,48 @@
+#################  sphere.jip  ###############
+### Demonstrates updated sphere generator with 
+### Subdivision and Offset Gridding
+#####################################################
+
+############### Import Color Definitions ###############
+include :intro_imports\colors.jip endinclude
+
+###############  Sphere Geometry  #####################################
+sphere cap   ( 6  300  90 -60  8  5 2 ) endsphere  
+sphere shell ( 6  300  90 -60  8  5 1 ) endsphere
+
+merge merge_sphere
+    instance icap  cap surface U   endinstance
+    instance ishell  shell  surface B  endinstance
+endmerge
+
+############### Uncomment following figures one at a time to see the results.
+### Figure 6a. Coarse starting Sphere
+instance imerge_sphere merge_sphere endinstance
+
+### Figure 6b. Level 1 Subdivision
+### subdivision subdiv_sphere
+###   sd_type NOME_SD_CC_sharp
+###   sd_level 1
+###   instance imerge_sphere merge_sphere  endinstance
+### endsubdivision
+### instance isubdiv_sphere subdiv_sphere endinstance
+
+### Figure 6c. Gridding
+### offset offset_sphere
+###     offset_type NOME_OFFSET_DEFAULT
+###     height 0.1
+###     hole 0.3
+###     instance isubdiv_sphere subdiv_sphere endinstance
+### endoffset
+### instance ioffset_sphere offset_sphere endinstance
+
+### Figure 11a. Same as Figure 6a above
+### Figure 11b. Level 2 Subdivision
+### subdivision subdiv_sphere
+###   sd_type NOME_SD_CC_sharp
+###   sd_level 2
+###   instance imerge_sphere merge_sphere  endinstance
+### endsubdivision
+### instance isubdiv_sphere subdiv_sphere endinstance
+
+###########################  END  ###############################
