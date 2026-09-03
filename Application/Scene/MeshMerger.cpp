@@ -14,10 +14,6 @@
 #undef PI
 #endif
 
-#include <Eigen/Core>
-#include <igl/copyleft/cgal/outer_hull.h>
-#include <igl/copyleft/cgal/mesh_boolean.h>
-#include <igl/MeshBooleanType.h>
 using namespace std;
 
 
