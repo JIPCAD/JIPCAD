@@ -31,7 +31,7 @@ mesh pentagon3a
 endmesh
 instance pentagon3ai pentagon3a facenormal 1.0 vertexnormal 1.0 endinstance
 
-###### Figure 3b. Non-Planar Pentagon Face split into 5 triangles with Face-normals
+###### Figure 3b. Non-Planar Pentagon Face split into 5 triangles with Face-normals and Vertex-normals, using the instance generator
 ### mesh pentagon3b
 ###   face faceA (mid Zx XYZ) surface G endface
 ###   face faceB (mid XYZ Yz) surface B endface
@@ -40,6 +40,30 @@ instance pentagon3ai pentagon3a facenormal 1.0 vertexnormal 1.0 endinstance
 ###   face faceE (mid Za Zx)  surface Z endface
 ### endmesh
 ### instance pentagon3bi pentagon3b facenormal 1.0 vertexnormal 1.0 endinstance
+
+###### Figure 3b. Non-Planar Pentagon Face split into 5 triangles with Face-normals and Vertex-normals, using the facenormal and vertexnormal generators
+### mesh pentagon3b
+###   face faceA (mid Zx XYZ) surface G endface
+###   face faceB (mid XYZ Yz) surface B endface
+###   face faceC (mid Yz AYZ) surface U endface
+###   face faceD (mid AYZ Za) surface V endface
+###   face faceE (mid Za Zx)  surface Z endface
+### endmesh
+
+### merge merge_pyramid
+###     instance ipentagon3b pentagon3b endinstance
+### endmerge
+### instance imerge_pyramid merge_pyramid endinstance
+
+### facenormal FN_id
+###   size 1.0
+###   instance imerge_pyramid merge_pyramid endinstance  
+### endfacenormal
+
+### vertexnormal VN_id
+###   size 1.0
+###   instance imerge_pyramid merge_pyramid endinstance  
+### endvertexnormal
 
 ###### Figure 4a. Three Planar Pentagons sharing a Vertex with Avg. Vertex-Normals
 ### mesh pentagon4a1

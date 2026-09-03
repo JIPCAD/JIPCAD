@@ -35,7 +35,7 @@ endmerge
 ############### Uncomment following sections one at a time to see the results.
 ###### Figure 1. In-code merge generator with color preservation
 ###### Note: Sliders do not work after merge
-instance imerge_pyramid merge_pyramid endinstance
+### instance imerge_pyramid merge_pyramid endinstance
 
 ###### Figure 2. In-code Subdivision Generator, with color preservation
 ###### To show wireframe, use the pull-down menu inside JIPCAD: Render Config -> WireFrame
@@ -80,8 +80,8 @@ instance imerge_pyramid merge_pyramid endinstance
 ###### Figure 9. Chain Offset -> Offset Generator
 ### offset offset_pyramid
 ###     offset_type NOME_OFFSET_DEFAULT
-###     height 0.3
-###     hole 0.3
+###     height 0.2
+###     hole 0.5
 ###     instance imerge_pyramid merge_pyramid endinstance
 ### endoffset
 ### instance ioffset_pyramid offset_pyramid endinstance
@@ -89,25 +89,25 @@ instance imerge_pyramid merge_pyramid endinstance
 ### offset offset_pyramid2
 ###     offset_type NOME_OFFSET_DEFAULT
 ###     height 0.1
-###     hole 0.1
+###     hole 0.3
 ###     instance ioffset_pyramid merge_pyramid endinstance
 ### endoffset
 ### instance ioffset_pyramid2 offset_pyramid2 endinstance
 
 ###### Figure 10. Chain Offset -> Subdivision Generator
-### offset offset_pyramid
-###     offset_type NOME_OFFSET_DEFAULT
-###     height 0.1
-###     hole 0.4
-###     instance imerge_pyramid merge_pyramid endinstance
-### endoffset
-### instance ioffset_pyramid offset_pyramid endinstance
+offset offset_pyramid
+    offset_type NOME_OFFSET_DEFAULT
+    height 0.1
+    hole 0.4
+    instance imerge_pyramid merge_pyramid endinstance
+endoffset
+instance ioffset_pyramid offset_pyramid endinstance
 
-### subdivision subdiv_pyramid
-###   sd_type NOME_SD_CC_sharp
-###   sd_level 3
-###   instance ioffset_pyramid merge_pyramid  endinstance
-### endsubdivision
-### instance isubdiv_pyramid subdiv_pyramid endinstance
+subdivision subdiv_pyramid
+  sd_type NOME_SD_CC_sharp
+  sd_level 3
+  instance ioffset_pyramid merge_pyramid  endinstance
+endsubdivision
+instance isubdiv_pyramid subdiv_pyramid endinstance
 
 ###########################  END  ###############################
