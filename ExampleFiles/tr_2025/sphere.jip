@@ -17,7 +17,7 @@ endmerge
 
 ############### Uncomment following figures one at a time to see the results.
 ### Figure 6a. Coarse starting Sphere
-instance imerge_sphere merge_sphere endinstance
+### instance imerge_sphere merge_sphere endinstance
 
 ### Figure 6b. Level 1 Subdivision
 ### subdivision subdiv_sphere
@@ -28,6 +28,12 @@ instance imerge_sphere merge_sphere endinstance
 ### instance isubdiv_sphere subdiv_sphere endinstance
 
 ### Figure 6c. Gridding
+### subdivision subdiv_sphere
+###   sd_type NOME_SD_CC_sharp
+###   sd_level 1
+###   instance imerge_sphere merge_sphere  endinstance
+### endsubdivision
+
 ### offset offset_sphere
 ###     offset_type NOME_OFFSET_DEFAULT
 ###     height 0.1
@@ -38,11 +44,11 @@ instance imerge_sphere merge_sphere endinstance
 
 ### Figure 11a. Same as Figure 6a above
 ### Figure 11b. Level 2 Subdivision
-### subdivision subdiv_sphere
-###   sd_type NOME_SD_CC_sharp
-###   sd_level 2
-###   instance imerge_sphere merge_sphere  endinstance
-### endsubdivision
-### instance isubdiv_sphere subdiv_sphere endinstance
+subdivision subdiv_sphere
+  sd_type NOME_SD_CC_sharp
+  sd_level 2
+  instance imerge_sphere merge_sphere  endinstance
+endsubdivision
+instance isubdiv_sphere subdiv_sphere endinstance
 
 ###########################  END  ###############################

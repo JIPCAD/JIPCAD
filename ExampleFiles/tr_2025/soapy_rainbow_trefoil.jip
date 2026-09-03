@@ -52,8 +52,8 @@ point ph  ( {expr  $p.rado*cos(0.01745*(240-$p.wida))}  {expr $p.rado*sin(0.0174
 point pi  ( {expr  $p.rado*cos(0.01745*(240+$p.wida))}  {expr $p.rado*sin(0.01745*(240+$p.wida))}  {expr -$p.dz} ) endpoint
 
 polyline  tref  ( pa pb pc pd pe pf pg ph pi pa )  endpolyline
-### instance itref tref  surface K    endinstance  
 
+###### Figure 12a and 12b. Initial Trefoil Spline
 bspline curve  order 4  ( pi  pa pb pc pd pe pf pg ph pi pa  pb )    segs {expr $p.segC}  endbspline
 instance icurve curve  surface Y    endinstance
 
@@ -68,7 +68,7 @@ mesh TempMesh0
  face new6 ( .icurve.v57 .icurve.v56 .icurve.v23 .icurve.v24 )  surface P   endface
 endmesh
 
-###### Figure 12a. Initial Trefoil Model
+###### Figure 12c. Initial Trefoil Model
 merge merge_trefoil
     instance instTempMesh0a TempMesh0 endinstance
     instance instTempMesh0b TempMesh0   rotate(0 0 1)(120)  endinstance
@@ -76,16 +76,16 @@ merge merge_trefoil
 endmerge
 instance imerge_trefoil merge_trefoil endinstance
 
-###### Figure 12b. Apply gridded offset
+###### Figure 12d. Apply gridded offset
 offset offset_trefoil
     offset_type NOME_OFFSET_DEFAULT
     height 0.1
-    hole 0.8
+    hole 0.2
     instance imerge_trefoil merge_trefoil endinstance
 endoffset
 instance ioffset_trefoil offset_trefoil endinstance
 
-###### Figure 12c. Apply subdivision
+###### Figure 12e. Apply subdivision
 subdivision subdiv_trefoil
   sd_type NOME_SD_CC_sharp
   sd_level 2

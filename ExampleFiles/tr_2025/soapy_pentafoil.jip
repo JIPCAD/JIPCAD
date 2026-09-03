@@ -48,11 +48,8 @@ point b8 ( {expr $p.prad*cos(0.0174533*( $p.psep+144))}  {expr $p.prad*sin(0.017
 point i8 ( {expr $p.irad*cos(0.0174533*( -108))}         {expr $p.irad*sin(0.0174533*( -108))}          0 ) endpoint
 point b9 ( {expr $p.prad*cos(0.0174533*(-$p.psep))}      {expr $p.prad*sin(0.0174533*(-$p.psep))}       {expr -$p.ptik} ) endpoint
 
-### polyline ctrlpoly  ( b0 i0 b1  b2 i2 b3  b4 i4 b5  b6 i6 b7  b8 i8 b9  b0 )     endpolyline
-### instance cp0  ctrlpoly   surface B   endinstance
-
+###### Figure 13a and 13b. Initial Pentafoil and Ring Splines
 bspline  bsp   order 4    ( b0 i0 b1  b2 i2 b3  b4 i4 b5  b6 i6 b7  b8 i8 b9  b0 i0 b1 )    segs  {expr $p.pseg}   endbspline
-
 instance  pfoil  bsp  surface O    endinstance    ##  Inner CinqueFoil
  
 ##########################  Soap Film Faces   #####################################
@@ -80,8 +77,8 @@ mesh cross
   face f4 (.pfoil.v20 .pfoil.v88 .pfoil.v54 ) endface
 endmesh
 
-###### Figure 13a. Initial Pentafoil Model
-###### Figure 13b. Turn on WireFrame using pull-down menu: Render Config -> WireFrame
+###### Figure 13c. Initial Pentafoil Model
+###### Figure 13d. Turn on WireFrame using pull-down menu: Render Config -> WireFrame
 merge merge_pentafoil
     instance sC  skirt   surface C   endinstance
     instance sY  skirt   surface Y   rotate(0 0 1)(72)   endinstance
@@ -97,7 +94,7 @@ merge merge_pentafoil
 endmerge
 instance imerge_pentafoil merge_pentafoil endinstance
 
-###### Figure 13c. Apply subdivision
+###### Figure 13e. Apply subdivision
 subdivision subdiv_pentafoil
   sd_type NOME_SD_CC_sharp
   sd_level 2
