@@ -42,13 +42,24 @@ endmerge
 ###### Figure 5b. Input geometry with Vertex Normals
 ### instance imerge_pyramid merge_pyramid vertexnormal 1.0 endinstance
 
-###### Figure 5c. Input geometry offset, with newVertex Normals
+###### Figure 5c. Input geometry offset, with outer rim hidden
+offset offset_pyramid
+    offset_type NOME_OFFSET_DEFAULT
+    height 0.2
+    hole 0.0
+    outerrimhidden
+    instance imerge_pyramid merge_pyramid endinstance
+endoffset
+instance ioffset_pyramid offset_pyramid endinstance
+
+###### Figure 5d. Input geometry offset
 offset offset_pyramid
     offset_type NOME_OFFSET_DEFAULT
     height 0.2
     hole 0.0
     instance imerge_pyramid merge_pyramid endinstance
 endoffset
-instance ioffset_pyramid offset_pyramid vertexnormal 1.0 endinstance
+instance ioffset_pyramid offset_pyramid endinstance
+### instance ioffset_pyramid offset_pyramid vertexnormal 1.0 endinstance
 
 ###########################  END  ###############################
