@@ -387,11 +387,11 @@ antlrcpp::Any CFileBuilder::visitArgLightType(NomParser::ArgLightTypeContext* ct
 
 antlrcpp::Any CFileBuilder::visitArgSubdivisionID(NomParser::ArgSubdivisionIDContext* ctx)
 {
-    std::cout << "TEST" << std::endl;
+    //std::cout << "TEST" << std::endl;
     AST::ANamedArgument* arg = new AST::ANamedArgument(ConvertToken(ctx->getStart()));
-    std::cout << "TEST2" << std::endl;
+    //std::cout << "TEST2" << std::endl;
     arg->AddChild(visit(ctx->ident()).as<AST::AExpr*>());
-    std::cout << "TEST3" << std::endl;
+    //std::cout << "TEST3" << std::endl;
     return arg;
 }
 

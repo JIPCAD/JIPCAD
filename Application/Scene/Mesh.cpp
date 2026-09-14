@@ -339,7 +339,7 @@ void CMeshInstance::CopyFromGenerator()
                 dynamic_cast<CSurface*>(scene->FindEntity(sn).Get());
             currFace->color = { surface->ColorR.GetValue(0.f), surface->ColorG.GetValue(0.f),
                                 surface->ColorB.GetValue(0.f) };
-            std::cout << "color:" << surface->ColorR.GetValue(0.f);
+            //std::cout << "color:" << surface->ColorR.GetValue(0.f);
         }
         if (currFace->backfaceName != "") {
             CBackface* backface = dynamic_cast<CBackface*>(scene->FindEntity(currFace->backfaceName).Get());

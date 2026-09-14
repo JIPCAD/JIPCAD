@@ -120,7 +120,7 @@ void CMainWindow::on_actionFaceColorChange_triggered() {
             Scene->ForEachSceneTreeNode(
                 [&](Scene::CSceneTreeNode* node)
                 {
-                    std::cout << "face color ? \n";
+                    //std::cout << "face color ? \n";
                 if (node->GetOwner()->GetName() == "globalMergeNode")
                 {
                     std::cout << "merged\n";

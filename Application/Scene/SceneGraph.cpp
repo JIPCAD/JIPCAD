@@ -152,7 +152,7 @@ void CSceneNode::AddParent(CSceneNode* newParent)
         myTree->Parent = parentTreeNode;
         parentTreeNode->Children.insert(myTree);
     }
-    std::cout << "parent added\n";
+    //std::cout << "parent added\n";
     Parents.insert(newParent);
     newParent->Children.insert(this);
 }

@@ -1058,25 +1058,6 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
     std::vector<TempFace> outerFaces;
     std::vector<TempFace> innerFaces;
     std::vector<Face*> tmpFaceList;
-    auto isGeneratedFace = [](const Face* f)
-    {
-        if (!f)
-            return true;
-        // return false;
-        // return f->name.find("_offsetRibbon") != std::string::npos;
-
-        return f->name.find("_offsetInnerFace") != std::string::npos
-            || f->name.find("_offsetHoleRibbon") != std::string::npos;
-        //|| f->name.find("_offsetBoundaryRibbon") != std::string::npos;
-
-        /*
-            || f->name.find("_offsetOuterFace") != std::string::npos
-
-            || f->name.find("_hole") != std::string::npos
-            || f->name.find("_offsetRibbonHoleWall") != std::string::npos;
-        */
-        return false;
-    };
 
     for (auto f : _m_original.faceList)
     {
@@ -1360,13 +1341,7 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
             }
         }
     }
-    /*
-    for (size_t i = 0; i < outerFaces.size(); ++i)
-    {
-        delete outerFaces[i];
-        delete innerFaces[i];
-    }*/
-    // out.computeNormals();
+
     _m_original.computeNormals();
     for (auto v : _m_original.vertList)
     {
@@ -1405,23 +1380,7 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
         }
     }
     out.buildBoundary();
-    /*
-    for (auto v : _m_original.vertList)
-    {
-        // Restore Outer Shell Normals
-        if (outerVerts.count(v->name) > 0)
-        {
-            outerVerts[v->name]->normal = v->normal;
-        }
 
-        // Restore Inner Shell Normals
-        if (innerVerts.count(v->name) > 0)
-        {
-            // Note: If you want the inner shell to face inward,
-            // you might want to reverse this: = -(v->normal)
-            innerVerts[v->name]->normal = v->normal;
-        }
-    }*/
     for (auto v : out.vertList)
     {
         if (v)

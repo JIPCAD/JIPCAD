@@ -81,7 +81,7 @@ void CInteractiveMesh::UpdateGeometry(bool showVertBox, bool showBackFace, bool 
             CDataStructureMeshToQGeometry DSmeshToQGeometry(meshInstance->GetDSMesh(), InstanceColor, InstanceBackColor, 
                                                             true, showBackFace, showFrontFace); // Project SwitchDS
 
-            std::cout << InstanceColor[0] << InstanceColor[1] << InstanceColor[2] << '\n';
+            //std::cout << InstanceColor[0] << InstanceColor[1] << InstanceColor[2] << '\n';
             // Geometry = meshToQGeometry.GetGeometry();
             Geometry = DSmeshToQGeometry.GetGeometry();
             Geometry->setParent(this);

@@ -131,7 +131,16 @@ public:
     AST::ACommand* BuildASTCommand(Nome::AST::CASTContext& ctx) const;
     void SyncToAST(AST::CASTContext& ctx);
 
-
+    
+    const void ClearChildren() { 
+        auto childrenCopy = Children;
+        for (const auto& child : childrenCopy)
+        {
+            if (child)
+                child->RemoveParent(this);
+        }
+        Children.clear();
+    }
     const std::set<TAutoPtr<CSceneNode>>& GetSceneNodeChildren () {return Children;}
 
 

@@ -1364,10 +1364,12 @@ for (Edge* newEdge : newMesh.edgeList)
 
     if (newEdge->sharpness > 0.0f)
     {
+        /*
         std::cout << "[copy] transferred sharpness "
                   << newEdge->sharpness << " to edge "
                   << newEdge->v0()->name << " - "
                   << newEdge->v1()->name << std::endl;
+                  */
     }
 }
 
