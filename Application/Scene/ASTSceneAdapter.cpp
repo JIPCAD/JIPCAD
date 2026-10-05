@@ -219,93 +219,115 @@ public:
         MatrixOut.UpdateValue(mat);
     }
 };
+#include <functional>
+#include <unordered_set>
+#include <vector>
+
+#include <vector>
+#include <vector>
+
 void FlattenSceneGraph(Nome::Scene::CSceneNode* rootNode)
 {
     if (!rootNode)
         return;
 
-    // 1. Gather all renderable leaf specifications via read-only traversal
-    struct FlatLeafSpec
+    struct LeafInfo
     {
-        std::string name;
-        Nome::Scene::CEntity* entity = nullptr;
-        Nome::Scene::CSurface* surface = nullptr;
-        tc::Matrix3x4 transform;
+        tc::TAutoPtr<Nome::Scene::CSceneNode> node; // Keeps node alive
+        tc::TAutoPtr<Nome::Scene::CSceneNode> parent; // Keeps parent alive
+        tc::Matrix3x4 relativeTransform;
+        tc::TAutoPtr<Nome::Scene::CSurface> surface;
     };
 
-    std::vector<FlatLeafSpec> leaves;
-
-    struct QueueItem
+    struct IntermediaryInfo
     {
-        Nome::Scene::CSceneNode* node;
-        tc::Matrix3x4 parentTransform;
-        Nome::Scene::CSurface* inheritedSurface;
-        std::string pathPrefix;
+        tc::TAutoPtr<Nome::Scene::CSceneNode> node;
+        tc::TAutoPtr<Nome::Scene::CSceneNode> parent;
     };
 
-    std::deque<QueueItem> queue;
-    for (const auto& child : rootNode->GetSceneNodeChildren())
+    std::vector<LeafInfo> leaves;
+    std::vector<IntermediaryInfo> intermediaryNodes;
+
+    leaves.reserve(65536);
+    intermediaryNodes.reserve(32768);
+
+    // 1. Recursive Top-Down Traversal
+    auto traverse = [&](auto& self, Nome::Scene::CSceneNode* node, Nome::Scene::CSceneNode* parent,
+                        const tc::Matrix3x4& accTransform,
+                        Nome::Scene::CSurface* accSurface) -> void
     {
-        if (child)
-            queue.push_back({ child.Get(), tc::Matrix3x4::IDENTITY, child->GetSurface(), "" });
-    }
+        if (!node)
+            return;
 
-    while (!queue.empty())
-    {
-        auto item = queue.front();
-        queue.pop_front();
+        tc::Matrix3x4 localMat = node->Transform.GetValue(tc::Matrix3x4::IDENTITY);
+        tc::Matrix3x4 currentTransform =
+            (node != rootNode) ? (accTransform * localMat) : accTransform;
 
-        auto* node = item.node;
-        tc::Matrix3x4 worldMat =
-            item.parentTransform * node->Transform.GetValue(tc::Matrix3x4::IDENTITY);
-        auto* surface = node->GetSurface() ? node->GetSurface().Get() : item.inheritedSurface;
-        std::string uniqueName =
-            item.pathPrefix.empty() ? node->GetName() : item.pathPrefix + "_" + node->GetName();
+        auto nodeSurf = node->GetSurface();
+        Nome::Scene::CSurface* currentSurface = nodeSurf.Get() ? nodeSurf.Get() : accSurface;
 
-        if (node->GetEntity())
+        const auto& children = node->GetSceneNodeChildren();
+        for (const auto& childAuto : children)
         {
-            leaves.push_back({ uniqueName, node->GetEntity(), surface, worldMat });
+            if (auto* child = childAuto.Get())
+            {
+                self(self, child, node, currentTransform, currentSurface);
+            }
         }
 
-        for (const auto& child : node->GetSceneNodeChildren())
+        if (node == rootNode)
+            return;
+
+        auto* entity = node->GetEntity();
+        bool isGroup = node->IsGroup();
+
+        if (entity && !isGroup)
         {
-            if (child)
-                queue.push_back({ child.Get(), worldMat, surface, uniqueName });
+            leaves.push_back({ node, parent, currentTransform, currentSurface });
+        }
+        else
+        {
+            intermediaryNodes.push_back({ node, parent });
+        }
+    };
+
+    traverse(traverse, rootNode, nullptr, tc::Matrix3x4::IDENTITY, rootNode->GetSurface().Get());
+
+    // 2. PHASE A: Restructure leaf topology under rootNode
+    for (auto& leaf : leaves)
+    {
+        tc::TAutoPtr<Nome::Scene::CSceneNode> nodeGuard = leaf.node;
+
+        if (leaf.parent && leaf.parent != rootNode)
+        {
+            leaf.node->RemoveParent(leaf.parent);
+            leaf.node->AddParent(rootNode);
         }
     }
 
-    // 2. Detach old top-level branch nodes from rootNode
-    std::vector<tc::TAutoPtr<Nome::Scene::CSceneNode>> oldChildren(
-        rootNode->GetSceneNodeChildren().begin(), rootNode->GetSceneNodeChildren().end());
-    for (auto& child : oldChildren)
+    // 3. PHASE B: Unlink intermediary container nodes
+    for (auto& inter : intermediaryNodes)
     {
-        if (child)
-            child->RemoveParent(rootNode);
-    }
+        tc::TAutoPtr<Nome::Scene::CSceneNode> interGuard = inter.node;
+        tc::TAutoPtr<Nome::Scene::CSceneNode> parentGuard = inter.parent;
 
-    // 3. Purge dangling raw CSceneTreeNode pointers left inside rootNode's tree nodes
-    for (const auto& treeNode : rootNode->GetTreeNodes())
-    {
-        if (treeNode)
+        if (inter.node && inter.parent)
         {
-            const_cast<std::set<Nome::Scene::CSceneTreeNode*>&>(treeNode->GetChildren()).clear();
+            inter.node->RemoveParent(inter.parent);
         }
     }
 
-    // 4. Create clean, 1-level flat nodes directly under rootNode
-    for (const auto& leaf : leaves)
+    // 4. PHASE C: Attach new static matrix sources directly
+    for (auto& leaf : leaves)
     {
-        auto* flatNode = rootNode->CreateChildNode(leaf.name);
-        if (flatNode)
-        {
-            flatNode->SetEntity(leaf.entity);
-            if (leaf.surface)
-                flatNode->SetSurface(leaf.surface);
+        // Connect() calls matrixSource->AddRef(), taking ownership automatically
+        auto* matrixSource = new CStaticMatrixSource(leaf.relativeTransform);
 
-            tc::TAutoPtr<CStaticMatrixSource> matrixSource =
-                new CStaticMatrixSource(leaf.transform);
-            flatNode->Transform.Connect(matrixSource->MatrixOut);
-        }
+        leaf.node->Transform.Disconnect();
+        leaf.node->Transform.Connect(matrixSource->MatrixOut);
+
+        if (leaf.surface)
+            leaf.node->SetSurface(leaf.surface.Get());
     }
 }
 #include <functional>
@@ -313,9 +335,12 @@ void FlattenSceneGraph(Nome::Scene::CSceneNode* rootNode)
 #include <sstream>
 #include <string>
 
+#include <unordered_set>
+
 void DumpSceneComparison(CScene& scene)
 {
-    auto rootNode = scene.GetRootNode();
+    auto rootAuto = scene.GetRootNode();
+    auto* rootNode = rootAuto.Get();
     if (!rootNode)
     {
         std::cout << "[ERROR] Cannot dump topology: Scene root node is null.\n";
@@ -328,45 +353,59 @@ void DumpSceneComparison(CScene& scene)
 
     std::cout << "--- HIERARCHY TREE ---\n";
 
-    // Deduce raw node pointer type safely whether GetRootNode returns TAutoPtr or raw pointer
-    using RawNodePtr = typename std::remove_pointer<decltype(rootNode.Get())>::type*;
+    size_t totalNodes = 0;
+    size_t leafNodes = 0;
+    size_t containerNodes = 0;
 
-    std::function<void(RawNodePtr, int)> printNode = [&](RawNodePtr node, int depth)
+    // Cycle guard to prevent stack overflow if cyclic references exist
+    std::unordered_set<const Nome::Scene::CSceneNode*> visited;
+
+    std::function<void(Nome::Scene::CSceneNode*, int)> printNode =
+        [&](Nome::Scene::CSceneNode* node, int depth)
     {
         if (!node)
             return;
 
-        std::string indent(depth * 2, ' ');
+        // Prevent infinite recursion on cycles
+        if (visited.count(node))
+        {
+            std::string indent(depth * 2, ' ');
+            std::cout << indent << "|-- [Cycle / Already Visited] (Addr: " << node << ")\n";
+            return;
+        }
+        visited.insert(node);
 
-        // 1. Property inspection directly on CSceneNode
+        totalNodes++;
+
+        std::string indent(depth * 2, ' ');
         std::string nameStr = !node->GetName().empty() ? node->GetName() : "Unnamed";
 
-        // FIX E0312 / E0042: Safely unwrap TAutoPtr<CSurface> before checking name
+        // Safely extract surface name
         auto surfacePtr = node->GetSurface();
-        std::string surfaceStr = surfacePtr.Get() ? surfacePtr->GetName() : "None";
-
+        std::string surfaceStr = (surfacePtr && surfacePtr.Get()) ? surfacePtr->GetName() : "None";
 
         auto* entity = node->GetEntity();
-        bool isGroup = node->IsGroup();
-        if (entity && !isGroup)
+        bool isGroupNode = node->IsGroup();
+
+        // Safely check group using the passed 'scene' instance instead of GEnv.Scene
+        if (entity && !isGroupNode && scene.FindGroup(entity->GetName()))
         {
-            isGroup = GEnv.Scene->FindGroup(entity->GetName()) ? true : false;
+            isGroupNode = true;
         }
 
-        // FIX E0349: Extract matrix transform without relying on operator<< overload
-        tc::Matrix3x4 mat = node->Transform.GetValue(tc::Matrix3x4::IDENTITY);
-        //std::ostringstream ss;
-        //ss << "Valid Matrix"; // Replace with mat fields (e.g., mat.x, mat.y, mat.z) if printing
-                              // translation
+        // Categorize leaf vs container
+        if (entity && !isGroupNode)
+            leafNodes++;
+        else
+            containerNodes++;
 
-        std::string nodeType = entity ? "[Entity Node]" : "[Container Node]";
+        //std::string nodeType = entity ? "[Entity Node]" : "[Container Node]";
 
-        std::cout << indent << "|-- " << nodeType << " (Addr: " << node << ")"
-                  << " | Name: " << nameStr << " | IsGroup: " << (isGroup ? "Yes" : "No")
-                  << " | Surface: " << surfaceStr << "\n";
+        //std::cout << indent << "|-- " << nodeType << " (Addr: " << node << ")"
+          //        << " | Name: " << nameStr << " | IsGroup: " << (isGroupNode ? "Yes" : "No")
+            //      << " | Surface: " << surfaceStr << "\n";
 
-        // FIX E1587 / E0417: Iterate over TAutoPtr container using const auto& and unwrap via
-        // .Get()
+        // Safely recurse over children
         for (const auto& childAuto : node->GetSceneNodeChildren())
         {
             if (auto* child = childAuto.Get())
@@ -376,26 +415,8 @@ void DumpSceneComparison(CScene& scene)
         }
     };
 
-    // Trigger recursive tree traversal starting at root raw pointer
-    printNode(rootNode.Get(), 0);
-    
-    // Summary statistics using GetEntity() to distinguish leaf nodes from containers
-    size_t totalNodes = 0, leafNodes = 0, containerNodes = 0;
-    rootNode->ForEachTreeNode(
-        [&](Scene::CSceneTreeNode* n)
-        {
-            if (!n)
-                return;
-
-            totalNodes++;
-
-            // Ensure GetOwner() is valid before querying GetEntity()
-            auto* owner = n->GetOwner();
-            if (owner && owner->GetEntity())
-                leafNodes++;
-            else
-                containerNodes++;
-        });
+    // Execute single-pass traversal and metric counting
+    printNode(rootNode, 0);
 
     std::cout << "\n--- TOPOLOGY METRICS ---\n";
     std::cout << "Total Nodes Evaluated : " << totalNodes << "\n";
@@ -415,7 +436,7 @@ __declspec(noinline) void CASTSceneAdapter::TraverseFile(AST::AFile* astRoot, CS
     InstanciateUnder = GEnv.Scene->GetRootNode();
     for (auto* cmd : astRoot->GetCommands())
         VisitCommandSyncScene(cmd, scene, false);
-    //FlattenSceneGraph(GEnv.Scene->GetRootNode());
+    FlattenSceneGraph(GEnv.Scene->GetRootNode());
     // --- BENCHMARK LOOP START ---
     DumpSceneComparison(scene);
     // --- BENCHMARK PREPARATION (-2 CONTIGUOUS DATA ARRAY) ---
@@ -1666,8 +1687,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
             else if (auto group = GEnv.Scene->FindGroup(entityName)) // If the entityName is a group identifier
                 group->AddParent(sceneNode);
             */
-            
-            
+            /*
             else if (auto group = GEnv.Scene->FindGroup(entityName))
             {
                 GroupNames.push_back(sceneNode->GetName());
@@ -1779,7 +1799,205 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                     }
                 }
             }
-            
+            */
+            /*
+            else if (auto group = GEnv.Scene->FindGroup(entityName))
+            {
+                GroupNames.push_back(sceneNode->GetName());
+
+                struct TraversalNode
+                {
+                    tc::TAutoPtr<Nome::Scene::CSceneNode> sourceNode;
+                    tc::Matrix3x4 accumulatedTransform;
+                    tc::TAutoPtr<Nome::Scene::CSurface> inheritedSurface;
+                };
+
+                std::deque<TraversalNode> queue;
+
+                // Determine fallback root surface
+                Nome::Scene::CSurface* rootSurface =
+                    sceneNode->GetSurface() ? sceneNode->GetSurface() : sfE;
+
+                // 1. Seed queue with direct children of the top-level group definition
+                for (const auto& childNode : group->GetSceneNodeChildren())
+                {
+                    if (childNode)
+                    {
+                        tc::Matrix3x4 localMat =
+                            childNode->Transform.GetValue(tc::Matrix3x4::IDENTITY);
+                        auto surf = childNode->GetSurface() ? childNode->GetSurface() : rootSurface;
+                        queue.push_back({ childNode, localMat, surf });
+                    }
+                }
+
+                while (!queue.empty())
+                {
+                    auto item = queue.front();
+                    queue.pop_front();
+
+                    auto node = item.sourceNode;
+                    auto currentMatrix = item.accumulatedTransform;
+                    auto currentSurface = item.inheritedSurface;
+
+                    if (!node)
+                        continue;
+
+                    auto* e = node->GetEntity();
+
+                    // 2. Check if this node references a sub-group definition
+                    std::string subGroupName = e ? e->GetName() : node->GetName();
+                    auto subGroup = GEnv.Scene->FindGroup(subGroupName);
+                    if (!subGroup && e)
+                    {
+                        subGroup = GEnv.Scene->FindGroup(node->GetName());
+                    }
+
+                    if (subGroup)
+                    {
+                        // FLATTEN: Do NOT create an intermediate subInstNode.
+                        // Pass accumulated transform and surface directly to subgroup children.
+                        auto surfToPass = node->GetSurface() ? node->GetSurface() : currentSurface;
+
+                        for (const auto& childNode : subGroup->GetSceneNodeChildren())
+                        {
+                            if (childNode)
+                            {
+                                tc::Matrix3x4 childLocal =
+                                    childNode->Transform.GetValue(tc::Matrix3x4::IDENTITY);
+                                queue.push_back(
+                                    { childNode, currentMatrix * childLocal, surfToPass });
+                            }
+                        }
+                        continue;
+                    }
+
+                    // 3. Leaf Entity / Mesh instantiation: Create directly under sceneNode (Root)
+                    tc::TAutoPtr<Nome::Scene::CSceneNode> childInstNode =
+                        sceneNode->CreateChildNode(node->GetName());
+
+                    if (childInstNode)
+                    {
+                        if (e)
+                            childInstNode->SetEntity(e);
+
+                        tc::TAutoPtr<CStaticMatrixSource> matrixSource =
+                            new CStaticMatrixSource(currentMatrix);
+                        childInstNode->Transform.Connect(matrixSource->MatrixOut);
+                        
+                        auto finalSurf = node->GetSurface() ? node->GetSurface() : currentSurface;
+                        if (finalSurf)
+                            childInstNode->SetSurface(finalSurf);
+
+                        // 4. Enqueue nested child geometry under leaf definition (if any exist)
+                        for (const auto& childNode : node->GetSceneNodeChildren())
+                        {
+                            if (childNode)
+                            {
+                                tc::Matrix3x4 childLocal =
+                                    childNode->Transform.GetValue(tc::Matrix3x4::IDENTITY);
+                                queue.push_back(
+                                    { childNode, currentMatrix * childLocal, finalSurf });
+                            }
+                        }
+                    }
+                }
+            }
+            */
+            else if (auto group = GEnv.Scene->FindGroup(entityName))
+            {
+                GroupNames.push_back(sceneNode->GetName());
+
+                struct TraversalNode
+                {
+                    tc::TAutoPtr<Nome::Scene::CSceneNode> sourceNode;
+                    Nome::Scene::CSceneNode* parentInstNode;
+                    tc::TAutoPtr<Nome::Scene::CSurface> inheritedSurface;
+                };
+
+                std::deque<TraversalNode> queue;
+
+                // Determine fallback root surface
+                Nome::Scene::CSurface* rootSurface =
+                    sceneNode->GetSurface() ? sceneNode->GetSurface() : sfE;
+
+                // 1. Seed queue with direct children of the top-level group definition
+                for (const auto& childNode : group->GetSceneNodeChildren())
+                {
+                    if (childNode)
+                    {
+                        auto surf = childNode->GetSurface() ? childNode->GetSurface() : rootSurface;
+                        queue.push_back({ childNode, sceneNode, surf });
+                    }
+                }
+
+                while (!queue.empty())
+                {
+                    auto item = queue.front();
+                    queue.pop_front();
+
+                    auto node = item.sourceNode;
+                    auto* parentInst = item.parentInstNode;
+                    auto currentSurface = item.inheritedSurface;
+
+                    if (!node || !parentInst)
+                        continue;
+
+                    // Determine surface for this node
+                    auto surfToPass = node->GetSurface() ? node->GetSurface() : currentSurface;
+
+                    // 2. Instantiate the scene node directly under its parent container node
+                    tc::TAutoPtr<Nome::Scene::CSceneNode> childInstNode =
+                        parentInst->CreateChildNode(node->GetName());
+
+                    if (childInstNode)
+                    {
+                        auto* e = node->GetEntity();
+                        if (e)
+                            childInstNode->SetEntity(e);
+
+                        // Connect node's local transform matrix
+                        tc::Matrix3x4 localMat = node->Transform.GetValue(tc::Matrix3x4::IDENTITY);
+                        tc::TAutoPtr<CStaticMatrixSource> matrixSource =
+                            new CStaticMatrixSource(localMat);
+                        childInstNode->Transform.Connect(matrixSource->MatrixOut);
+
+                        if (surfToPass)
+                            childInstNode->SetSurface(surfToPass);
+
+                        // 3. Check if this node references a sub-group definition
+                        std::string subGroupName = e ? e->GetName() : node->GetName();
+                        auto subGroup = GEnv.Scene->FindGroup(subGroupName);
+                        if (!subGroup && e)
+                        {
+                            subGroup = GEnv.Scene->FindGroup(node->GetName());
+                        }
+
+                        if (subGroup)
+                        {
+                            // Enqueue subgroup template children under this newly instantiated
+                            // subgroup container node
+                            for (const auto& childNode : subGroup->GetSceneNodeChildren())
+                            {
+                                if (childNode)
+                                {
+                                    queue.push_back({ childNode, childInstNode.Get(), surfToPass });
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Enqueue nested child nodes under this leaf node (if any exist)
+                            for (const auto& childNode : node->GetSceneNodeChildren())
+                            {
+                                if (childNode)
+                                {
+                                    queue.push_back({ childNode, childInstNode.Get(), surfToPass });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             else if (GEnv.Scene->ExistMerge(entityName))
             {
                 std::pair<TAutoPtr<CSceneNode>, int> merge_obj = GEnv.Scene->FindMerge(entityName);

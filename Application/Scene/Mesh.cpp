@@ -310,8 +310,24 @@ void CMeshInstance::CopyFromGenerator()
 
     currMesh = newMesh; 
 
-    // Bit weird, but we assign face coloring for mesh instances here. These colors are directly used in DSMeshToQGeometry.cpp.
-    CScene* scene = GetSceneTreeNode()->GetOwner()->GetScene();
+    // Bit weird, but we assign face coloring for mesh instances here. These colors are directly used in DSMeshToQGeometry.cpp. BEFORE (Crashes when node is detached/orphaned):
+    // CScene* scene = GetSceneTreeNode()->GetOwner()->GetScene();
+
+    // AFTER (Safe):
+    CScene* scene = nullptr;
+    if (CSceneTreeNode* treeNode = GetSceneTreeNode())
+    {
+        if (CSceneNode* owner = treeNode->GetOwner())
+        {
+            scene = owner->GetScene();
+        }
+    }
+
+    if (!scene)
+    {
+        // Node is currently unlinked or being destroyed; exit early
+        return;
+    }
     std::string sn = "";
     std::string bn = "";
     if (GetSceneTreeNode()->GetOwner()->GetSurface().Get())
