@@ -34,16 +34,19 @@ for (auto* edge : _m.edges())
     if (edge && edge->sharpness > 0.0f)
     {
         incomingSharpEdges++;
+        /*
         std::cout << "[OpenSubdiv] incoming sharp edge "
                   << edge->v0()->name << " - "
                   << edge->v1()->name
                   << " sharpness = " << edge->sharpness
                   << std::endl;
+                  */
     }
 }
-
+/*
 std::cout << "[OpenSubdiv] incoming sharp edge count = "
           << incomingSharpEdges << std::endl;
+          */
     typedef Far::TopologyDescriptor Descriptor;
     Descriptor desc;
 

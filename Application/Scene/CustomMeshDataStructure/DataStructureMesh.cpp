@@ -1350,10 +1350,11 @@ for (Edge* newEdge : newMesh.edgeList)
 
     if (!oldEdge)
     {
+        /*
         std::cout << "[copy] Could not transfer sharpness; old edge not found: "
                   << newEdge->v0()->name << " - "
                   << newEdge->v1()->name << std::endl;
-
+        */
         newEdge->sharpness = 0.0f;
         newEdge->isSharp = false;
         continue;

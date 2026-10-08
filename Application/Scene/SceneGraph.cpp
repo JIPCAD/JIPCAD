@@ -73,7 +73,7 @@ CSceneTreeNode* CSceneTreeNode::CreateTree(CSceneNode* dagNode)
         treeNode->InstanceEntity = treeNode->Owner->Entity->Instantiate(treeNode);
     return treeNode;
 }
-
+/*
 void CSceneTreeNode::RemoveTree()
 {
     for (CSceneTreeNode* child : Children)
@@ -94,7 +94,51 @@ void CSceneTreeNode::RemoveTree()
         //Owner = nullptr;
     }
 }
+*/
+void CSceneTreeNode::RemoveTree()
+{
+    tc::TAutoPtr<CSceneTreeNode> selfGuard = this;
 
+    // 1. Snapshot and recurse children first
+    auto childrenCopy = std::move(Children);
+    Children.clear();
+
+    for (CSceneTreeNode* child : childrenCopy)
+    {
+        if (child)
+            child->RemoveTree();
+    }
+
+    // Unbind the entity's back-pointer to this SceneTreeNode BEFORE clearing Owner
+    if (InstanceEntity)
+    {
+        // Call your entity's setter/method to clear its SceneTreeNode reference
+        InstanceEntity->SetValid(false);
+        InstanceEntity = nullptr;
+    }
+
+    // 2. Unlink 'this' from Parent's Children vector
+    if (Parent)
+    {
+        auto iter = std::find(Parent->Children.begin(), Parent->Children.end(), this);
+        if (iter != Parent->Children.end())
+        {
+            Parent->Children.erase(iter);
+        }
+        Parent = nullptr;
+    }
+
+    // 3. Unlink from Owner's TreeNodes set
+    if (Owner)
+    {
+        auto iter = Owner->TreeNodes.find(this);
+        if (iter != Owner->TreeNodes.end())
+        {
+            Owner->TreeNodes.erase(iter);
+        }
+        Owner = nullptr;
+    }
+}
 void CSceneTreeNode::MarkTreeL2WDirty()
 {
     for (CSceneTreeNode* child : Children)
@@ -159,22 +203,37 @@ void CSceneNode::AddParent(CSceneNode* newParent)
 
 void CSceneNode::RemoveParent(CSceneNode* parent)
 {
+    if (!parent)
+        return;
+
     // Make sure parent is indeed a parent
     auto iter = Parents.find(parent);
     if (iter == Parents.end())
         return;
 
-    // Undo the relationship
+    // Undo the scene node relationship
     Parents.erase(iter);
     auto iter2 = parent->Children.find(this);
-    parent->Children.erase(iter2);
-
-    // Destroy the associated sub-trees
-    for (CSceneTreeNode* parentTreeNode : parent->TreeNodes)
+    if (iter2 != parent->Children.end())
     {
+        parent->Children.erase(iter2);
+    }
+
+    // FIX: Snapshot parent->TreeNodes to prevent iterator invalidation
+    std::vector<CSceneTreeNode*> parentTreeNodesSnapshot(parent->TreeNodes.begin(),
+                                                         parent->TreeNodes.end());
+
+    // Destroy the associated sub-trees safely
+    for (CSceneTreeNode* parentTreeNode : parentTreeNodesSnapshot)
+    {
+        if (!parentTreeNode)
+            continue;
+
         CSceneTreeNode* myTree = parentTreeNode->FindChildOfOwner(this);
         if (myTree)
+        {
             myTree->RemoveTree();
+        }
     }
 }
 

@@ -21,6 +21,11 @@ int main(int argc, char** argv)
     QCommandLineOption detached3dview { QStringList() << "d"
                                                       << "detached3dview",
                                         "Detach the 3D view from the main window" };
+    QCommandLineOption benchmarkMode {
+        QStringList() << "b"
+                      << "benchmark",
+        "Run in automated profiling mode, log metrics to stdout, and exit immediately."
+    };
     parser.setApplicationDescription(QCoreApplication::applicationName());
     parser.addHelpOption();
     parser.addVersionOption();
@@ -29,9 +34,24 @@ int main(int argc, char** argv)
     parser.process(application);
 
     bool detach3DView = !parser.isSet(detached3dview);
+    bool isBenchmark = parser.isSet(benchmarkMode);
+
+    const QStringList posArgs = parser.positionalArguments();
+
+    if (isBenchmark && !posArgs.isEmpty())
+    {
+        // Instantiating CMainWindow triggers AST parsing & CASTSceneAdapter::TraverseFile
+        Nome::CMainWindow* benchmarkWin = new Nome::CMainWindow(posArgs.first(), nullptr, false);
+
+        // Process any remaining pending Qt events
+        QCoreApplication::processEvents();
+
+        delete benchmarkWin;
+        return 0; // Exit immediately after TraverseFile finishes printing to stdout
+    }
 
     Nome::CMainWindow* mainWindow = nullptr;
-    const QStringList posArgs = parser.positionalArguments();
+    //const QStringList posArgs = parser.positionalArguments();
     for (const QString& file : posArgs)
     {
         Nome::CMainWindow* newWin = new Nome::CMainWindow(file, nullptr, detach3DView);
