@@ -548,9 +548,12 @@ void Mesh::buildBoundary()
                         // cout<<currVert -> ID<<endl;
                         Face* currFace = currEdge->fa;
                         nextBoundaryEdge = currEdge->nextEdge(currVert, currFace);
-                        while (nextBoundaryEdge->fb != NULL)
+                        while (nextBoundaryEdge != nullptr && nextBoundaryEdge->fb != nullptr)
                         {
                             currFace = nextBoundaryEdge->theOtherFace(currFace);
+                            if (!currFace)
+                                break;
+
                             nextBoundaryEdge = nextBoundaryEdge->nextEdge(currVert, currFace);
                         }
                         currEdge->setNextEdge(currVert, NULL, nextBoundaryEdge);

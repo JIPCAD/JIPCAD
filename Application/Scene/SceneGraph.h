@@ -1,14 +1,15 @@
 #pragma once
-#include "Surface.h"
 #include "Backface.h"
+#include "Surface.h"
 #include "Transforms.h"
 #include <Parsing/ASTContext.h>
 #include <SignalSlot.h>
 #include <map>
+#include <queue>
 #include <set>
 #include <string>
 #include <utility>
-#include <queue>
+#include <vector>
 
 namespace Nome::Scene
 {
@@ -40,7 +41,7 @@ public:
     CSceneTreeNode* FindChildOfOwner(CSceneNode* owner) const;
     CSceneTreeNode* FindChild(const std::string& name) const;
     CSceneTreeNode* GetParent() const { return Parent; } // Randy added this 9/22/2020
-    const std::set<CSceneTreeNode*>& GetChildren() const { return Children; }
+    const std::vector<CSceneTreeNode*>& GetChildren() const { return Children; }
     std::string GetPath() const;
 
     FSignal<void()> OnTransformChange;
@@ -58,7 +59,7 @@ private:
     // Private fields, accessible to CSceneNode though
     CSceneNode* Owner;
     CSceneTreeNode* Parent = nullptr;
-    std::set<CSceneTreeNode*> Children;
+    std::vector<CSceneTreeNode*> Children;
 
     // This is non-null if the entity is instantiable
     TAutoPtr<CEntity> InstanceEntity;
@@ -79,9 +80,8 @@ public:
     const std::string& GetName() const { return Name; }
     bool SetName(std::string newName);
     bool IsGroup() const { return bIsGroup; }
-    //Aaron's code, allowing for better interactive mesh
+    // Aaron's code, allowing for better interactive mesh
     bool IsSubdivision() const { return bIsSubdivision; }
-
 
     // Hierarchy management
     void AddParent(CSceneNode* newParent);
@@ -90,20 +90,30 @@ public:
     CSceneNode* FindChildNode(const std::string& name);
     CSceneNode* FindOrCreateChildNode(const std::string& name);
     // For subdivision merge
-    template <typename TFunc>
-    void ForEachTreeNode(const TFunc& func) const
+    template <typename TFunc> void ForEachTreeNode(const TFunc& func) const
     {
-        for (auto treeNode : TreeNodes)
+        std::vector<CSceneTreeNode*> stack;
+        stack.reserve(1024);
+
+        for (const auto& treeNode : TreeNodes)
         {
-            std::queue<CSceneTreeNode*> q;
-            q.push(treeNode);
-            while (!q.empty())
+            if (!treeNode)
+                continue;
+
+            stack.push_back(treeNode.Get());
+            while (!stack.empty())
             {
-                func(q.front());
-                const auto& childNodes = q.front()->GetChildren();
+                CSceneTreeNode* current = stack.back();
+                stack.pop_back();
+
+                func(current);
+
+                const auto& childNodes = current->GetChildren();
                 for (CSceneTreeNode* child : childNodes)
-                    q.push(child);
-                q.pop();
+                {
+                    if (child)
+                        stack.push_back(child);
+                }
             }
         }
     }
@@ -131,8 +141,8 @@ public:
     AST::ACommand* BuildASTCommand(Nome::AST::CASTContext& ctx) const;
     void SyncToAST(AST::CASTContext& ctx);
 
-    
-    const void ClearChildren() { 
+    const void ClearChildren()
+    {
         auto childrenCopy = Children;
         for (const auto& child : childrenCopy)
         {
@@ -141,8 +151,7 @@ public:
         }
         Children.clear();
     }
-    const std::set<TAutoPtr<CSceneNode>>& GetSceneNodeChildren () {return Children;}
-
+    const std::set<TAutoPtr<CSceneNode>>& GetSceneNodeChildren() { return Children; }
 
     void SelectNode() { SelectBool = true; } // Randy added this on 11/21 for selection coloring
     void DoneSelecting()

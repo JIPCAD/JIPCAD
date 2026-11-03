@@ -231,28 +231,18 @@ void FlattenSceneGraph(Nome::Scene::CSceneNode* rootNode)
     if (!rootNode)
         return;
 
-    struct LeafInfo
+    struct FlatLeaf
     {
-        tc::TAutoPtr<Nome::Scene::CSceneNode> node; // Keeps node alive
-        tc::TAutoPtr<Nome::Scene::CSceneNode> parent; // Keeps parent alive
-        tc::Matrix3x4 relativeTransform;
+        std::string name;
+        Nome::Scene::CEntity* entity = nullptr;
+        tc::Matrix3x4 worldTransform;
         tc::TAutoPtr<Nome::Scene::CSurface> surface;
     };
 
-    struct IntermediaryInfo
-    {
-        tc::TAutoPtr<Nome::Scene::CSceneNode> node;
-        tc::TAutoPtr<Nome::Scene::CSceneNode> parent;
-    };
+    std::vector<FlatLeaf> flatLeaves;
 
-    std::vector<LeafInfo> leaves;
-    std::vector<IntermediaryInfo> intermediaryNodes;
-
-    leaves.reserve(65536);
-    intermediaryNodes.reserve(32768);
-
-    // 1. Recursive Top-Down Traversal
-    auto traverse = [&](auto& self, Nome::Scene::CSceneNode* node, Nome::Scene::CSceneNode* parent,
+    // 1. Traverse Pass: Accumulate world transforms & collect all leaf entity instances
+    auto traverse = [&](auto& self, Nome::Scene::CSceneNode* node,
                         const tc::Matrix3x4& accTransform,
                         Nome::Scene::CSurface* accSurface) -> void
     {
@@ -266,70 +256,57 @@ void FlattenSceneGraph(Nome::Scene::CSceneNode* rootNode)
         auto nodeSurf = node->GetSurface();
         Nome::Scene::CSurface* currentSurface = nodeSurf.Get() ? nodeSurf.Get() : accSurface;
 
-        const auto& children = node->GetSceneNodeChildren();
-        for (const auto& childAuto : children)
-        {
-            if (auto* child = childAuto.Get())
-            {
-                self(self, child, node, currentTransform, currentSurface);
-            }
-        }
-
-        if (node == rootNode)
-            return;
-
         auto* entity = node->GetEntity();
         bool isGroup = node->IsGroup();
 
         if (entity && !isGroup)
         {
-            leaves.push_back({ node, parent, currentTransform, currentSurface });
+            flatLeaves.push_back({ node->GetName(), entity, currentTransform, currentSurface });
         }
         else
         {
-            intermediaryNodes.push_back({ node, parent });
+            const auto& children = node->GetSceneNodeChildren();
+            for (const auto& childAuto : children)
+            {
+                if (auto* child = childAuto.Get())
+                {
+                    self(self, child, currentTransform, currentSurface);
+                }
+            }
         }
     };
 
-    traverse(traverse, rootNode, nullptr, tc::Matrix3x4::IDENTITY, rootNode->GetSurface().Get());
+    traverse(traverse, rootNode, tc::Matrix3x4::IDENTITY, rootNode->GetSurface().Get());
 
-    // 2. PHASE A: Restructure leaf topology under rootNode
-    for (auto& leaf : leaves)
+    // 2. Tear Down Pass: Safely unbind all top-level branches from rootNode.
+    // ClearChildren() calls RemoveParent(rootNode) on top-level children, which safely
+    // dismantles all intermediate container CSceneNodes and CSceneTreeNodes in one pass.
+    rootNode->ClearChildren();
+
+    // 3. Rebuild Pass: Instantiate flat 1-level sibling nodes directly under rootNode
+    size_t leafIdx = 0;
+    for (const auto& leaf : flatLeaves)
     {
-        tc::TAutoPtr<Nome::Scene::CSceneNode> nodeGuard = leaf.node;
+        // Unique suffix prevents collisions when multiple instances of a group exist
+        std::string uniqueName = leaf.name.empty() ? ("leaf_" + std::to_string(leafIdx))
+                                                   : (leaf.name + "_" + std::to_string(leafIdx));
+        leafIdx++;
 
-        if (leaf.parent && leaf.parent != rootNode)
+        // CreateChildNode instantiates a fresh CSceneNode and registers a new CSceneTreeNode
+        tc::TAutoPtr<Nome::Scene::CSceneNode> leafNode = rootNode->CreateChildNode(uniqueName);
+        if (leafNode)
         {
-            leaf.node->RemoveParent(leaf.parent);
-            leaf.node->AddParent(rootNode);
+            leafNode->SetEntity(leaf.entity);
+
+            auto* matrixSource = new CStaticMatrixSource(leaf.worldTransform);
+            leafNode->Transform.Connect(matrixSource->MatrixOut);
+
+            if (leaf.surface)
+                leafNode->SetSurface(leaf.surface.Get());
         }
-    }
-
-    // 3. PHASE B: Unlink intermediary container nodes
-    for (auto& inter : intermediaryNodes)
-    {
-        tc::TAutoPtr<Nome::Scene::CSceneNode> interGuard = inter.node;
-        tc::TAutoPtr<Nome::Scene::CSceneNode> parentGuard = inter.parent;
-
-        if (inter.node && inter.parent)
-        {
-            inter.node->RemoveParent(inter.parent);
-        }
-    }
-
-    // 4. PHASE C: Attach new static matrix sources directly
-    for (auto& leaf : leaves)
-    {
-        // Connect() calls matrixSource->AddRef(), taking ownership automatically
-        auto* matrixSource = new CStaticMatrixSource(leaf.relativeTransform);
-
-        leaf.node->Transform.Disconnect();
-        leaf.node->Transform.Connect(matrixSource->MatrixOut);
-
-        if (leaf.surface)
-            leaf.node->SetSurface(leaf.surface.Get());
     }
 }
+
 #include <functional>
 #include <iostream>
 #include <sstream>
@@ -457,12 +434,13 @@ __declspec(noinline) void CASTSceneAdapter::TraverseFile(AST::AFile* astRoot, CS
     std::cout << "========================================\n\n";
 
     // Stop execution early if the deep file failed to load
-    if (flatArray.size() < 1000)
+    /*
+    if (flatArray.size() < -1)
     {
         std::cout << "[ERROR] Deep file not loaded! Current node count (" << flatArray.size()
                   << ") is too small.\n";
         return;
-    }
+    }*/
     // --- TIMERS START ---
     HANDLE hThread = GetCurrentThread();
     ULONG64 cyclesStart = 0, cyclesEnd = 0;
@@ -978,10 +956,11 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
 
                     if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
                     {
+                        /*
                         std::cout << "\nMERGING node=" << node->GetOwner()->GetName()
                                   << " nodePtr=" << node << " entityPtr=" << entity
                                   << " meshPtr=" << mesh;
-
+                                  */
                         mesh->GetDSMesh().computeNormals();
 
                         std::vector<Face*> myFaceList = mesh->GetDSMesh().faceList;
@@ -1014,14 +993,16 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                         }
 
                         merger->MergeIn(*mesh, true);
+                        merger->FinalizeMerge();
                         entity->isMerged = true;
 
                         merger->CreateNormals(mesh->GetDSMesh(), hasFaceNormal,
                                               faceNormalMultiplier, hasVertexNormal,
                                               vertexNormalMultiplier);
+                                
                     }
                 }
-                
+               
                 GEnv.Scene->Update();
                 if (flag)
                 {
@@ -1395,6 +1376,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
 
                     return;
                 }
+
                 // Subdivide the existing merged mesh in place.
                 std::cout << "\nSubdivision resolved source: " << sourceName;
                 std::cout << "\nSubdivision output alias: " << outputName;
@@ -1404,8 +1386,10 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                 tc::TAutoPtr<Scene::CMeshMerger> subdivided = new Scene::CMeshMerger(outputName);
 
                 sourceMesh->changeColors(surfaceName, backfaceName);
+                auto startTime = std::chrono::high_resolution_clock::now();
                 sourceMesh->setSubLevel(width);
                 sourceMesh->Catmull();
+                auto endTime = std::chrono::high_resolution_clock::now();
                 sourceMesh->MarkDirty();
                 sourceMesh->CreateNormalsCurr(hasFaceNormal, faceNormalMultiplier, hasVertexNormal,
                                               vertexNormalMultiplier);
@@ -1418,10 +1402,15 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                     meshMappings[sourceInstanceName] = sourceMesh;
 
                 GEnv.Scene->Update();
+                auto durationMs =
+                    std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime)
+                        .count();
+                double durationSec = std::chrono::duration<double>(endTime - startTime).count();
                 std::cout << "\n[Subdivision Register]"
                           << "\n  output: " << outputName << "\n  provided: " << providedName
                           << "\n  source: " << sourceName
                           << "\n  local source instance: " << sourceInstanceName;
+                          //<< "\n  Execution time: " << durationMs << " ms (" << durationSec << " s)\n";
 
                 GEnv.Scene->Update();
             }

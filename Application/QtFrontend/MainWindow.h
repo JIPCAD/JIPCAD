@@ -36,11 +36,18 @@ public:
 
     [[nodiscard]] const tc::TAutoPtr<Scene::CScene>& GetScene() const { return Scene; }
 
+    void SetBenchmarkMode(bool bEnable) { bIsBenchmarkMode = bEnable; }
+    [[nodiscard]] bool IsBenchmarkMode() const { return bIsBenchmarkMode; }
+
 protected:
     void closeEvent(QCloseEvent* event) override;
     bool hasSliderWithName(QFormLayout* formLayout, std::string name);
     bool eventFilter(QObject* obj, QEvent* event) override;
 
+public slots:
+    void on_actionMerge_triggered();
+    void on_actionSubdivide_triggered();
+    void on_actionOffset_triggered();
 private slots:
     void on_actionNew_triggered();
     void on_actionOpen_triggered();
@@ -53,10 +60,10 @@ private slots:
     // void on_actionSceneAsObj_triggered();
 
 
-    void on_actionMerge_triggered();
+    
     void prepare_for_stl_no_merge();
     void on_actionShell_triggered();
-    void on_actionSubdivide_triggered();
+    
     void on_actionGetSelectedVerts_triggered();
     void on_actionGetSelectedFaces_triggered();
     void on_actionClearSelected_triggered();
@@ -72,7 +79,7 @@ private slots:
     void on_actionChangeBackground_triggered();
     void on_actionAddFace_triggered();
     void on_actionAddPolyline_triggered(); 
-    void on_actionOffset_triggered();
+    
 
      void on_actionRemoveFace_triggered(); // Randy added this. Buggy implementation.
     // void on_actionSharpenFace_triggered(); // Randy added this. Not currently used.
@@ -100,6 +107,7 @@ private slots:
     
 
 private:
+    bool bIsBenchmarkMode = false;
     // Load nome files into the current window, only call one of them
     void mark_inst_dirty();
     void SetupUI();

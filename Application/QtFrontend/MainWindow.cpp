@@ -536,11 +536,17 @@ void CMainWindow::on_actionOffset_triggered() {
     //tc::TAutoPtr<Scene::CMeshMerger> merger = new Scene::CMeshMerger("globalMerge");
     // Contains all nodes in theory.
     bool ok, ok2;
-    double offset_width = QInputDialog::getDouble(this, tr("Please enter the width of the offset"),
-                                tr("Offsetting Width:"), 0.1, 0, 10, 1, &ok, Qt::WindowFlags(), 0.1);
-    double offset_height = QInputDialog::getDouble(this, tr("Please enter the height of the offset"),
-                                                  tr("Offsetting Height:"), 0.1, 0, 10, 1, &ok2,
-                                                  Qt::WindowFlags(), 0.1); 
+    double offset_width = 0.5;
+    double offset_height = 0.1;
+    if (!bIsBenchmarkMode)
+    {
+        double offset_width = QInputDialog::getDouble(
+            this, tr("Please enter the width of the offset"), tr("Offsetting Width:"), 0.1, 0, 10,
+            1, &ok, Qt::WindowFlags(), 0.1);
+        double offset_height = QInputDialog::getDouble(
+            this, tr("Please enter the height of the offset"), tr("Offsetting Height:"), 0.1, 0, 10,
+            1, &ok2, Qt::WindowFlags(), 0.1);
+    }
     ok = ok && ok2;
     Scene->ForEachSceneTreeNode(
         [&](Scene::CSceneTreeNode* node)
@@ -684,9 +690,13 @@ void CMainWindow::on_actionSubdivide_triggered()
                 if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
                 {
                     bool ok;
-                    int sub_level =
-                        QInputDialog::getInt(this, tr("Please enter the level of subdivision"),
-                                             tr("Subdivision Level:"), 3, 0, 10, 1, &ok);
+                    int sub_level = 3;
+                    if (!bIsBenchmarkMode)
+                    {
+                        sub_level =
+                            QInputDialog::getInt(this, tr("Please enter the level of subdivision"),
+                                                 tr("Subdivision Level:"), 3, 0, 10, 1, &ok);
+                    }
                     if (ok && sub_level > 0 && sub_level < 10)
                         mesh->setSubLevel(sub_level);
                     else
@@ -700,9 +710,13 @@ void CMainWindow::on_actionSubdivide_triggered()
                 if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
                 {
                     bool ok;
-                    int sub_level =
-                        QInputDialog::getInt(this, tr("Please enter the level of subdivision"),
-                                             tr("Subdivision Level:"), 3, 0, 10, 1, &ok);
+                    int sub_level = 3;
+                    if (!bIsBenchmarkMode)
+                    {
+                        sub_level =
+                            QInputDialog::getInt(this, tr("Please enter the level of subdivision"),
+                                                 tr("Subdivision Level:"), 3, 0, 10, 1, &ok);
+                    }
                     if (ok && sub_level > 0 && sub_level < 10)
                         mesh->setSubLevel(sub_level);
                     else

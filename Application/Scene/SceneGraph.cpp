@@ -2,6 +2,7 @@
 #include "ASTSceneAdapter.h"
 #include "Entity.h"
 #include <Parsing/ASTContext.h>
+#include <algorithm>
 
 namespace Nome::Scene
 {
@@ -63,7 +64,7 @@ CSceneTreeNode* CSceneTreeNode::CreateTree(CSceneNode* dagNode)
     for (CSceneNode* dagChild : dagNode->Children)
     {
         CSceneTreeNode* treeChild = CreateTree(dagChild);
-        treeNode->Children.insert(treeChild);
+        treeNode->Children.push_back(treeChild);
         treeChild->Parent = treeNode;
     }
 
@@ -194,7 +195,7 @@ void CSceneNode::AddParent(CSceneNode* newParent)
     {
         CSceneTreeNode* myTree = CSceneTreeNode::CreateTree(this);
         myTree->Parent = parentTreeNode;
-        parentTreeNode->Children.insert(myTree);
+        parentTreeNode->Children.push_back(myTree);
     }
     //std::cout << "parent added\n";
     Parents.insert(newParent);

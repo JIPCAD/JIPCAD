@@ -28,7 +28,7 @@ public:
         : CMesh(name)
     {
     }
-
+    void FinalizeMerge();
     // No update yet, please just use one time
     void MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints);
 
