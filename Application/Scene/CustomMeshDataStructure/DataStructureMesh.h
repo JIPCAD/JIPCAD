@@ -19,12 +19,51 @@ class Parameter;
 class Group;
 
 //using namespace glm;
+#include <cmath>
+#include <unordered_map>
 
+struct PointKey
+{
+    int64_t x, y, z;
+    PointKey(const tc::Vector3& pos, float scale = 100000.0f)
+    {
+        x = static_cast<int64_t>(std::round(pos.x * scale));
+        y = static_cast<int64_t>(std::round(pos.y * scale));
+        z = static_cast<int64_t>(std::round(pos.z * scale));
+    }
+    bool operator==(const PointKey& o) const { return x == o.x && y == o.y && z == o.z; }
+};
+
+struct PointKeyHash
+{
+    std::size_t operator()(const PointKey& k) const noexcept
+    {
+        uint64_t h = static_cast<uint64_t>(k.x) * 73856093ULL
+            ^ static_cast<uint64_t>(k.y) * 19349663ULL ^ static_cast<uint64_t>(k.z) * 83492791ULL;
+        h ^= h >> 33;
+        h *= 0xff51afd7ed558ccdULL;
+        h ^= h >> 33;
+        h *= 0xc4ceb9fe1a85ec53ULL;
+        h ^= h >> 33;
+        return static_cast<std::size_t>(h);
+    }
+};
+struct PairVertexHash
+{
+    std::size_t operator()(const std::pair<Vertex*, Vertex*>& p) const noexcept
+    {
+        std::size_t h1 = std::hash<Vertex*> {}(p.first);
+        std::size_t h2 = std::hash<Vertex*> {}(p.second);
+        return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
+    }
+};
 //////////////////////////////////////////////////////////////////////
 // Mesh Class -- A MESH is a collection of polygon facets
 class Mesh
 {
 public:
+    std::unordered_map<PointKey, Vertex*, PointKeyHash> posToVertMap;
+    Vertex* getCanonicalVertex(Vertex* v);
     /* A list of all vertices in this mesh. */
     std::vector<Vertex*> vertList;
     /* A list of all facets in this mesh.*/
@@ -44,7 +83,7 @@ public:
     /*  the above edgeTable one from Nome2 is buggy. for some reason one vertex
                         // always maps to only one edge. Was that intended? */
     std::unordered_map<Vertex*, std::vector<Edge*>> randyedgeTable; 
-
+    std::unordered_map<std::pair<Vertex*, Vertex*>, Edge*, PairVertexHash> pairEdgeTable;
 
 
     int n_vertices();
@@ -122,6 +161,8 @@ public:
     Face* addFace(std::vector<Vertex*> vertices, std::array<float, 3> color,
                   std::string surfaceName = "", std::string backfaceName = "",
                   bool reverseOrder = false);
+    Face* Mesh::addFaceSubdiv(const std::vector<Vertex*>& vertices, const std::string& surfaceName,
+                              const std::string& backfaceName);
     /**
      * @brief delelteFace: Delete a face from this mesh.
      * @param face: the face to be deleted.

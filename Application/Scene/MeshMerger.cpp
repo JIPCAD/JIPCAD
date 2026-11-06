@@ -302,7 +302,7 @@ void CMeshMerger::Catmull2(CMeshInstance& meshInstance, bool shouldMergePoints =
         Catmull2(meshInstance, shouldMergePoints);
     // MergeIn(meshInstance, shouldMergePoints);
 }
-
+/*
 void CMeshMerger::Catmull()
 {
     bool needSubdivision = subdivisionLevel != 0;
@@ -374,20 +374,7 @@ void CMeshMerger::Catmull()
         MergedMesh.buildBoundary();
 
         currMesh = MergedMesh.newMakeCopy();
-        /*
-        std::cout << "DSMesh: v=" << currMesh.n_vertices() << " f=" << currMesh.n_faces() << "\n"
-                  << "OpenMesh: v=" << Mesh.n_vertices() << " f=" << Mesh.n_faces() << "\n";
-        std::cout << "\n Curr Mesh Properties (the one that's rendered): ";
-        std::cout << "vertList=" << currMesh.vertList.size()
-                  << " faceList=" << currMesh.faceList.size()
-                  << " edgeList=" << currMesh.edgeList.size()
-                  << " nameToVert=" << currMesh.nameToVert.size() // if exists
-                  << " nameToFace=" << currMesh.nameToFace.size() // if exists
-                  << "\n";
-        */
-        // MergedMesh = currMesh.newMakeCopy();
-
-        // MergeIn(currMesh.newMakeCopy(), false);
+        
     }
     catch (std::exception& e)
     {
@@ -406,7 +393,71 @@ void CMeshMerger::Catmull()
         Catmull();
     // MergeIn(meshInstance, shouldMergePoints);
 }
+*/ 
+void CMeshMerger::Catmull()
+{
+    bool needSubdivision = (subdivisionLevel > 0);
+    bool needOffset = offsetIdent;
 
+    if ((!needSubdivision && !needOffset) || MergedMesh.vertList.empty())
+    {
+        return;
+    }
+
+    WireFrames.clear();
+    ClearLineStrips();
+    LineStrips.clear();
+    DSFaceWithColor.clear();
+
+    // 1. Process subdivision iteratively in-place on MergedMesh
+    while (subdivisionLevel > 0)
+    {
+        std::cout << "Applying Catmull-Clark subdivision (remaining levels: " << subdivisionLevel
+                  << ")..." << std::endl;
+
+        // Mutates MergedMesh directly (subdivide already calls buildBoundary & computeNormals once
+        // at the end)
+        subdivide(MergedMesh, 1);
+        subdivisionLevel--;
+    }
+
+    // 2. Process offset in-place if requested
+    if (needOffset)
+    {
+        std::cout << "Applying offset..." << std::endl;
+        offset(MergedMesh, h, w, _outerRimSurface, _innerRimSurface, _outerRimHidden,
+               _innerRimHidden);
+    }
+
+    // 3. Single shallow copy to currMesh for rendering (O(1) pointer transfer)
+    MergedMesh.buildBoundary();
+
+    MergedMesh.computeNormals();
+    currMesh = MergedMesh;
+    
+    // 4. Rebuild drawing structures ONCE for GPU rendering
+    WireFrames.clear();
+    WireFrames.reserve(currMesh.edgeList.size());
+    for (auto* edge : currMesh.edgeList)
+    {
+        if (edge && edge->v0() && edge->v1())
+        {
+            WireFrames.push_back({ edge->v0(), edge->v1() });
+        }
+    }
+    /*
+    DSFaceWithColor.clear();
+    for (auto* face : currMesh.faceList)
+    {
+        if (face)
+        {
+            DSFaceWithColor[face] = face->surfaceName;
+        }
+    }
+
+    MarkDirty();
+    */
+}
 // Both of the below functions are used in the ASTSceneAdapter for creating
 // the normal vectors when using tags facenormal and vertexnormal
 // when instantiating a mesh
@@ -415,7 +466,7 @@ void CMeshMerger::Catmull()
 void CMeshMerger::CreateNormalsCurr(bool faceNormals, float faceNormalMultiplier,
                                     bool vertexNormals, float vertexNormalMultiplier)
 {
-    CreateNormals(currMesh.newMakeCopy(), faceNormals, faceNormalMultiplier, vertexNormals,
+    CreateNormals(currMesh, faceNormals, faceNormalMultiplier, vertexNormals,
                   vertexNormalMultiplier);
 }
 
@@ -444,6 +495,7 @@ void CMeshMerger::changeColors(std::string surfaceName, std::string backfaceName
 // Robert added in March 2025
 // Robert modified in March 2026 to use Newell's for face normals and Angle-Weighting for vertex
 // normals
+/*
 void CMeshMerger::CreateNormals(DSMesh& ds, bool faceNormals, float faceNormalMultiplier,
                                 bool vertexNormals, float vertexNormalMultiplier)
 {
@@ -479,37 +531,6 @@ void CMeshMerger::CreateNormals(DSMesh& ds, bool faceNormals, float faceNormalMu
     }
     if (vertexNormals)
     {
-        /*
-        std::map<Vertex*, Vector3> vertNormalMappings;
-        std::vector<Face*> faceList = otherMesh.faceList;
-        int i = 0;
-        for (auto* f : faceList)
-        {
-            std::vector<Vertex*> vertList = f->vertices;
-            Vertex* vCurr = f->vertices[i];
-            Vertex* vPrev = f->vertices[(i - 1 + f->vertices.size()) % f->vertices.size()];
-            Vertex* vNext = f->vertices[(i + 1) % f->vertices.size()];
-            Vector3 e1 = (vPrev->position - vCurr->position);
-            e1.Normalize();
-            Vector3 e2 = (vNext->position - vCurr->position);
-            e2.Normalize();
-            double angle = acos(std::clamp(std::double_t(e1.DotProduct(e2)), -1.0, 1.0));
-            vCurr->normal += (f->normal * angle);
-        }
-        for (const auto& pair : vertNormalMappings)
-        {
-            std::vector<Vertex*> v = {};
-            v.push_back(pair.first);
-            Vertex* distantVert = new Vertex();
-            distantVert->SetPosition(pair.second.x, pair.second.y, pair.second.z);
-            distantVert->position -= pair.first->position;
-            distantVert->position.Normalize();
-            distantVert->position = distantVert->position * vertexNormalMultiplier;
-            distantVert->position += pair.first->position;
-            v.push_back(distantVert);
-            AddLineStrip("vert_normal_" + i, v);
-            i++;
-        }*/
         int i = 0;
         for (auto* v : otherMesh.vertList)
         {
@@ -519,8 +540,8 @@ void CMeshMerger::CreateNormals(DSMesh& ds, bool faceNormals, float faceNormalMu
             distant->position = v->normal; // Get the point the normal points to
             distant->position.Normalize();
             distant->position = distant->position * vertexNormalMultiplier;
-            std::cout << "Added normal (" << distant->position.x << ", " << distant->position.y
-                      << ", " << distant->position.z << ")\n";
+            //std::cout << "Added normal (" << distant->position.x << ", " << distant->position.y
+              //        << ", " << distant->position.z << ")\n";
             distant->position += center->position;
             currNormal.push_back(center);
             currNormal.push_back(distant);
@@ -528,6 +549,64 @@ void CMeshMerger::CreateNormals(DSMesh& ds, bool faceNormals, float faceNormalMu
             AddLineStrip("vert_normal_" + std::to_string(i), currNormal);
             currNormal.clear();
             i++;
+        }
+    }
+}
+*/
+void CMeshMerger::CreateNormals(DSMesh& ds, bool faceNormals, float faceNormalMultiplier,
+                                bool vertexNormals, float vertexNormalMultiplier)
+{
+    if (!faceNormals && !vertexNormals)
+        return;
+
+    // Preserves existing non-normal wireframes
+    std::vector<std::vector<Vertex*>> tmp = WireFrames;
+    ClearLineStrips();
+    WireFrames = std::move(tmp);
+
+    std::vector<Vertex*> currNormal(2);
+
+    if (faceNormals)
+    {
+        int i = 0;
+        for (auto* f : ds.faceList)
+        {
+            if (!f)
+                continue;
+
+            Vertex* center = new Vertex();
+            Vertex* distant = new Vertex();
+
+            center->position = ds.centerPoint(f).position;
+            Vector3 dir = f->normal;
+            dir.Normalize();
+            distant->position = center->position + (dir * faceNormalMultiplier);
+
+            currNormal[0] = center;
+            currNormal[1] = distant;
+            AddLineStrip("face_normal_" + std::to_string(i++), currNormal);
+        }
+    }
+
+    if (vertexNormals)
+    {
+        int i = 0;
+        for (auto* v : ds.vertList)
+        {
+            if (!v)
+                continue;
+
+            Vertex* center = new Vertex();
+            Vertex* distant = new Vertex();
+
+            center->position = v->position;
+            Vector3 dir = v->normal;
+            dir.Normalize();
+            distant->position = center->position + (dir * vertexNormalMultiplier);
+
+            currNormal[0] = center;
+            currNormal[1] = distant;
+            AddLineStrip("vert_normal_" + std::to_string(i++), currNormal);
         }
     }
 }
@@ -729,7 +808,7 @@ void CMeshMerger::MergeCurr()
 
     currMesh = MergedMesh.newMakeCopy();
 }
-
+/*
 void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
 {
     // currMeshInstance = (std::make_shared<CMeshInstance>(meshInstance));
@@ -870,12 +949,153 @@ void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
     MergedMesh.computeNormals();
     currMesh = MergedMesh.newMakeCopy();
 }
+*/
+#include <algorithm>
+#include <cmath>
+#include <unordered_map>
+#include <vector>
 
 
+#include <chrono>
 
+void CMeshMerger::MergeIn(CMeshInstance& meshInstance, bool shouldMergePoints)
+{
+    auto t0 = std::chrono::high_resolution_clock::now();
+
+    treeNode = meshInstance.GetSceneTreeNode();
+    auto tf = meshInstance.GetSceneTreeNode()->L2WTransform.GetValue(tc::Matrix3x4::IDENTITY);
+    MergedMeshTf = tf;
+    auto& otherMesh = meshInstance.GetDSMesh();
+
+    auto meshClass =
+        meshInstance.GetSceneTreeNode()->GetOwner()->GetEntity()->GetMetaObject().ClassName();
+    if (meshClass == "CPolyline" || meshClass == "CBSpline")
+        return;
+
+    // --- STAGE A: Vertices ---
+    auto t_vert_start = std::chrono::high_resolution_clock::now();
+
+    std::unordered_map<Vertex*, Vertex*> vertMap;
+    vertMap.reserve(otherMesh.vertList.size());
+
+    for (auto otherVert : otherMesh.vertList)
+    {
+        Vector3 worldPos = tf * otherVert->position;
+        auto [closestVert, distance] = spatialGrid.findClosest(worldPos, Epsilon);
+
+        if (distance < Epsilon && shouldMergePoints && closestVert)
+        {
+            vertMap[otherVert] = closestVert;
+            closestVert->sharpness = std::max(closestVert->sharpness, otherVert->sharpness);
+        }
+        else
+        {
+            Vertex* copiedVert =
+                new Vertex(worldPos.x, worldPos.y, worldPos.z, MergedMesh.vertList.size());
+            MergedMesh.addVertex(copiedVert);
+
+            spatialGrid.insert(copiedVert);
+
+            vertMap[otherVert] = copiedVert;
+            ++VertCount;
+            copiedVert->sharpness = otherVert->sharpness;
+        }
+    }
+    auto t_vert_end = std::chrono::high_resolution_clock::now();
+
+    // --- STAGE B: Faces ---
+    auto t_face_start = std::chrono::high_resolution_clock::now();
+    for (auto otherFace : otherMesh.faceList)
+    {
+        std::vector<Vertex*> verts;
+        verts.reserve(otherFace->vertices.size());
+        for (auto vert : otherFace->vertices)
+        {
+            Vertex* mapped = vertMap[vert];
+            if (verts.empty() || verts.back() != mapped)
+            {
+                verts.push_back(mapped);
+            }
+        }
+        if (verts.size() > 1 && verts.front() == verts.back())
+        {
+            verts.pop_back();
+        }
+
+        if (verts.size() >= 3)
+        {
+            MergedMesh.addFace(verts, otherFace->surfaceName, otherFace->backfaceName);
+            FaceCount++;
+        }
+    }
+    auto t_face_end = std::chrono::high_resolution_clock::now();
+
+    // --- STAGE C: Edges (Single Pass & Pre-reserved) ---
+    auto t_edge_start = std::chrono::high_resolution_clock::now();
+    WireFrames.reserve(WireFrames.size() + otherMesh.edges().size());
+
+    for (auto* edge : otherMesh.edges())
+    {
+        if (!edge || !edge->v0() || !edge->v1())
+            continue;
+
+        auto it0 = vertMap.find(edge->v0());
+        auto it1 = vertMap.find(edge->v1());
+        if (it0 == vertMap.end() || it1 == vertMap.end())
+            continue;
+
+        Vertex* mergedV0 = it0->second;
+        Vertex* mergedV1 = it1->second;
+
+        if (mergedV0 == mergedV1)
+            continue;
+
+        WireFrames.push_back({ mergedV0, mergedV1 });
+
+        Edge* mergedEdge = MergedMesh.findEdge(mergedV0, mergedV1, false);
+        if (!mergedEdge)
+            continue;
+
+        if (edge->sharpness > 0.0f)
+        {
+            mergedEdge->sharpness = std::max(mergedEdge->sharpness, edge->sharpness);
+            mergedEdge->isSharp = true;
+            mergedV0->sharpness = std::max(mergedV0->sharpness, edge->sharpness);
+            mergedV1->sharpness = std::max(mergedV1->sharpness, edge->sharpness);
+        }
+    }
+    auto t_edge_end = std::chrono::high_resolution_clock::now();
+
+    //currMesh = MergedMesh;
+
+    double ms_vert = std::chrono::duration<double, std::milli>(t_vert_end - t_vert_start).count();
+    double ms_face = std::chrono::duration<double, std::milli>(t_face_end - t_face_start).count();
+    double ms_edge = std::chrono::duration<double, std::milli>(t_edge_end - t_edge_start).count();
+
+    // Uncomment to inspect timing per stage:
+     //std::cout << "[MERGE TIMING BREAKDOWN] Verts: " << ms_vert << " ms | Faces: " << ms_face
+    //          << " ms | Edges: " << ms_edge << " ms" << std::endl;
+}
 void CMeshMerger::FinalizeMerge()
 {
-    
+    MergedMesh.buildBoundary();
+    MergedMesh.computeNormals();
+
+    currMesh = MergedMesh.newMakeCopy();
+
+    // 3. Rebuild WireFrames from currMesh
+    WireFrames.clear();
+    WireFrames.reserve(currMesh.edgeList.size());
+    for (auto* edge : currMesh.edgeList)
+    {
+        if (edge && edge->v0() && edge->v1())
+        {
+            WireFrames.push_back({ edge->v0(), edge->v1() });
+        }
+    }
+
+
+    MarkDirty();
 }
 
 DSMesh CMeshMerger::getCurrMesh() { return currMesh.newMakeCopy(); }
@@ -1289,10 +1509,12 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
                 if (outerHoleSurf.empty())
                     outerHoleSurf = rimSurface;
                 Face* t_face = out.addFace(ribbonVerts, outerHoleSurf, "");
+                t_face->isRibbon = true;
                 if (outerRimHidden != true)
                     out.faceList.back()->hide = false; // for outer boundary ribbon
                 else
                     out.faceList.back()->hide = true;
+               
                 out.faceList.back()->name =
                     out.faceList.back()->name + "_offsetBoundaryRibbon"; //"_offsetRibbon"; //
                 ribbonVerts.push_back(v2_outer);
@@ -1391,7 +1613,7 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
 
                 h_out->name =
                     f_out.name + "_holeOut_" + std::to_string(i) + "_" + std::to_string(j);
-
+                h_out->isHole = true;
                 h_out->normal = O_curr->normal;
 
                 out.addVertex(h_out);
@@ -1402,6 +1624,7 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
 
                 h_in->name = f_in.name + "_holeIn_" + std::to_string(i) + "_" + std::to_string(j);
                 h_in->normal = I_curr->normal;
+                h_in->isHole = true;
 
                 out.addVertex(h_in);
                 innerHoleVerts.push_back(h_in);
@@ -1426,7 +1649,7 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
             for (int j = 0; j < numVerts; ++j)
             {
                 int next = (j + 1) % numVerts;
-                bool isRibbon = f_curr && f_curr->name.rfind("_offsetRibbon") != std::string::npos;
+                bool isRibbon = f_curr && (f_curr->isRibbon || f_curr->name.rfind("_offsetRibbon") != std::string::npos);
                 bool isBoundaryRibbon = false
                     && (f_curr && f_curr->name.find("_offsetBoundaryRibbon") != std::string::npos);
                 // if (isRibbon)
@@ -1477,6 +1700,7 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
                                 "");
                     out.faceList.back()->name = f_curr->name + "_offsetHoleRibbon_"
                         + std::to_string(i) + "_" + std::to_string(j);
+                    out.faceList.back()->isRibbon = true;
                     if (innerRimHidden != true)
                         out.faceList.back()->hide = false; // for hole ribbon
                     else
@@ -1566,6 +1790,8 @@ bool CMeshMerger::offset(DSMesh& _m, double height, double width, std::string ou
     _m = out;
     return true;
 }
+
+
 #undef MESH_FMT_NAME
 #undef MESH_SET_NAME
 
@@ -1706,7 +1932,7 @@ static void ReapplySharpnessToSubdividedEdges(
 #include <omp.h>
 #include <string>
 #include <vector>
-
+/*
 bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
 {
     if (_m.vertList.empty() || _m.faceList.empty())
@@ -1799,12 +2025,12 @@ bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
 
     // Clear old mesh (Destroys original face pointers)
     _m.clear();
-    _m.clearAndDelete();
-    _m.updateVertListAfterDeletion();
-    _m.faceList.clear();
-    _m.vertList.clear();
-    _m.edgeList.clear();
-    _m.boundaryEdgeList().clear();
+    //_m.clearAndDelete();
+    //_m.updateVertListAfterDeletion();
+    //_m.faceList.clear();
+    //_m.vertList.clear();
+    //_m.edgeList.clear();
+    //_m.boundaryEdgeList().clear();
 
     // 7. Mesh Reconstruction
     Far::TopologyLevel const& refLastLevel = refiner->GetLevel(n);
@@ -1863,8 +2089,955 @@ bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
     delete refiner;
     return true;
 }
+*/
+/*
+bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
+{
+    if (_m.vertList.empty() || _m.faceList.empty())
+        return false;
 
+    namespace Far = ::OpenSubdiv::Far;
 
+    const int oldFaceCount = static_cast<int>(_m.faceList.size());
+    const int oldVertCount = static_cast<int>(_m.vertList.size());
+
+    // 1. Parallel Face Metadata Extraction
+    struct FaceMeta
+    {
+        std::string surfaceName;
+        std::string backfaceName;
+    };
+    std::vector<FaceMeta> faceMeta(oldFaceCount);
+
+#pragma omp parallel for schedule(static)
+    for (int i = 0; i < oldFaceCount; ++i)
+    {
+        const auto* f = _m.faceList[i];
+        if (f)
+        {
+            std::string bName = f->backfaceName;
+            if (bName.size() >= 10 && bName.compare(0, 10, "SubdivVert") == 0)
+            {
+                bName.clear();
+            }
+            faceMeta[i] = { f->surfaceName, std::move(bName) };
+        }
+    }
+
+    // 2. Preserve Sharp Edges
+    std::vector<SharpSegment> oldSharpSegments;
+    if (isSharp)
+    {
+        for (auto* edge : _m.edges())
+        {
+            if (edge && edge->v0() && edge->v1() && edge->sharpness > 0.0f)
+            {
+                oldSharpSegments.push_back(
+                    { edge->v0()->position, edge->v1()->position, edge->sharpness });
+            }
+        }
+    }
+
+    // 3. OpenSubdiv Refinement
+    Far::TopologyRefiner* refiner = GetRefiner(_m, isSharp);
+    Far::TopologyRefiner::UniformOptions uniop(n);
+    refiner->RefineUniform(uniop);
+
+    const int totalVerts = refiner->GetNumVerticesTotal();
+    std::vector<Vertex> vbuffer(totalVerts);
+
+    // 4. Parallel Copy of Initial Positions
+#pragma omp parallel for schedule(static)
+    for (int i = 0; i < oldVertCount; ++i)
+    {
+        const auto* v = _m.vertList[i];
+        vbuffer[i].SetPosition(v->position.x, v->position.y, v->position.z);
+    }
+
+    // 5. Primvar Interpolation
+    Far::PrimvarRefiner primvarRefiner(*refiner);
+    Vertex* src = vbuffer.data();
+    for (unsigned int level = 1; level <= n; ++level)
+    {
+        Vertex* dst = src + refiner->GetLevel(level - 1).GetNumVertices();
+        primvarRefiner.Interpolate(level, src, dst);
+        src = dst;
+    }
+
+    // 6. Parent Face Mapping
+    std::vector<int> faceMap(refiner->GetLevel(0).GetNumFaces());
+    std::iota(faceMap.begin(), faceMap.end(), 0);
+
+    for (unsigned int l = 1; l <= n; ++l)
+    {
+        const auto& level = refiner->GetLevel(l);
+        const int numLFaces = level.GetNumFaces();
+        std::vector<int> nextMap(numLFaces);
+        for (int f = 0; f < numLFaces; ++f)
+        {
+            nextMap[f] = faceMap[level.GetFaceParentFace(f)];
+        }
+        faceMap = std::move(nextMap);
+    }
+
+    // 7. CLEAN MESH RESET (Single fast call)
+    _m.clear();
+
+    // 8. Fast Mesh Reconstruction
+    Far::TopologyLevel const& refLastLevel = refiner->GetLevel(n);
+    const int nverts = refLastLevel.GetNumVertices();
+    const int nfaces = refLastLevel.GetNumFaces();
+    const int firstOfLastVerts = totalVerts - nverts;
+
+    _m.vertList.reserve(nverts);
+    _m.faceList.reserve(nfaces);
+
+    // Fast direct vertex allocation (Zero std::string formatting)
+    for (int vert = 0; vert < nverts; ++vert)
+    {
+        float const* pos = vbuffer[vert + firstOfLastVerts].GetPosition();
+        Vertex* v = new Vertex(pos[0], pos[1], pos[2], vert);
+        _m.vertList.push_back(v);
+    }
+
+    // Fast face creation (Bypasses redundant spatial hashing)
+    std::vector<Vertex*> quadVertices(4);
+    for (int face = 0; face < nfaces; ++face)
+    {
+        Far::ConstIndexArray fverts = refLastLevel.GetFaceVertices(face);
+        int idx = faceMap[face];
+        if (idx < 0 || idx >= oldFaceCount)
+            idx = std::clamp(idx, 0, oldFaceCount - 1);
+
+        quadVertices[0] = _m.vertList[fverts[0]];
+        quadVertices[1] = _m.vertList[fverts[1]];
+        quadVertices[2] = _m.vertList[fverts[2]];
+        quadVertices[3] = _m.vertList[fverts[3]];
+
+        // Pass canonicalize = false to skip redundant PointKey spatial hash map lookups
+        _m.addFace(quadVertices, faceMeta[idx].surfaceName, faceMeta[idx].backfaceName, false);
+    }
+
+    // 9. Post-Processing
+    if (isSharp)
+    {
+        ReapplySharpnessToSubdividedEdges(_m, oldSharpSegments);
+    }
+
+    _m.buildBoundary();
+    _m.computeNormals();
+
+    const int finalVertCount = static_cast<int>(_m.vertList.size());
+#pragma omp parallel for schedule(static)
+    for (int i = 0; i < finalVertCount; ++i)
+    {
+        _m.vertList[i]->ID = i;
+    }
+
+    const int finalFaceCount = static_cast<int>(_m.faceList.size());
+#pragma omp parallel for schedule(static)
+    for (int i = 0; i < finalFaceCount; ++i)
+    {
+        _m.faceList[i]->id = i;
+    }
+
+    delete refiner;
+    return true;
+}
+*/
+/*
+bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
+{
+    if (_m.vertList.empty() || _m.faceList.empty())
+        return false;
+
+    namespace Far = ::OpenSubdiv::Far;
+
+    const int oldFaceCount = static_cast<int>(_m.faceList.size());
+    const int oldVertCount = static_cast<int>(_m.vertList.size());
+
+    // 1. Parallel Face Metadata Extraction
+    struct FaceMeta
+    {
+        std::string surfaceName;
+        std::string backfaceName;
+    };
+    std::vector<FaceMeta> faceMeta(oldFaceCount);
+
+#pragma omp parallel for schedule(static)
+    for (int i = 0; i < oldFaceCount; ++i)
+    {
+        const auto* f = _m.faceList[i];
+        if (f)
+        {
+            const std::string& bNameRef = f->backfaceName;
+            std::string bName =
+                (bNameRef.size() >= 10 && bNameRef.compare(0, 10, "SubdivVert") == 0)
+                ? std::string()
+                : bNameRef;
+            faceMeta[i] = { f->surfaceName, std::move(bName) };
+        }
+    }
+
+    // 2. Preserve Sharp Edges
+    std::vector<SharpSegment> oldSharpSegments;
+    if (isSharp)
+    {
+        for (auto* edge : _m.edgeList)
+        {
+            if (edge && edge->v0() && edge->v1() && edge->sharpness > 0.0f)
+            {
+                oldSharpSegments.push_back(
+                    { edge->v0()->position, edge->v1()->position, edge->sharpness });
+            }
+        }
+    }
+
+    // 3. OpenSubdiv Refinement
+    Far::TopologyRefiner* refiner = GetRefiner(_m, isSharp);
+    Far::TopologyRefiner::UniformOptions uniop(n);
+    refiner->RefineUniform(uniop);
+
+    const int totalVerts = refiner->GetNumVerticesTotal();
+    std::vector<Vertex> vbuffer(totalVerts);
+
+    // 4. Parallel Copy of Initial Positions
+#pragma omp parallel for schedule(static)
+    for (int i = 0; i < oldVertCount; ++i)
+    {
+        const auto* v = _m.vertList[i];
+        vbuffer[i].SetPosition(v->position.x, v->position.y, v->position.z);
+    }
+
+    // 5. Primvar Interpolation
+    Far::PrimvarRefiner primvarRefiner(*refiner);
+    Vertex* src = vbuffer.data();
+    for (unsigned int level = 1; level <= n; ++level)
+    {
+        Vertex* dst = src + refiner->GetLevel(level - 1).GetNumVertices();
+        primvarRefiner.Interpolate(level, src, dst);
+        src = dst;
+    }
+
+    // 6. Parallel Parent Face Mapping
+    std::vector<int> faceMap(refiner->GetLevel(0).GetNumFaces());
+    std::iota(faceMap.begin(), faceMap.end(), 0);
+
+    for (unsigned int l = 1; l <= n; ++l)
+    {
+        const auto& level = refiner->GetLevel(l);
+        const int numLFaces = level.GetNumFaces();
+        std::vector<int> nextMap(numLFaces);
+
+#pragma omp parallel for schedule(static)
+        for (int f = 0; f < numLFaces; ++f)
+        {
+            nextMap[f] = faceMap[level.GetFaceParentFace(f)];
+        }
+        faceMap = std::move(nextMap);
+    }
+
+    // 7. CLEAN MESH RESET
+    _m.clear();
+
+    // 8. Mesh Reconstruction
+    Far::TopologyLevel const& refLastLevel = refiner->GetLevel(n);
+    const int nverts = refLastLevel.GetNumVertices();
+    const int nfaces = refLastLevel.GetNumFaces();
+    const int firstOfLastVerts = totalVerts - nverts;
+
+    _m.vertList.resize(nverts);
+    _m.faceList.reserve(nfaces);
+
+    // Fast Parallel Vertex Construction
+#pragma omp parallel for schedule(static)
+    for (int vert = 0; vert < nverts; ++vert)
+    {
+        float const* pos = vbuffer[vert + firstOfLastVerts].GetPosition();
+        Vertex* v = new Vertex(pos[0], pos[1], pos[2], vert);
+        v->ID = vert;
+        _m.vertList[vert] = v;
+    }
+
+    // Sequential Face Creation via addFace (populates face->oneEdge and _m.edgeList)
+    std::vector<Vertex*> quadVertices(4);
+    for (int face = 0; face < nfaces; ++face)
+    {
+        Far::ConstIndexArray fverts = refLastLevel.GetFaceVertices(face);
+        int idx = faceMap[face];
+        if (idx < 0 || idx >= oldFaceCount)
+            idx = std::clamp(idx, 0, oldFaceCount - 1);
+
+        quadVertices[0] = _m.vertList[fverts[0]];
+        quadVertices[1] = _m.vertList[fverts[1]];
+        quadVertices[2] = _m.vertList[fverts[2]];
+        quadVertices[3] = _m.vertList[fverts[3]];
+
+        // Pass canonicalize = false to bypass spatial hash map lookups while building edge topology
+        _m.addFace(quadVertices, faceMeta[idx].surfaceName, faceMeta[idx].backfaceName, false);
+    }
+
+    // Tag Face IDs
+    const int finalFaceCount = static_cast<int>(_m.faceList.size());
+#pragma omp parallel for schedule(static)
+    for (int i = 0; i < finalFaceCount; ++i)
+    {
+        _m.faceList[i]->id = i;
+    }
+
+    // 9. Post-Processing
+    if (isSharp)
+    {
+        ReapplySharpnessToSubdividedEdges(_m, oldSharpSegments);
+    }
+
+    _m.buildBoundary();
+    _m.computeNormals();
+
+    delete refiner;
+    return true;
+}
+*/
+/*
+bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
+{
+    if (_m.vertList.empty() || _m.faceList.empty())
+        return false;
+
+    namespace Far = ::OpenSubdiv::Far;
+
+    const int oldFaceCount = static_cast<int>(_m.faceList.size());
+    const int oldVertCount = static_cast<int>(_m.vertList.size());
+
+    // 1. Parallel Face Metadata Extraction
+    struct FaceMeta
+    {
+        std::string surfaceName;
+        std::string backfaceName;
+    };
+    std::vector<FaceMeta> faceMeta(oldFaceCount);
+
+#pragma omp parallel for schedule(static)
+    for (int i = 0; i < oldFaceCount; ++i)
+    {
+        const auto* f = _m.faceList[i];
+        if (f)
+        {
+            const std::string& bNameRef = f->backfaceName;
+            std::string bName =
+                (bNameRef.size() >= 10 && bNameRef.compare(0, 10, "SubdivVert") == 0)
+                ? std::string()
+                : bNameRef;
+            faceMeta[i] = { f->surfaceName, std::move(bName) };
+        }
+    }
+
+    // 2. Preserve Sharp Edges
+    std::vector<SharpSegment> oldSharpSegments;
+    if (isSharp)
+    {
+        for (auto* edge : _m.edgeList)
+        {
+            if (edge && edge->v0() && edge->v1() && edge->sharpness > 0.0f)
+            {
+                oldSharpSegments.push_back(
+                    { edge->v0()->position, edge->v1()->position, edge->sharpness });
+            }
+        }
+    }
+
+    // 3. OpenSubdiv Refinement (RAII via unique_ptr)
+    std::unique_ptr<Far::TopologyRefiner> refiner(GetRefiner(_m, isSharp));
+    if (!refiner)
+        return false;
+
+    Far::TopologyRefiner::UniformOptions uniop(n);
+    refiner->RefineUniform(uniop);
+
+    const int totalVerts = refiner->GetNumVerticesTotal();
+    std::vector<Vertex> vbuffer(totalVerts);
+
+    // 4. Parallel Copy of Initial Positions
+#pragma omp parallel for schedule(static)
+    for (int i = 0; i < oldVertCount; ++i)
+    {
+        const auto* v = _m.vertList[i];
+        vbuffer[i].SetPosition(v->position.x, v->position.y, v->position.z);
+    }
+
+    // 5. Primvar Interpolation
+    Far::PrimvarRefiner primvarRefiner(*refiner);
+    Vertex* src = vbuffer.data();
+    for (unsigned int level = 1; level <= n; ++level)
+    {
+        Vertex* dst = src + refiner->GetLevel(level - 1).GetNumVertices();
+        primvarRefiner.Interpolate(level, src, dst);
+        src = dst;
+    }
+
+    // 6. Parallel Parent Face Mapping
+    std::vector<int> faceMap(refiner->GetLevel(0).GetNumFaces());
+    std::iota(faceMap.begin(), faceMap.end(), 0);
+
+    for (unsigned int l = 1; l <= n; ++l)
+    {
+        const auto& level = refiner->GetLevel(l);
+        const int numLFaces = level.GetNumFaces();
+        std::vector<int> nextMap(numLFaces);
+
+#pragma omp parallel for schedule(static)
+        for (int f = 0; f < numLFaces; ++f)
+        {
+            nextMap[f] = faceMap[level.GetFaceParentFace(f)];
+        }
+        faceMap = std::move(nextMap);
+    }
+
+    // 7. CLEAN MESH RESET
+    _m.clear();
+
+    // 8. Mesh Reconstruction
+    Far::TopologyLevel const& refLastLevel = refiner->GetLevel(n);
+    const int nverts = refLastLevel.GetNumVertices();
+    const int nfaces = refLastLevel.GetNumFaces();
+    const int firstOfLastVerts = totalVerts - nverts;
+
+    // PRE-RESERVE EDGE CONTAINERS TO PREVENT REALLOCATIONS DURING addFace
+    _m.vertList.resize(nverts);
+    _m.faceList.reserve(nfaces);
+    _m.edgeList.reserve(nfaces * 2); // Prevents dynamic vector resizing in addFace
+    _m.pairEdgeTable.reserve(nfaces * 2);
+
+    // Fast Parallel Vertex Construction
+#pragma omp parallel for schedule(static)
+    for (int vert = 0; vert < nverts; ++vert)
+    {
+        float const* pos = vbuffer[vert + firstOfLastVerts].GetPosition();
+        Vertex* v = new Vertex(pos[0], pos[1], pos[2], vert);
+        v->ID = vert;
+        _m.vertList[vert] = v;
+    }
+
+    // Sequential Face Creation via addFace
+    std::vector<Vertex*> quadVertices(4);
+    for (int face = 0; face < nfaces; ++face)
+    {
+        Far::ConstIndexArray fverts = refLastLevel.GetFaceVertices(face);
+        int idx = faceMap[face];
+        if (idx < 0 || idx >= oldFaceCount)
+            idx = std::clamp(idx, 0, oldFaceCount - 1);
+
+        quadVertices[0] = _m.vertList[fverts[0]];
+        quadVertices[1] = _m.vertList[fverts[1]];
+        quadVertices[2] = _m.vertList[fverts[2]];
+        quadVertices[3] = _m.vertList[fverts[3]];
+
+        _m.addFace(quadVertices, faceMeta[idx].surfaceName, faceMeta[idx].backfaceName, false);
+    }
+
+    // Tag Face IDs
+    const int finalFaceCount = static_cast<int>(_m.faceList.size());
+#pragma omp parallel for schedule(static)
+    for (int i = 0; i < finalFaceCount; ++i)
+    {
+        _m.faceList[i]->id = i;
+    }
+
+    // 9. Post-Processing
+    if (isSharp)
+    {
+        ReapplySharpnessToSubdividedEdges(_m, oldSharpSegments);
+    }
+
+    
+
+    return true;
+}
+*//*
+bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
+{
+    if (_m.vertList.empty() || _m.faceList.empty())
+        return false;
+
+    namespace Far = ::OpenSubdiv::Far;
+
+    const int oldFaceCount = static_cast<int>(_m.faceList.size());
+    const int oldVertCount = static_cast<int>(_m.vertList.size());
+
+    // 1. Face Metadata Extraction (Store value copies of old small face count)
+    struct FaceMeta
+    {
+        std::string surfaceName;
+        std::string backfaceName;
+    };
+    std::vector<FaceMeta> faceMeta(oldFaceCount);
+
+    for (int i = 0; i < oldFaceCount; ++i)
+    {
+        const auto* f = _m.faceList[i];
+        if (f)
+        {
+            const std::string& bNameRef = f->backfaceName;
+            bool isSubdivVert =
+                (bNameRef.size() >= 10 && bNameRef.compare(0, 10, "SubdivVert") == 0);
+            faceMeta[i] = { f->surfaceName, isSubdivVert ? std::string() : f->backfaceName };
+        }
+    }
+
+    // 2. Preserve Sharp Edges
+    std::vector<SharpSegment> oldSharpSegments;
+    if (isSharp)
+    {
+        for (auto* edge : _m.edgeList)
+        {
+            if (edge && edge->v0() && edge->v1() && edge->sharpness > 0.0f)
+            {
+                oldSharpSegments.push_back(
+                    { edge->v0()->position, edge->v1()->position, edge->sharpness });
+            }
+        }
+    }
+
+    // 3. OpenSubdiv Refinement
+    // 3. OpenSubdiv Refinement
+    std::unique_ptr<Far::TopologyRefiner> refiner(GetRefiner(_m, isSharp));
+    if (!refiner)
+        return false;
+
+    Far::TopologyRefiner::UniformOptions uniop(n);
+    uniop.fullTopologyInLastLevel = true; 
+    refiner->RefineUniform(uniop);
+
+    const int totalVerts = refiner->GetNumVerticesTotal();
+    std::vector<Vertex> vbuffer(totalVerts);
+
+    // 4. Parallel Position Copy
+#pragma omp parallel for schedule(static)
+    for (int i = 0; i < oldVertCount; ++i)
+    {
+        const auto* v = _m.vertList[i];
+        vbuffer[i].SetPosition(v->position.x, v->position.y, v->position.z);
+    }
+
+    // 5. Primvar Interpolation
+    Far::PrimvarRefiner primvarRefiner(*refiner);
+    Vertex* src = vbuffer.data();
+    for (unsigned int level = 1; level <= n; ++level)
+    {
+        Vertex* dst = src + refiner->GetLevel(level - 1).GetNumVertices();
+        primvarRefiner.Interpolate(level, src, dst);
+        src = dst;
+    }
+
+    // 6. Parent Face Mapping
+    std::vector<int> faceMap(refiner->GetLevel(0).GetNumFaces());
+    std::iota(faceMap.begin(), faceMap.end(), 0);
+
+    for (unsigned int l = 1; l <= n; ++l)
+    {
+        const auto& level = refiner->GetLevel(l);
+        const int numLFaces = level.GetNumFaces();
+        std::vector<int> nextMap(numLFaces);
+
+#pragma omp parallel for schedule(static)
+        for (int f = 0; f < numLFaces; ++f)
+        {
+            nextMap[f] = faceMap[level.GetFaceParentFace(f)];
+        }
+        faceMap = std::move(nextMap);
+    }
+
+    // 7. Clean Mesh Reset
+    _m.clear();
+
+    // 8. O(1) Thread-Safe Mesh Reconstruction
+    Far::TopologyLevel const& refLastLevel = refiner->GetLevel(n);
+    const int nverts = refLastLevel.GetNumVertices();
+    const int nedges = refLastLevel.GetNumEdges();
+    const int nfaces = refLastLevel.GetNumFaces();
+    const int firstOfLastVerts = totalVerts - nverts;
+
+    _m.vertList.resize(nverts);
+    _m.edgeList.resize(nedges);
+    _m.faceList.resize(nfaces);
+
+    // 8a. Parallel Vertex Instantiation
+#pragma omp parallel for schedule(static)
+    for (int vert = 0; vert < nverts; ++vert)
+    {
+        float const* pos = vbuffer[vert + firstOfLastVerts].GetPosition();
+        Vertex* v = new Vertex(pos[0], pos[1], pos[2], vert);
+        v->ID = vert;
+        _m.vertList[vert] = v;
+    }
+
+    // 8b. Parallel Edge Instantiation (Thread-safe: each thread writes to a unique index)
+#pragma omp parallel for schedule(static)
+    for (int eIdx = 0; eIdx < nedges; ++eIdx)
+    {
+        Far::ConstIndexArray everts = refLastLevel.GetEdgeVertices(eIdx);
+        Vertex* v0 = _m.vertList[everts[0]];
+        Vertex* v1 = _m.vertList[everts[1]];
+
+        Edge* edge = new Edge(v0, v1);
+        edge->edge_ID = eIdx;
+        _m.edgeList[eIdx] = edge;
+    }
+
+    // 8c. Parallel Vertex oneEdge Assignment
+#pragma omp parallel for schedule(static)
+    for (int vert = 0; vert < nverts; ++vert)
+    {
+        Far::ConstIndexArray vedges = refLastLevel.GetVertexEdges(vert);
+        if (vedges.size() > 0)
+        {
+            _m.vertList[vert]->oneEdge = _m.edgeList[vedges[0]];
+        }
+    }
+
+    // 8d. Parallel Face Instantiation
+#pragma omp parallel for schedule(static)
+    for (int face = 0; face < nfaces; ++face)
+    {
+        Far::ConstIndexArray fverts = refLastLevel.GetFaceVertices(face);
+        int idx = faceMap[face];
+        if (idx < 0 || idx >= oldFaceCount)
+            idx = std::clamp(idx, 0, oldFaceCount - 1);
+
+        std::vector<Vertex*> vertices = { _m.vertList[fverts[0]], _m.vertList[fverts[1]],
+                                          _m.vertList[fverts[2]], _m.vertList[fverts[3]] };
+
+        Face* newFace = new Face(vertices);
+        newFace->surfaceName = faceMeta[idx].surfaceName;
+        newFace->backfaceName = faceMeta[idx].backfaceName;
+        newFace->id = face;
+
+        _m.faceList[face] = newFace;
+    }
+
+    // 8e. Sequential Half-Edge Link Wiring (Strict Directional Matching)
+    for (int face = 0; face < nfaces; ++face)
+    {
+        Face* newFace = _m.faceList[face];
+        Far::ConstIndexArray fedges = refLastLevel.GetFaceEdges(face);
+        Far::ConstIndexArray fverts = refLastLevel.GetFaceVertices(face);
+
+        std::vector<Edge*> edgesInFace = { _m.edgeList[fedges[0]], _m.edgeList[fedges[1]],
+                                           _m.edgeList[fedges[2]], _m.edgeList[fedges[3]] };
+
+        std::vector<Vertex*> vertsInFace = { _m.vertList[fverts[0]], _m.vertList[fverts[1]],
+                                             _m.vertList[fverts[2]], _m.vertList[fverts[3]] };
+
+        newFace->oneEdge = edgesInFace[0];
+
+        for (size_t i = 0; i < 4; ++i)
+        {
+            Vertex* vStart = vertsInFace[i];
+            Vertex* vEnd = vertsInFace[(i + 1) % 4];
+
+            Edge* currE = edgesInFace[i];
+            Edge* nextE = edgesInFace[(i + 1) % 4];
+            Edge* prevE = edgesInFace[(i + 3) % 4];
+
+            if (vStart == currE->va && vEnd == currE->vb)
+            {
+                // Face traverses va -> vb
+                currE->fa = newFace;
+                currE->nextVbFa = nextE;
+                currE->nextVaFa = prevE;
+            }
+            else if (vStart == currE->vb && vEnd == currE->va)
+            {
+                // Face traverses vb -> va
+                currE->fb = newFace;
+                currE->nextVaFb = nextE;
+                currE->nextVbFb = prevE;
+            }
+            else
+            {
+                // Fallback for non-standard topology
+                if (currE->fa == nullptr)
+                {
+                    currE->fa = newFace;
+                    currE->nextVbFa = nextE;
+                    currE->nextVaFa = prevE;
+                }
+                else
+                {
+                    currE->fb = newFace;
+                    currE->nextVaFb = nextE;
+                    currE->nextVbFb = prevE;
+                }
+            }
+        }
+    }
+
+    // 8f. Bulk Hash Table Population
+    _m.pairEdgeTable.reserve(nedges * 2);
+    for (Edge* e : _m.edgeList)
+    {
+        if (!e || !e->va || !e->vb)
+            continue;
+        auto key = std::make_pair(std::min(e->va, e->vb), std::max(e->va, e->vb));
+        _m.pairEdgeTable[key] = e;
+        _m.edgeTable[e->va].push_back(e);
+        _m.randyedgeTable[e->va].push_back(e);
+        _m.randyedgeTable[e->vb].push_back(e);
+    }
+
+    // 9. Post-Processing & Boundary Reconstruction
+    _m.buildBoundary();
+
+    if (isSharp)
+    {
+        ReapplySharpnessToSubdividedEdges(_m, oldSharpSegments);
+    }
+
+    return true;
+}
+*/
+bool CMeshMerger::subdivide(DSMesh& _m, unsigned int n)
+{
+    if (_m.vertList.empty() || _m.faceList.empty())
+        return false;
+
+    namespace Far = ::OpenSubdiv::Far;
+
+    const int oldFaceCount = static_cast<int>(_m.faceList.size());
+    const int oldVertCount = static_cast<int>(_m.vertList.size());
+
+    // 1. Face Metadata Extraction
+    struct FaceMeta
+    {
+        std::string surfaceName;
+        std::string backfaceName;
+    };
+    std::vector<FaceMeta> faceMeta(oldFaceCount);
+
+    for (int i = 0; i < oldFaceCount; ++i)
+    {
+        const auto* f = _m.faceList[i];
+        if (f)
+        {
+            const std::string& bNameRef = f->backfaceName;
+            bool isSubdivVert =
+                (bNameRef.size() >= 10 && bNameRef.compare(0, 10, "SubdivVert") == 0);
+            faceMeta[i] = { f->surfaceName, isSubdivVert ? std::string() : f->backfaceName };
+        }
+    }
+
+    // 2. Preserve Sharp Edges
+    std::vector<SharpSegment> oldSharpSegments;
+    if (isSharp)
+    {
+        for (auto* edge : _m.edgeList)
+        {
+            if (edge && edge->v0() && edge->v1() && edge->sharpness > 0.0f)
+            {
+                oldSharpSegments.push_back(
+                    { edge->v0()->position, edge->v1()->position, edge->sharpness });
+            }
+        }
+    }
+
+    // 3. OpenSubdiv Refinement
+    std::unique_ptr<Far::TopologyRefiner> refiner(GetRefiner(_m, isSharp));
+    if (!refiner)
+        return false;
+
+    Far::TopologyRefiner::UniformOptions uniop(n);
+    uniop.fullTopologyInLastLevel = true;
+    refiner->RefineUniform(uniop);
+
+    const int totalVerts = refiner->GetNumVerticesTotal();
+    std::vector<Vertex> vbuffer(totalVerts);
+
+    // 4. Parallel Position Copy
+#pragma omp parallel for schedule(static)
+    for (int i = 0; i < oldVertCount; ++i)
+    {
+        const auto* v = _m.vertList[i];
+        vbuffer[i].SetPosition(v->position.x, v->position.y, v->position.z);
+    }
+
+    // 5. Primvar Interpolation
+    Far::PrimvarRefiner primvarRefiner(*refiner);
+    Vertex* src = vbuffer.data();
+    for (unsigned int level = 1; level <= n; ++level)
+    {
+        Vertex* dst = src + refiner->GetLevel(level - 1).GetNumVertices();
+        primvarRefiner.Interpolate(level, src, dst);
+        src = dst;
+    }
+
+    // 6. Parent Face Mapping (Double-Buffered Allocation)
+    std::vector<int> faceMapSrc(refiner->GetLevel(0).GetNumFaces());
+    std::iota(faceMapSrc.begin(), faceMapSrc.end(), 0);
+    std::vector<int> faceMapDst;
+
+    for (unsigned int l = 1; l <= n; ++l)
+    {
+        const auto& level = refiner->GetLevel(l);
+        const int numLFaces = level.GetNumFaces();
+        faceMapDst.resize(numLFaces);
+
+#pragma omp parallel for schedule(static)
+        for (int f = 0; f < numLFaces; ++f)
+        {
+            faceMapDst[f] = faceMapSrc[level.GetFaceParentFace(f)];
+        }
+        std::swap(faceMapSrc, faceMapDst);
+    }
+
+    // 7. Clean Mesh Reset
+    _m.clear();
+
+    // 8. O(1) Thread-Safe Mesh Reconstruction
+    Far::TopologyLevel const& refLastLevel = refiner->GetLevel(n);
+    const int nverts = refLastLevel.GetNumVertices();
+    const int nedges = refLastLevel.GetNumEdges();
+    const int nfaces = refLastLevel.GetNumFaces();
+    const int firstOfLastVerts = totalVerts - nverts;
+
+    _m.vertList.resize(nverts);
+    _m.edgeList.resize(nedges);
+    _m.faceList.resize(nfaces);
+
+    // 8a. Parallel Vertex Instantiation
+#pragma omp parallel for schedule(static)
+    for (int vert = 0; vert < nverts; ++vert)
+    {
+        float const* pos = vbuffer[vert + firstOfLastVerts].GetPosition();
+        Vertex* v = new Vertex(pos[0], pos[1], pos[2], vert);
+        v->ID = vert;
+        _m.vertList[vert] = v;
+    }
+
+    // 8b. Parallel Edge Instantiation
+#pragma omp parallel for schedule(static)
+    for (int eIdx = 0; eIdx < nedges; ++eIdx)
+    {
+        Far::ConstIndexArray everts = refLastLevel.GetEdgeVertices(eIdx);
+        Vertex* v0 = _m.vertList[everts[0]];
+        Vertex* v1 = _m.vertList[everts[1]];
+
+        Edge* edge = new Edge(v0, v1);
+        edge->edge_ID = eIdx;
+        _m.edgeList[eIdx] = edge;
+    }
+
+    // 8c. Parallel Vertex oneEdge Assignment
+#pragma omp parallel for schedule(static)
+    for (int vert = 0; vert < nverts; ++vert)
+    {
+        Far::ConstIndexArray vedges = refLastLevel.GetVertexEdges(vert);
+        if (vedges.size() > 0)
+        {
+            _m.vertList[vert]->oneEdge = _m.edgeList[vedges[0]];
+        }
+    }
+
+    // 8d. Parallel Face Instantiation
+#pragma omp parallel for schedule(static)
+    for (int face = 0; face < nfaces; ++face)
+    {
+        Far::ConstIndexArray fverts = refLastLevel.GetFaceVertices(face);
+        int idx = faceMapSrc[face];
+        if (idx < 0 || idx >= oldFaceCount)
+            idx = std::clamp(idx, 0, oldFaceCount - 1);
+
+        std::vector<Vertex*> vertices = { _m.vertList[fverts[0]], _m.vertList[fverts[1]],
+                                          _m.vertList[fverts[2]], _m.vertList[fverts[3]] };
+
+        Face* newFace = new Face(vertices);
+        newFace->surfaceName = faceMeta[idx].surfaceName;
+        newFace->backfaceName = faceMeta[idx].backfaceName;
+        newFace->id = face;
+
+        _m.faceList[face] = newFace;
+    }
+
+    // 8e. Sequential Half-Edge Link Wiring (Zero-Allocation Stack Arrays)
+    for (int face = 0; face < nfaces; ++face)
+    {
+        Face* newFace = _m.faceList[face];
+        Far::ConstIndexArray fedges = refLastLevel.GetFaceEdges(face);
+        Far::ConstIndexArray fverts = refLastLevel.GetFaceVertices(face);
+
+        // Fixed-size stack arrays replace dynamic std::vector allocations
+        Edge* edgesInFace[4] = { _m.edgeList[fedges[0]], _m.edgeList[fedges[1]],
+                                 _m.edgeList[fedges[2]], _m.edgeList[fedges[3]] };
+
+        Vertex* vertsInFace[4] = { _m.vertList[fverts[0]], _m.vertList[fverts[1]],
+                                   _m.vertList[fverts[2]], _m.vertList[fverts[3]] };
+
+        newFace->oneEdge = edgesInFace[0];
+
+        for (size_t i = 0; i < 4; ++i)
+        {
+            Vertex* vStart = vertsInFace[i];
+            Vertex* vEnd = vertsInFace[(i + 1) % 4];
+
+            Edge* currE = edgesInFace[i];
+            Edge* nextE = edgesInFace[(i + 1) % 4];
+            Edge* prevE = edgesInFace[(i + 3) % 4];
+
+            if (vStart == currE->va && vEnd == currE->vb)
+            {
+                currE->fa = newFace;
+                currE->nextVbFa = nextE;
+                currE->nextVaFa = prevE;
+            }
+            else if (vStart == currE->vb && vEnd == currE->va)
+            {
+                currE->fb = newFace;
+                currE->nextVaFb = nextE;
+                currE->nextVbFb = prevE;
+            }
+            else
+            {
+                if (currE->fa == nullptr)
+                {
+                    currE->fa = newFace;
+                    currE->nextVbFa = nextE;
+                    currE->nextVaFa = prevE;
+                }
+                else
+                {
+                    currE->fb = newFace;
+                    currE->nextVaFb = nextE;
+                    currE->nextVbFb = prevE;
+                }
+            }
+        }
+    }
+
+    // 8f. Pre-Reserved Hash Table Population
+    _m.pairEdgeTable.reserve(nedges * 2);
+    _m.edgeTable.reserve(nverts * 2);
+    _m.randyedgeTable.reserve(nverts * 2);
+
+    for (Edge* e : _m.edgeList)
+    {
+        if (!e || !e->va || !e->vb)
+            continue;
+        auto key = std::make_pair(std::min(e->va, e->vb), std::max(e->va, e->vb));
+        _m.pairEdgeTable[key] = e;
+        _m.edgeTable[e->va].push_back(e);
+        _m.randyedgeTable[e->va].push_back(e);
+        _m.randyedgeTable[e->vb].push_back(e);
+    }
+
+    // 9. Post-Processing & Boundary Reconstruction
+    _m.buildBoundary();
+
+    if (isSharp)
+    {
+        ReapplySharpnessToSubdividedEdges(_m, oldSharpSegments);
+    }
+
+    return true;
+}
 /// TODO: temporary add the old cc subdivision to subdivide nun-manifold shapes
 using namespace std;
 // Randy changed from DSMesh to void

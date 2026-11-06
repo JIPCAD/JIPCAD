@@ -88,7 +88,7 @@ public:
     /* Update the current position of this vertex.*/
     void update();
 
-
+    bool isHole = false;
     Vertex(Vertex const & src) {
         position.x+= src.position.x;
         position.y+= src.position.y;

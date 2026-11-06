@@ -51,6 +51,7 @@ public:
     std::string backfaceName;
 
     bool hide = false;
+    bool isRibbon = false;
 };
 
 #endif // __FACE_H__

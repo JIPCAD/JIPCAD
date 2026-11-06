@@ -413,7 +413,7 @@ __declspec(noinline) void CASTSceneAdapter::TraverseFile(AST::AFile* astRoot, CS
     InstanciateUnder = GEnv.Scene->GetRootNode();
     for (auto* cmd : astRoot->GetCommands())
         VisitCommandSyncScene(cmd, scene, false);
-    FlattenSceneGraph(GEnv.Scene->GetRootNode());
+    //FlattenSceneGraph(GEnv.Scene->GetRootNode());
     // --- BENCHMARK LOOP START ---
     DumpSceneComparison(scene);
     // --- BENCHMARK PREPARATION (-2 CONTIGUOUS DATA ARRAY) ---
@@ -873,14 +873,15 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                     }
                 }
             }
-            std::cout << "f:" << faceNormalMultiplier << ", v:" << vertexNormalMultiplier;
+            //std::cout << "f:" << faceNormalMultiplier << ", v:" << vertexNormalMultiplier;
             if (command_to_review.type == "merge")
             {
                 // Robert 2/5/2025
                 // Took the code from CMainWindow::on_actionMerge_triggered() and modified it so
                 // referenced instances will be merged.
-                // If you wish to change how merging works, modify the MergeIn function in MeshMerger.cpp
-                
+                // If you wish to change how merging works, modify the MergeIn function in
+                // MeshMerger.cpp
+
                 // One shot merging, and add a new entity and its corresponding node
 
                 // Gather all instances to merge
@@ -894,7 +895,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                     VisitCommandSyncScene(sub, scene, false);
                 }
                 GEnv.Scene->Update();
-                // CMeshMerger is basically a CMesh, but with a MergeIn method. 
+                // CMeshMerger is basically a CMesh, but with a MergeIn method.
                 // Merger will contain ALL the merged vertices (from various meshes)
                 // The name of the CMeshMerger is an identifier
                 tc::TAutoPtr<Scene::CMeshMerger> merger =
@@ -908,15 +909,15 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                 // Seed only the selected group/root nodes you actually want to merge.
                 GEnv.Scene->ForEachSceneTreeNode(
                     [&](Scene::CSceneTreeNode* node)
-                    { 
+                    {
                         for (int i = 0; i < instance_strings.size(); i++)
                         {
                             if (instance_strings[i] == node->GetOwner()->GetName())
                                 nodesToVisit.push_back(node);
                         }
                     });
-                
-
+                merger->FinalizeMerge();
+                merger->ResetSpatialGrid(1e-4f);
                 while (!nodesToVisit.empty())
                 {
                     Scene::CSceneTreeNode* node = nodesToVisit.front();
@@ -927,8 +928,8 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
 
                     if (!visitedNodes.insert(node).second)
                     {
-                        std::cout << "\nSkipping already visited node: "
-                                  << node->GetOwner()->GetName();
+                        //std::cout << "\nSkipping already visited node: "
+                                  //<< node->GetOwner()->GetName();
                         continue;
                     }
 
@@ -953,7 +954,8 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                     auto* entity = node->GetInstanceEntity();
                     if (!entity)
                         entity = node->GetOwner()->GetEntity();
-
+                    
+                
                     if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
                     {
                         /*
@@ -993,16 +995,13 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                         }
 
                         merger->MergeIn(*mesh, true);
-                        merger->FinalizeMerge();
                         entity->isMerged = true;
 
-                        merger->CreateNormals(mesh->GetDSMesh(), hasFaceNormal,
-                                              faceNormalMultiplier, hasVertexNormal,
-                                              vertexNormalMultiplier);
-                                
+                       
                     }
                 }
-               
+                merger->CreateNormals(merger->getCurrMesh(), hasFaceNormal, faceNormalMultiplier,
+                                      hasVertexNormal, vertexNormalMultiplier);
                 GEnv.Scene->Update();
                 if (flag)
                 {
@@ -1028,18 +1027,18 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                                         // the new vertices.
                 sn->SetEntity(
                     merger.Get()); // Set sn, which is the scene node, to point to entity merger
-                std::cout << "\ncmdName: " << command_to_review.name << "\n";
+                //std::cout << "\ncmdName: " << command_to_review.name << "\n";
                 auto* mergedEntity = merger.Get();
 
                 std::string cmdName = command_to_review.name;
                 std::string providedName = command_to_review.provided_command->GetName();
                 std::string entityName = mergedEntity->GetName();
-
+                /*
                 std::cout << "\n[Merge Register]"
                           << "\n  command_to_review.name: " << cmdName
                           << "\n  provided_command name: " << providedName
                           << "\n  merger entity name: " << entityName;
-
+                */
                 // Main aliases
                 meshMappings[cmdName] = mergedEntity;
                 meshMappings[providedName] = mergedEntity;
@@ -1048,7 +1047,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                 // Register the inputs that produced this merge.
                 for (const auto& name : instance_strings)
                 {
-                    std::cout << "\n  alias: " << name;
+                    //std::cout << "\n  alias: " << name;
                     meshMappings[name] = mergedEntity;
                 }
             }
@@ -1266,12 +1265,12 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
 
                 if (!sourceInstanceName.empty())
                     meshMappings[sourceInstanceName] = sourceMesh;
-
+                /*
                 std::cout << "\n[Offset Register]"
                           << "\n  output: " << outputName << "\n  provided: " << providedName
                           << "\n  source: " << sourceName
                           << "\n  local source instance: " << sourceInstanceName;
-
+                          */
                 GEnv.Scene->Update();
             }
             else if (command_to_review.type == "subdivision")
@@ -1383,7 +1382,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                 std::cout << "\nSubdivision level: " << width;
 
                 // Create a new merger for the subdivided result.
-                tc::TAutoPtr<Scene::CMeshMerger> subdivided = new Scene::CMeshMerger(outputName);
+                //tc::TAutoPtr<Scene::CMeshMerger> subdivided = new Scene::CMeshMerger(outputName);
 
                 sourceMesh->changeColors(surfaceName, backfaceName);
                 auto startTime = std::chrono::high_resolution_clock::now();
@@ -1556,7 +1555,7 @@ void CASTSceneAdapter::VisitCommandSyncScene(AST::ACommand* cmd, CScene& scene, 
                     }
                 }
             }
-            std::cout << "f:" << faceNormalMultiplier << ", v:" << vertexNormalMultiplier;
+            //std::cout << "f:" << faceNormalMultiplier << ", v:" << vertexNormalMultiplier;
             auto entityName = cmd->GetPositionalIdentAsString(1);
             // std::cout << "name: " << entityName << endl;
             auto entity = GEnv.Scene->FindEntity(entityName);

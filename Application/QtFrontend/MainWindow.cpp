@@ -435,143 +435,121 @@ void CMainWindow::on_actionClearSelected_triggered() {
 
 void CMainWindow::on_actionMerge_triggered()
 {
-    // One shot merging, and add a new entity and its corresponding node
     Scene->Update();
-    // CmeshMerger is basically a CMesh, but with a MergeIn method. Merger will
-    // contain ALL the merged vertices (from various meshes)
-    // The name of the CMeshMerger is an identifier
+
+    // 1. Initialize merger and reset spatial hash grid for vertex welding
     tc::TAutoPtr<Scene::CMeshMerger> merger = new Scene::CMeshMerger("globalMerge");
-    // tc::TAutoPtr<Scene::CMeshMerger> merger2 = new Scene::CMeshMerger("random");
-    bool flag = false;
-    Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
-        // If the node owner is a globalMergeNode, skip as that was a
-        // previously merger mesh (from a previous Merge iteration). We only
-        // want to merge vertices from our actual (non-merged) meshes.
+    merger->ResetSpatialGrid(1e-3f); // Mandatory for vertex welding!
 
-        // this is for the merger. If the merger instance is the globalMergeNode, then it is already 
-        if (node->GetOwner()->GetName() == "globalMergeNode")
-        {
-            flag = true;
-            return;
-        }
-        auto* entity = node->GetInstanceEntity(); // Else, get the instance
-
-        if (!entity) // Check to see if the an entity is instantiable
-        {
-            entity = node->GetOwner()->GetEntity(); // If it's not instantiable, get entity instead
-        } 
-        //if (entity!=nullptr && entity->IsMesh() && entity->IsEntityValid()){
-        // add any of the above arguments back in if issues arise
-        if ( auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
-        {
-            // set "auto * mesh" to this entity. Call MergeIn to set merger's vertices based on mesh's
-            // vertices. Reminder: an instance identifier is NOT a Mesh, so only real entities get
-            // merged.
-
-            // Preserve coloring after merge - Robert May 6th, 2025
-            std::string sn = "";
-            std::string bn = "";
-            if (node->GetOwner()->GetSurface().Get())
-                sn = node->GetOwner()->GetSurface().Get()->GetName();
-            if (node->GetOwner()->GetBackface().Get())
-                bn = node->GetOwner()->GetBackface().Get()->GetName();
-            //std::cout << "\nColors:" << sn << "\t" << bn << "\n";
-            std::vector<Face*> myFaceList = mesh->GetDSMesh().faceList;
-            if (!sn.empty())
-            {
-                for (Face* f : myFaceList)
-                {
-                    if (f->surfaceName.empty())
-                        f->surfaceName = sn;
-                }
-            }
-            if (!bn.empty())
-            {
-                for (Face* f : myFaceList)
-                {
-                    if (f->backfaceName.empty())
-                        f->backfaceName = bn;
-                }
-            }
-            //mesh->GetDSMesh().faceList = myFaceList;
-            //merger->Catmull();
-            merger->MergeIn(*mesh, true);
-            //merger->changeColors(sn, bn);
-            entity->isMerged = true;
-
-
-        }
-        //}
-    });
-
-    Scene->Update();
-    if (flag)
-    {
-        //repeated merges will not do anything which is cool.
-        return;
-    }
-    // TODO: 10/22 added.  These lines work to reset the scene
-    Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
-        if (node->GetOwner()->GetName() != "globalMergeNode")
-            node->GetOwner()->SetEntity(nullptr);
-    });
-
-
-    Scene->AddEntity(tc::static_pointer_cast<Scene::CEntity>(
-        merger)); // Merger now has all the vertices set, so we can add it into the scene as a new
-                  // entity
-    auto* sn = Scene->GetRootNode()->FindOrCreateChildNode("globalMergeNode"); // Add it into the Scene Tree by creating a new node called
-                            // globalMergeNode. Notice, this is the same name everytime you Merge.
-                            // This means you can only have one merger mesh each time. It will
-                            // override previous merger meshes with the new vertices.
-    sn->SetEntity(merger.Get()); // Set sn, which is the scene node, to point to entity merger
-}
-
-//Triggered when the offset option is triggered
-//Aaron's code added the offsetting option to create offsetted faces
-void CMainWindow::on_actionOffset_triggered() { 
-    Scene->Update(); 
-    //Update the scene
-
-    //tc::TAutoPtr<Scene::CMeshMerger> merger = new Scene::CMeshMerger("globalMerge");
-    // Contains all nodes in theory.
-    bool ok, ok2;
-    double offset_width = 0.5;
-    double offset_height = 0.1;
-    if (!bIsBenchmarkMode)
-    {
-        double offset_width = QInputDialog::getDouble(
-            this, tr("Please enter the width of the offset"), tr("Offsetting Width:"), 0.1, 0, 10,
-            1, &ok, Qt::WindowFlags(), 0.1);
-        double offset_height = QInputDialog::getDouble(
-            this, tr("Please enter the height of the offset"), tr("Offsetting Height:"), 0.1, 0, 10,
-            1, &ok2, Qt::WindowFlags(), 0.1);
-    }
-    ok = ok && ok2;
+    // 2. Iterate through scene nodes and merge valid mesh instances
     Scene->ForEachSceneTreeNode(
         [&](Scene::CSceneTreeNode* node)
         {
-            //Aaron's edit, removing the necessiy of globalMergeNode
-            //if (node->GetOwner()->GetName() == "globalMergeNode")
-            //{
+            if (!node || !node->GetOwner())
+                return;
+
+            // Skip globalMergeNode so we don't merge previously merged results into themselves
+            if (node->GetOwner()->GetName() == "globalMergeNode")
+                return;
+
+            auto* entity = node->GetInstanceEntity();
+            if (!entity)
+                entity = node->GetOwner()->GetEntity();
+
+            if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
+            {
+                std::string sn = "";
+                std::string bn = "";
+                if (node->GetOwner()->GetSurface().Get())
+                    sn = node->GetOwner()->GetSurface().Get()->GetName();
+                if (node->GetOwner()->GetBackface().Get())
+                    bn = node->GetOwner()->GetBackface().Get()->GetName();
+
+                const auto& myFaceList = mesh->GetDSMesh().faceList;
+                if (!sn.empty() || !bn.empty())
+                {
+                    for (Face* f : myFaceList)
+                    {
+                        if (f)
+                        {
+                            if (!sn.empty() && f->surfaceName.empty())
+                                f->surfaceName = sn;
+                            if (!bn.empty() && f->backfaceName.empty())
+                                f->backfaceName = bn;
+                        }
+                    }
+                }
+
+                merger->MergeIn(*mesh, true);
+                entity->isMerged = true;
+            }
+        });
+    merger->FinalizeMerge();
+    // 3. Compute normals ONCE for the final merged topology
+    merger->getCurrMesh().computeNormals();
+
+    // 4. Detach original entities and update globalMergeNode
+    Scene->ForEachSceneTreeNode(
+        [&](Scene::CSceneTreeNode* node)
+        {
+            if (node && node->GetOwner() && node->GetOwner()->GetName() != "globalMergeNode")
+                node->GetOwner()->SetEntity(nullptr);
+        });
+
+    Scene->AddEntity(tc::static_pointer_cast<Scene::CEntity>(merger));
+    auto* sn = Scene->GetRootNode()->FindOrCreateChildNode("globalMergeNode");
+    sn->SetEntity(merger.Get());
+
+    Scene->Update();
+}
+//Triggered when the offset option is triggered
+//Aaron's code added the offsetting option to create offsetted faces
+void CMainWindow::on_actionOffset_triggered()
+{
+    Scene->Update();
+
+    double offset_width = 0.5;
+    double offset_height = 0.1;
+    bool ok = true;
+
+    // Prompt user ONCE outside the loop (Fixed variable shadowing bug)
+    if (!bIsBenchmarkMode)
+    {
+        bool okWidth = false, okHeight = false;
+        offset_width = QInputDialog::getDouble(this, tr("Please enter the width of the offset"),
+                                               tr("Offsetting Width:"), 0.1, 0, 10, 1, &okWidth,
+                                               Qt::WindowFlags(), 0.1);
+
+        offset_height = QInputDialog::getDouble(this, tr("Please enter the height of the offset"),
+                                                tr("Offsetting Height:"), 0.1, 0, 10, 1, &okHeight,
+                                                Qt::WindowFlags(), 0.1);
+
+        ok = okWidth && okHeight;
+    }
+
+    if (!ok)
+        return;
+
+    // Apply offset to all CMeshMerger target nodes
+    Scene->ForEachSceneTreeNode(
+        [&](Scene::CSceneTreeNode* node)
+        {
+            if (!node || !node->GetOwner())
+                return;
+
             auto* entity = node->GetOwner()->GetEntity();
             if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
             {
-                if (ok && offset_width >= 0)
-                    mesh->setOffsetHeightWidth(offset_height, offset_width);
-                else
-                    mesh->setOffsetHeightWidth(0.1f, 0.1f);
+                mesh->setOffsetHeightWidth(offset_height, offset_width);
                 mesh->setOffset(true);
                 mesh->Catmull();
                 mesh->setOffset(false);
                 mesh->MarkDirty();
             }
-            //}
         });
-    //on_actionMerge_triggered();
 
+    Scene->Update();
 }
-
 void CMainWindow::prepare_for_stl_no_merge()
 {
     // One shot merging, and add a new entity and its corresponding node
@@ -677,106 +655,39 @@ void CMainWindow::on_actionShell_triggered() {
 // only subdivide merge nodes
 void CMainWindow::on_actionSubdivide_triggered()
 {
-    // One shot merging, and add a new entity and its corresponding node
     Scene->Update();
-    Scene->ForEachSceneTreeNode([&](Scene::CSceneTreeNode* node) {
-            if (node->GetOwner()->GetName() == "globalMergeNode")
+
+    int sub_level = 3;
+    bool ok = true;
+
+    // Prompt user ONCE outside the loop
+    if (!bIsBenchmarkMode)
+    {
+        sub_level = QInputDialog::getInt(this, tr("Please enter the level of subdivision"),
+                                         tr("Subdivision Level:"), 3, 0, 10, 1, &ok);
+    }
+
+    if (!ok || sub_level <= 0 || sub_level >= 10)
+        sub_level = 3;
+
+    // Run Catmull-Clark subdivision across target CMeshMerger nodes
+    Scene->ForEachSceneTreeNode(
+        [&](Scene::CSceneTreeNode* node)
+        {
+            if (!node || !node->GetOwner())
+                return;
+
+            auto* entity = node->GetOwner()->GetEntity();
+            if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
             {
-                // if (node->GetOwner()->GetName() == "globalMergeNode")
-                //{
-                // Aaron's edits, remove necessity of having merged previously.
-
-                auto* entity = node->GetOwner()->GetEntity();
-                if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
-                {
-                    bool ok;
-                    int sub_level = 3;
-                    if (!bIsBenchmarkMode)
-                    {
-                        sub_level =
-                            QInputDialog::getInt(this, tr("Please enter the level of subdivision"),
-                                                 tr("Subdivision Level:"), 3, 0, 10, 1, &ok);
-                    }
-                    if (ok && sub_level > 0 && sub_level < 10)
-                        mesh->setSubLevel(sub_level);
-                    else
-                        mesh->setSubLevel(3);
-                    mesh->Catmull();
-                    mesh->MarkDirty();
-                }
-                //}
-            } else { //add portion to check only sections of merged nodes are subdivided.
-                auto* entity = node->GetOwner()->GetEntity();
-                if (auto* mesh = dynamic_cast<Scene::CMeshMerger*>(entity))
-                {
-                    bool ok;
-                    int sub_level = 3;
-                    if (!bIsBenchmarkMode)
-                    {
-                        sub_level =
-                            QInputDialog::getInt(this, tr("Please enter the level of subdivision"),
-                                                 tr("Subdivision Level:"), 3, 0, 10, 1, &ok);
-                    }
-                    if (ok && sub_level > 0 && sub_level < 10)
-                        mesh->setSubLevel(sub_level);
-                    else
-                        mesh->setSubLevel(3);
-                    mesh->Catmull();
-                    mesh->MarkDirty();
-                }
+                mesh->setSubLevel(sub_level);
+                mesh->Catmull();
+                mesh->MarkDirty();
             }
-    });
+        });
+
     Scene->Update();
-    ////merge vertices so they can stay that way even if further offsetting operation is applied.
-    //tc::TAutoPtr<Scene::CMeshMerger> merger = new Scene::CMeshMerger("globalMerge");
-    //Scene->ForEachSceneTreeNode(
-    //    [&](Scene::CSceneTreeNode* node)
-    //    {
-    //        // If the node owner is a globalMergeNode, skip as that was a
-    //        // previously merger mesh (from a previous Merge iteration). We only
-    //        // want to merge vertices from our actual (non-merged) meshes.
-
-    //        // this is for the merger. If the merger instance is the globalMergeNode, then it is
-    //        // already
-    //        //if (node->GetOwner()->GetName() != "globalMergeNode")
-    //        //{
-    //        auto* entity = node->GetInstanceEntity(); // Else, get the instance
-
-    //        if (!entity) // Check to see if the an entity is instantiable
-    //        {
-    //            entity = node->GetOwner()
-    //                            ->GetEntity(); // If it's not instantiable, get entity instead
-    //        }
-    //        if (auto* mesh = dynamic_cast<Scene::CMeshInstance*>(entity))
-    //        {
-    //            // set "auto * mesh" to this entity. Call MergeIn to set merger's vertices based
-    //            // on mesh's vertices. Reminder: an instance identifier is NOT a Mesh, so only
-    //            // real entities get merged.
-    //            merger->MergeIn(*mesh, true);
-    //            entity->isMerged = true;
-    //        }
-    //        //}
-    //    });
-
-    //// TODO: 10/22 added.  These lines work to reset the scene
-    //Scene->ForEachSceneTreeNode(
-    //    [&](Scene::CSceneTreeNode* node)
-    //    {
-    //        if (node->GetOwner()->GetName() != "globalMergeNode")
-    //            node->GetOwner()->SetEntity(nullptr);
-    //    });
-
-    //Scene->AddEntity(tc::static_pointer_cast<Scene::CEntity>(
-    //    merger)); // Merger now has all the vertices set, so we can add it into the scene as a new
-    //              // entity
-    //auto* sn = Scene->GetRootNode()->FindOrCreateChildNode(
-    //    "globalMergeNode"); // Add it into the Scene Tree by creating a new node called
-    //                        // globalMergeNode. Notice, this is the same name everytime you Merge.
-    //                        // This means you can only have one merger mesh each time. It will
-    //                        // override previous merger meshes with the new vertices.
-    //sn->SetEntity(merger.Get()); // Set sn, which is the scene node, to point to entity merger
 }
-
 /* Randy temporarily commenting out. Point and Instance don't work.
 void CMainWindow::on_actionPoint_triggered() { }
 
